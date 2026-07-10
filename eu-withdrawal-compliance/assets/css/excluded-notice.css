@@ -1,0 +1,42 @@
+/* EU Withdrawal Compliance — public excluded-product notice. */
+
+.ayudawp-euw-excluded-notice {
+	margin: 1em 0;
+	padding: 0.8em 1em;
+	background: #f3f4f6;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	color: #2c3338;
+	font-size: 0.93em;
+	line-height: 1.5;
+}
+
+.ayudawp-euw-excluded-notice__title {
+	margin: 0 0 0.35em;
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	font-size: 1em;
+	color: #2c3338;
+}
+
+.ayudawp-euw-excluded-notice__title .dashicons {
+	color: #646970;
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+	line-height: 1;
+}
+
+.ayudawp-euw-excluded-notice__title strong {
+	font-weight: 600;
+}
+
+.ayudawp-euw-excluded-notice__body {
+	margin: 0;
+	color: #50575e;
+}
+
+.ayudawp-euw-excluded-notice a {
+	text-decoration: underline;
+}

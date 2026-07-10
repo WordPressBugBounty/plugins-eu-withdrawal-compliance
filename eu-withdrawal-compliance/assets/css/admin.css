@@ -1,0 +1,271 @@
+/**
+ * AyudaWP EU Withdrawal — Admin styles
+ */
+
+.ayudawp-euw-status {
+	display: inline-block;
+	padding: 0.2rem 0.65rem;
+	border-radius: 3px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	line-height: 1.4;
+	text-decoration: none;
+}
+
+a.ayudawp-euw-status:hover {
+	text-decoration: none;
+	opacity: 0.85;
+}
+
+.ayudawp-euw-status-pending {
+	background: #fcf9e8;
+	color: #8a6d00;
+}
+
+.ayudawp-euw-status-accepted {
+	background: #edfaef;
+	color: #00611c;
+}
+
+.ayudawp-euw-status-rejected {
+	background: #fcf0f1;
+	color: #8a1c1f;
+}
+
+.ayudawp-euw-status-completed {
+	background: #e7f1fc;
+	color: #1d4e7a;
+}
+
+/* Empty state in the Withdrawal column on the orders screen.
+   Same box dimensions as the badges so the column lines up regardless of
+   whether the row has a request or not. */
+.ayudawp-euw-status-empty {
+	background: transparent;
+	color: #999;
+}
+
+.ayudawp-euw-meta-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1rem;
+}
+
+.ayudawp-euw-meta-table th {
+	width: 180px;
+	text-align: left;
+	padding: 0.6rem 0.75rem 0.6rem 0;
+	color: #1a1a1a;
+	font-weight: 600;
+	vertical-align: top;
+	border-bottom: 1px solid #f0f0f0;
+}
+
+.ayudawp-euw-meta-table td {
+	padding: 0.6rem 0;
+	border-bottom: 1px solid #f0f0f0;
+	color: #333;
+}
+
+.ayudawp-euw-details {
+	background: #f6f7f7;
+	border: 1px solid #e1e1e1;
+	padding: 1rem 1.25rem;
+	border-radius: 4px;
+}
+
+.ayudawp-euw-details p:last-child {
+	margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Promotional banner (3-column horizontal layout) — prefix `aeuw-`
+   ========================================================================== */
+
+.aeuw-promo-notice {
+	background: #f6f7f7;
+	border: 1px solid #c3c4c7;
+	padding: 20px;
+	margin-top: 20px;
+}
+
+.aeuw-promo-notice > h4 {
+	margin: 0 0 20px;
+	font-size: 15px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.aeuw-promo-columns {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 25px;
+}
+
+.aeuw-promo-column {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+}
+
+.aeuw-promo-column > .dashicons {
+	font-size: 28px;
+	width: 28px;
+	height: 28px;
+	color: var(--aeuw-brand, #2271b1);
+	margin-bottom: 12px;
+}
+
+.aeuw-promo-column h5 {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.4;
+}
+
+.aeuw-promo-column p {
+	margin: 0 0 15px;
+	color: #50575e;
+	font-size: 13px;
+	line-height: 1.5;
+	flex-grow: 1;
+}
+
+/*
+ * Three-class chain (0,3,0) is needed to override the `.wp-core-ui .button`
+ * specificity. WordPress forces min-height: 40px and a tall line-height there.
+ */
+.aeuw-promo-notice .aeuw-promo-column .button {
+	align-self: flex-start;
+	margin-top: auto;
+	white-space: normal;
+	height: auto;
+	min-height: auto;
+	line-height: 1.4;
+	padding: 6px 12px;
+	text-align: center;
+}
+
+@media screen and (max-width: 1200px) {
+	.aeuw-promo-columns {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.aeuw-promo-columns {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   Article 16 excluded items list inside the request detail metabox
+   ========================================================================== */
+
+.ayudawp-euw-excluded-items {
+	margin: 0 0 8px;
+	padding-left: 1.25em;
+	color: #1d2327;
+}
+
+.ayudawp-euw-excluded-items li {
+	margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   Per-product inherited exclusion notice (product editor)
+   ========================================================================== */
+
+.form-field._ayudawp_euw_excluded_field input[type="checkbox"][disabled] {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.form-field._ayudawp_euw_excluded_field .description {
+	display: block;
+	margin-top: 4px;
+	color: #50575e;
+}
+
+/* Withdrawal status description row: long description rendered below the
+   select, aligned with the input column instead of floating next to it. */
+.form-field.ayudawp-euw-status-description-row {
+	margin-top: -8px;
+	margin-bottom: 1em;
+	padding-left: 162px; /* matches WooCommerce .form-field label width */
+}
+
+.form-field.ayudawp-euw-status-description-row .description {
+	display: block;
+	color: #50575e;
+	font-style: italic;
+	line-height: 1.5;
+}
+
+@media (max-width: 782px) {
+
+	.form-field.ayudawp-euw-status-description-row {
+		padding-left: 0;
+	}
+}
+
+/* ==========================================================================
+   Legal disclaimer block (settings page, right before Save)
+   ========================================================================== */
+
+.ayudawp-euw-legal-disclaimer {
+	max-width: 800px;
+	margin: 18px 0 10px;
+	padding: 12px 16px;
+	background: #f3f4f6;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	color: #50575e;
+	font-size: 12.5px;
+	line-height: 1.55;
+}
+
+.ayudawp-euw-legal-disclaimer__title {
+	margin: 0 0 4px;
+	font-weight: 600;
+	color: #50575e;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.ayudawp-euw-legal-disclaimer__title .dashicons {
+	color: #8c8f94;
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	line-height: 1;
+}
+
+.ayudawp-euw-legal-disclaimer__body {
+	margin: 0;
+}
+
+/* ==========================================================================
+   Withdrawal link visibility how-to list
+   ========================================================================== */
+
+.ayudawp-euw-link-howto {
+	margin-left: 1.25em;
+	padding-left: 0;
+}
+
+.ayudawp-euw-link-howto > li {
+	margin-bottom: 14px;
+	line-height: 1.6;
+}
+
+.ayudawp-euw-link-howto code {
+	background: #f0f0f1;
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-size: 0.92em;
+}
