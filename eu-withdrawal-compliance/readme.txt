@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.0.1
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,7 @@ The plugin helps you implement the right of withdrawal requirements of Directive
 * **My Account → Right of withdrawal** endpoint with a per-order "Withdraw" button shown while the order is in an eligible status, deep-linked to the form with the order pre-filled.
 * **Withdrawal notice injected into transactional emails** (processing, completed, customer invoice) with a direct link to the form pre-filled with the order number. Eligible order statuses configurable; admin emails never receive the notice.
 * **Automatic verification of the order/email pair** when WooCommerce is active: the request is matched to a real order and gated by the configured eligible statuses. The 14-day deadline is surfaced as an advisory flag for the admin, not an automatic rejection (the period legally runs from delivery, which the shop verifies).
+* **Optional "Accept unmatched requests" mode**: register requests that do not match any order as *Unverified* for manual review instead of rejecting them upfront, highlighted across the admin (notification email, list badge, detail warning and CSV column). Off by default.
 * **Configurable advisory deadline**: choose order date vs. WooCommerce completion date as the basis, plus optional grace days, for the deadline flag surfaced to the admin — all from the settings UI, no code.
 * **Order-number compatibility** with Sequential Order Numbers (free and Pro) and Custom Order Numbers for WooCommerce (both Tyche and WPFactory) out of the box, plus a filter to add any other numbering plugin or resolver.
 * **"Withdrawal" column** on the WooCommerce orders screen (legacy and HPOS) showing the status of any linked request, toggleable from Screen Options.
@@ -83,7 +84,7 @@ The EU directive becomes enforceable in every member state on June 19, 2026, so 
 * **The only plugin in the directory** that ships the **Annex I.B model withdrawal form** dynamically generated from the shop data, with a printable view — meeting the Art. 6(1)(h) information obligation that the new directive does *not* replace.
 * **The only plugin in the directory** that injects the **two consent checkboxes** (Art. 16(m) digital content and Art. 14(4)(a) service started early) at the WooCommerce checkout, with durable proof persisted on the order.
 * **The only plugin in the directory** that ships **Article 16 product/category exclusions with full subcategory inheritance** — competing plugins gate this behind their own paid Pro tier.
-* **The only plugin in the directory** that integrates natively with the WordPress GDPR tools (Privacy Policy snippet + personal-data exporter and eraser) — no second GDPR plugin to install.
+* **Native integration with the WordPress GDPR tools** (Privacy Policy snippet + personal-data exporter and eraser) — no second GDPR plugin to install.
 * **Standalone or with WooCommerce.** Works without WooCommerce as a self-contained tool (form, shortcode, log, emails, SHA-256, GDPR, Annex I.B) and lights up store-specific features automatically when WooCommerce is detected.
 * **Compatible by default** with Sequential Order Numbers (free and Pro) and Custom Order Numbers for WooCommerce (Tyche and WPFactory), with a filter for any other numbering scheme.
 * **Configurable from the settings UI**, without writing code: deadline basis (order date vs. completion date) and grace days plus an optional strict deadline mode, eligible order statuses, withdrawal page, notification email (now accepting several recipients), email sender and editable status-email texts, consent text per type, excluded-notice text per type, editable form intro, optional B2B consumer self-declaration, Annex I.B trader address/phone/email, and which roles may manage requests.
@@ -203,6 +204,10 @@ Yes. The form, shortcode, withdrawal request log, email notifications, SHA-256 r
 
 Yes. The form accepts both the internal WooCommerce order ID and the displayed order number. The resolver checks a list of known meta keys: the standard `_order_number` and `_order_number_formatted` (WooCommerce Sequential Order Numbers, free and Pro), plus `_alg_wc_full_custom_order_number` and `_alg_wc_custom_order_number` (Tyche / WPFactory "Custom Order Numbers for WooCommerce"). Add other numbering plugins with the `ayudawp_euw_order_number_meta_keys` filter; for schemes computed on the fly (e.g. YITH Sequential Order Number, custom integrations), short-circuit the lookup with the `ayudawp_euw_pre_resolve_wc_order` filter.
 
+= The form says it cannot match the email with the order number. Can I accept those requests anyway? =
+
+By default the form validates the order number and email against your WooCommerce orders and rejects the submission upfront when they do not match. If you prefer not to lose those requests (typos, purchases made outside WooCommerce, a numbering scheme the resolver does not recognise), enable **Accept unmatched requests** under **Withdrawals → Settings → Eligible order statuses**. The request is then registered anyway and flagged as *Unverified*: the consumer sees a notice on the confirmation screen inviting them to double-check the reference (they can still confirm and submit), and the request arrives highlighted in the notification email, in the requests list and in its detail screen, so you verify it manually against your records before deciding. Unverified requests are never linked to an order (no order note, no status or deadline checks) and the acknowledgement of receipt is still sent to the address submitted. Off by default.
+
 = Will the notice appear on every WooCommerce email? =
 
 No. By default the notice is only added to the customer-facing emails relevant to the withdrawal window: order processing, completed and customer invoice (the manually triggered one). Admin emails never receive the notice. The notice is also gated by the configured list of eligible order statuses (default: Processing and Completed) so the manual invoice email only carries it when the order is in one of those statuses. You can change the email list with the `ayudawp_euw_email_ids` filter and the status list under **Withdrawals → Settings → Eligible order statuses** or with the `ayudawp_euw_allowed_statuses` filter.
@@ -283,33 +288,16 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
-= 2.0.1 =
-* Improved: On Polylang and WPML sites, the links to the withdrawal page now resolve to the page translation in the visitor's language: the printable Annex I.B form, the button in WooCommerce emails, the excluded-product "See the full withdrawal policy" link and the [ayudawp_withdrawal_link] shortcode. Single-language sites are unaffected.
-* Fix: The mandatory digital-content consent checkbox (Art. 16(m)) is now validated before WooCommerce PayPal Payments (and other express-checkout smart buttons) open their payment window, so the "you must accept the consent" message appears up front instead of only after returning from PayPal. The payment was never completed without the checkbox; this only corrects the confusing timing.
-
-= 2.0.0 =
-* New: Configurable email sender. Two new fields in Settings ("From name" and "From address") set the sender for the plugin's own emails (acknowledgement, admin notification and status updates), which until now went out with the WordPress default (wordpress@yourdomain). The override is applied around each message only, the same way WooCommerce sets the sender of its own emails, so it never changes the site's global sender. Left empty, the behaviour is unchanged.
-* New: Editable status-change email texts. The body of the accepted, rejected and completed emails can now be edited from Settings, so the wording matches how your shop really works (for example an instant Bizum refund instead of "a few business days"). Left empty, each falls back to the bundled default; the per-request comment field still works for one-off notes.
-* New: Editable (and hideable) intro text on the public form. The introductory paragraph above the form can be edited from Settings, or hidden entirely when the page already explains the withdrawal above the shortcode. The fixed legal note below it stays unchanged, since it must read identically across the form, the confirmation screen and the acknowledgement email.
-* New: Optional strict deadline mode. A setting under Withdrawals → Settings → Withdrawal deadline switches from the default "advisory" behaviour (never blocks, only flags late requests for review) to "strict", which hides the My Account button and rejects new requests once the deadline plus grace days has passed. Advisory stays the default and the safe choice for goods with unpredictable delivery; strict is exact for services, digital content and shop pickup, where the period runs from a date the shop knows. A customer contesting a rejected request is never blocked by it: strict mode stops opening new requests, not handling one already open.
-* New: Optional "bought as a consumer" self-declaration on the form, for shops that also sell to businesses (B2B), where the right of withdrawal does not apply. Off by default; when enabled, the form shows a required checkbox declaring the purchase was made as a consumer (a natural person acting outside their trade or profession), stored with the request as durable proof. A shortcode attribute (consumer_check="yes") and the ayudawp_euw_show_consumer_check filter allow per-page or per-order control.
-* New: Permissions section to choose which user roles, besides the administrator, can view and manage withdrawal requests. Until now any Editor (and, on WooCommerce sites, the Shop manager) could see requests, which hold personal data; the request log now uses its own capability, granted only to the administrator and to the roles you tick. On update, the roles that could already see requests keep their access so nothing breaks, and you tighten it from there; new installs start administrator-only.
-* New: Dedicated trader contact email for the Annex I.B model form, set in Settings (Model withdrawal form section), separate from the notification address, so the public model form can show a clean contact mailbox while internal notices go elsewhere. Left empty it falls back to the notification address and then the site admin email.
-* New: [ayudawp_withdrawal_excluded_notice] shortcode to place the excluded-product notice with page builders (Divi, Elementor, Bricks, ShopLentor, etc.) that render their own product template and skip the standard WooCommerce hook where the notice normally appears. Drop it into the product layout and it prints the notice for the current product when that product is excluded.
-* New: Developer hooks. ayudawp_euw_form_before_submit (action) to render a captcha/anti-spam widget or an extra field inside the form, rejected through the ayudawp_euw_validation_result filter; ayudawp_euw_admin_email_lines to customise the admin notification; and ayudawp_euw_order_number_meta_keys to add custom order-number meta keys. The form shortcode also accepts more pre-fill attributes (name, date, scope, details).
-* Improved: The notification email field now accepts several recipients separated by commas, so the notice of each new request can reach more than one mailbox (shop manager and accounting, for example). Invalid addresses are dropped; if none are valid it falls back to the site admin email.
-* Improved: When the public form is submitted with something missing, each missing or invalid field is now highlighted in red with a short note next to it, instead of a single generic message with no visual cue, so the customer sees exactly what to fix. Accessible (aria-invalid, role="alert") and still without JavaScript.
-* Improved: After each step (confirmation, success message, validation errors) the form now scrolls into view instead of jumping to the top of the page, so the relevant content is where the customer is looking.
-* Fix: Order-number compatibility with Tyche "Custom Order Numbers for WooCommerce". The resolver matched the order only against the _order_number meta, which Tyche does not use, so its customers got "we could not match this email with the order number provided" even with the right details. It now also checks Tyche's _alg_wc_full_custom_order_number and _alg_wc_custom_order_number, with the new ayudawp_euw_order_number_meta_keys filter to add other numbering plugins.
-* Fix: The category "Withdrawal status" dropdown no longer offers a redundant "Standard" option that appeared not to save (in a category it meant the same as the empty option, and the save handler cleared it the same way). The per-product dropdown keeps it, where it is a real override of the category inheritance.
-* Fix: The Annex I.B model form no longer prints "Phone: [Phone number, if any]" when no trader phone is configured. The phone line is optional and is now omitted when empty, and the example shows as a placeholder in the settings field instead.
+= 2.1.0 =
+* New: "Accept unmatched requests" opt-in setting (Withdrawals → Settings → Eligible order statuses). When the order number and email do not match any WooCommerce order the request can now be registered anyway, flagged as "Unverified" for manual review, instead of being rejected upfront. The consumer sees a notice on the confirmation screen inviting them to double-check the reference (and can still confirm); the request arrives highlighted in the notification email (with the matched-order hint when only the billing email differs), in the requests list, in the request detail and in a new "Unverified" column of the CSV export. Unverified requests are never linked to an order and the acknowledgement of receipt is still sent. Off by default: nothing changes unless you enable it.
+* Fix: Uninstall now removes every plugin option and the custom role capabilities the plugin had granted; it previously deleted only three options.
 
 For older changelog entries, please check the [changelog.txt](https://plugins.svn.wordpress.org/eu-withdrawal-compliance/trunk/changelog.txt) file
 
 == Upgrade Notice ==
 
-= 2.0.1 =
-Fixes the consent checkbox timing with PayPal Payments (the warning now shows before the PayPal window opens) and makes the withdrawal-page links follow the visitor's language on Polylang/WPML. Nothing changes on single-language sites.
+= 2.1.0 =
+Adds the opt-in "Accept unmatched requests" setting: register non-matching requests as Unverified for manual review instead of rejecting them upfront. Also a services-only promo banner and complete uninstall cleanup. Nothing changes unless you enable the new setting.
 
 == Support ==
 

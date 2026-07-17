@@ -72,6 +72,15 @@ function ayudawp_euw_admin_column_content( $column, $post_id ) {
 			}
 
 			echo esc_html( $order );
+
+			// Unmatched requests carry no order link; flag them so the admin
+			// spots at a glance which rows need manual verification.
+			if ( '' !== (string) get_post_meta( $post_id, '_ayudawp_euw_unverified', true ) ) {
+				printf(
+					' <span class="ayudawp-euw-status ayudawp-euw-status-unverified">%s</span>',
+					esc_html__( 'Unverified', 'eu-withdrawal-compliance' )
+				);
+			}
 			break;
 
 		case 'ayudawp_euw_scope':

@@ -148,9 +148,6 @@ add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_excluded_notice_assets' )
 /**
  * Enqueue admin CSS on the withdrawal CPT screens and on the settings page.
  *
- * Also loads Thickbox on the settings page so the promo banner can open the
- * "plugin information" modals when the user clicks an Install button.
- *
  * @param string $hook Current admin page hook.
  */
 function ayudawp_euw_enqueue_admin( $hook ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
@@ -179,10 +176,5 @@ function ayudawp_euw_enqueue_admin( $hook ) { // phpcs:ignore Generic.CodeAnalys
 		array(),
 		AYUDAWP_EUW_VERSION
 	);
-
-	// Thickbox is only needed on the settings page where the promo banner lives.
-	if ( $is_settings_screen ) {
-		add_thickbox();
-	}
 }
 add_action( 'admin_enqueue_scripts', 'ayudawp_euw_enqueue_admin' );

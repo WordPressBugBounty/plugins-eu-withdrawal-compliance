@@ -41,6 +41,8 @@ add_action( 'add_meta_boxes', 'ayudawp_euw_register_metabox' );
  */
 function ayudawp_euw_metabox_content( $post ) {
 
+	ayudawp_euw_render_metabox_unverified_notice( (int) $post->ID );
+
 	$fields = array(
 		'name'         => array(
 			'label' => __( 'Customer name', 'eu-withdrawal-compliance' ),
@@ -134,6 +136,62 @@ function ayudawp_euw_metabox_content( $post ) {
 	ayudawp_euw_render_metabox_checkout_consents( (int) $post->ID );
 
 	ayudawp_euw_render_metabox_consumer_declaration( (int) $post->ID );
+}
+
+/**
+ * Render a warning when the request was registered without a matching order.
+ *
+ * Shown at the top of the details metabox so the admin sees, before anything
+ * else, that this request must be verified manually against the shop records
+ * (the "Accept unmatched requests" setting registered it as unverified).
+ *
+ * @param int $post_id Withdrawal CPT ID.
+ */
+function ayudawp_euw_render_metabox_unverified_notice( $post_id ) {
+
+	$reason = (string) get_post_meta( $post_id, '_ayudawp_euw_unverified', true );
+
+	if ( '' === $reason ) {
+		return;
+	}
+
+	echo '<div class="notice notice-warning inline ayudawp-euw-unverified-notice"><p>';
+	echo '<strong>' . esc_html__( 'Unverified request.', 'eu-withdrawal-compliance' ) . '</strong> ';
+
+	if ( 'email_mismatch' === $reason ) {
+
+		$hint     = absint( get_post_meta( $post_id, '_ayudawp_euw_unverified_order_hint', true ) );
+		$edit_url = '';
+
+		if ( $hint && function_exists( 'wc_get_order' ) ) {
+			$hint_order = wc_get_order( $hint );
+
+			if ( $hint_order ) {
+				$edit_url = method_exists( $hint_order, 'get_edit_order_url' )
+					? $hint_order->get_edit_order_url()
+					: admin_url( 'post.php?post=' . $hint . '&action=edit' );
+			}
+		}
+
+		if ( '' !== $edit_url ) {
+			printf(
+				wp_kses(
+					/* translators: 1: order edit URL, 2: WooCommerce order ID. */
+					__( 'The reference matches <a href="%1$s">order #%2$d</a>, but its billing email differs from the address submitted.', 'eu-withdrawal-compliance' ),
+					array( 'a' => array( 'href' => array() ) )
+				),
+				esc_url( $edit_url ),
+				absint( $hint )
+			);
+		} else {
+			esc_html_e( 'The reference matches an existing order, but its billing email differs from the address submitted.', 'eu-withdrawal-compliance' );
+		}
+	} else {
+		esc_html_e( 'No order was found for the reference provided. It may be a typo or a purchase made outside WooCommerce.', 'eu-withdrawal-compliance' );
+	}
+
+	echo ' ' . esc_html__( 'Verify it manually against your records before accepting or rejecting.', 'eu-withdrawal-compliance' );
+	echo '</p></div>';
 }
 
 /**

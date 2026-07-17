@@ -469,6 +469,20 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 		? __( 'Specific products only', 'eu-withdrawal-compliance' )
 		: __( 'Full order', 'eu-withdrawal-compliance' );
 
+	// With the unmatched-requests setting on, an unmatched declaration reaches
+	// this screen instead of erroring out, so warn the consumer before they
+	// confirm: they can fix a typo via "Edit data" or knowingly submit the
+	// request for manual review by the shop.
+	$unverified = '';
+
+	if ( function_exists( 'wc_get_order' ) && ayudawp_euw_accepts_unmatched() ) {
+		$check = ayudawp_euw_validate_wc_order( $data['order'], $data['email'] );
+
+		if ( ! empty( $check['unverified'] ) ) {
+			$unverified = (string) $check['unverified'];
+		}
+	}
+
 	?>
 	<div class="ayudawp-euw-wrapper" id="ayudawp-euw-form">
 
@@ -481,6 +495,12 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 		<p class="ayudawp-euw-legal-note">
 			<?php echo esc_html( ayudawp_euw_legal_conditions_text() ); ?>
 		</p>
+
+		<?php if ( '' !== $unverified ) : ?>
+			<div class="ayudawp-euw-notice ayudawp-euw-notice--warning" role="alert">
+				<p><?php esc_html_e( 'We could not match these details with an order in our records. Please double-check the order number and the email address using the “Edit data” button below. You can still confirm: your request will be registered and reviewed manually by the shop.', 'eu-withdrawal-compliance' ); ?></p>
+			</div>
+		<?php endif; ?>
 
 		<table class="ayudawp-euw-summary">
 			<tbody>

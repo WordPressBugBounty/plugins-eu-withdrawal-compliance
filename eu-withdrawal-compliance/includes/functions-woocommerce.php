@@ -145,21 +145,67 @@ function ayudawp_euw_resolve_wc_order( $order_ref ) {
 }
 
 /**
+ * Whether unmatched requests are accepted and flagged instead of rejected.
+ *
+ * Controlled by the "Accept unmatched requests" checkbox in the eligibility
+ * settings. Off by default: the strict order/email check stays the standard
+ * behaviour unless the merchant opts in.
+ *
+ * @return bool
+ */
+function ayudawp_euw_accepts_unmatched() {
+
+	return 'yes' === get_option( 'ayudawp_euw_accept_unmatched', 'no' );
+}
+
+/**
+ * Human-readable label for the unverified-request reason stored on a request.
+ *
+ * Shared by the CSV export and any listing that prints the flag. Returns an
+ * empty string for a matched request (no meta stored).
+ *
+ * @param string $reason Stored reason ('order_not_found'|'email_mismatch'), or ''.
+ * @return string Translated label, or empty string.
+ */
+function ayudawp_euw_unverified_reason_label( $reason ) {
+
+	if ( '' === (string) $reason ) {
+		return '';
+	}
+
+	$labels = array(
+		'order_not_found' => __( 'Order not found', 'eu-withdrawal-compliance' ),
+		'email_mismatch'  => __( 'Email mismatch', 'eu-withdrawal-compliance' ),
+	);
+
+	return isset( $labels[ $reason ] ) ? $labels[ $reason ] : __( 'Unverified', 'eu-withdrawal-compliance' );
+}
+
+/**
  * Validate that a given order/email pair belongs to a real WC order
  * and that the 14-day withdrawal window is still open.
  *
  * If WooCommerce is not active, the function returns valid by default
  * because we cannot check anything against an order database. When WC is
- * active, the order must exist and the email must match its billing email;
- * sites that genuinely accept non-WC purchases can opt back into the
- * lenient behaviour through the `ayudawp_euw_allow_unverified_order` filter.
+ * active, the order must exist and the email must match its billing email.
+ * Two escape hatches relax the check for unmatched pairs: the
+ * "Accept unmatched requests" setting registers the request anyway, flagged
+ * as unverified for manual review, and the legacy
+ * `ayudawp_euw_allow_unverified_order` filter keeps its original behaviour
+ * (accept as plain valid, no flag) for sites that treat non-WC purchases as
+ * normal business.
  *
  * @param string $order_ref Order number or ID provided by the user.
  * @param string $email     Customer email.
  * @return array {
- *     @type bool   $valid     Whether the order is valid.
- *     @type string $error     Error code if invalid.
- *     @type int    $order_id  WooCommerce order ID if matched.
+ *     @type bool   $valid           Whether the request may proceed.
+ *     @type string $error           Error code if invalid.
+ *     @type int    $order_id        WooCommerce order ID if matched.
+ *     @type string $unverified      Optional. Reason the request was accepted
+ *                                   without a matched order ('order_not_found'
+ *                                   or 'email_mismatch').
+ *     @type int    $unverified_hint Optional. Order ID whose billing email did
+ *                                   not match, stored as an admin-only hint.
  * }
  */
 function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
@@ -177,10 +223,21 @@ function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
 
 	$order = ayudawp_euw_resolve_wc_order( $order_ref );
 
-	// If WooCommerce is active but we cannot match the order, fail validation.
-	// A filter allows opting back into the previous lenient behaviour for sites
-	// that genuinely accept non-WC purchases (manual invoices, marketplaces).
+	// If WooCommerce is active but we cannot match the order, the request fails
+	// validation by default. Two opt-ins relax that: the "Accept unmatched
+	// requests" setting registers it anyway, flagged as unverified for manual
+	// review, and the legacy filter keeps accepting it as plain valid for sites
+	// that genuinely take non-WC purchases (manual invoices, marketplaces).
 	if ( ! $order ) {
+		if ( ayudawp_euw_accepts_unmatched() ) {
+			return array(
+				'valid'      => true,
+				'error'      => '',
+				'order_id'   => 0,
+				'unverified' => 'order_not_found',
+			);
+		}
+
 		if ( apply_filters( 'ayudawp_euw_allow_unverified_order', false, $order_ref, $email ) ) {
 			return $default;
 		}
@@ -192,10 +249,23 @@ function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
 		);
 	}
 
-	// If we have a WC order, verify the email matches.
+	// If we have a WC order, verify the email matches. On mismatch, the
+	// unmatched-requests setting also applies: the request is registered
+	// unlinked (typing an order number is no proof of ownership), with the
+	// order ID stored separately as an admin-only hint for the manual check.
 	$order_email = method_exists( $order, 'get_billing_email' ) ? $order->get_billing_email() : '';
 
 	if ( ! empty( $order_email ) && strtolower( trim( $order_email ) ) !== strtolower( trim( $email ) ) ) {
+		if ( ayudawp_euw_accepts_unmatched() ) {
+			return array(
+				'valid'           => true,
+				'error'           => '',
+				'order_id'        => 0,
+				'unverified'      => 'email_mismatch',
+				'unverified_hint' => $order->get_id(),
+			);
+		}
+
 		return array(
 			'valid'    => false,
 			'error'    => 'order',

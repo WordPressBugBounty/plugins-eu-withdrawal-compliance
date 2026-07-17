@@ -203,12 +203,22 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
 
 	$site_name = get_bloginfo( 'name' );
 
-	$subject = sprintf(
-		/* translators: 1: site name, 2: order number. */
-		__( '[%1$s] New withdrawal request — order %2$s', 'eu-withdrawal-compliance' ),
-		$site_name,
-		$order
-	);
+	// Saved before this email is composed, so the flag is already on the post.
+	$unverified = (string) get_post_meta( $post_id, '_ayudawp_euw_unverified', true );
+
+	$subject = ( '' !== $unverified )
+		? sprintf(
+			/* translators: 1: site name, 2: order number. */
+			__( '[%1$s] New withdrawal request (unverified) — order %2$s', 'eu-withdrawal-compliance' ),
+			$site_name,
+			$order
+		)
+		: sprintf(
+			/* translators: 1: site name, 2: order number. */
+			__( '[%1$s] New withdrawal request — order %2$s', 'eu-withdrawal-compliance' ),
+			$site_name,
+			$order
+		);
 
 	$scope_label = ( 'partial' === $scope )
 		? __( 'Partial withdrawal', 'eu-withdrawal-compliance' )
@@ -238,6 +248,30 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
 		__( 'Details:', 'eu-withdrawal-compliance' ),
 		( ! empty( $details ) ? $details : __( '(empty)', 'eu-withdrawal-compliance' ) ),
 	);
+
+	if ( '' !== $unverified ) {
+		$lines[] = '';
+		$lines[] = __( '⚠ UNVERIFIED REQUEST: these details could not be matched with an order.', 'eu-withdrawal-compliance' );
+
+		if ( 'email_mismatch' === $unverified ) {
+
+			$hint = absint( get_post_meta( $post_id, '_ayudawp_euw_unverified_order_hint', true ) );
+
+			if ( $hint ) {
+				$lines[] = sprintf(
+					/* translators: %d: WooCommerce order ID. */
+					__( 'The reference matches order #%d, but its billing email differs from the address submitted.', 'eu-withdrawal-compliance' ),
+					$hint
+				);
+			} else {
+				$lines[] = __( 'The reference matches an existing order, but its billing email differs from the address submitted.', 'eu-withdrawal-compliance' );
+			}
+		} else {
+			$lines[] = __( 'No order was found for the reference provided. It may be a typo or a purchase made outside WooCommerce.', 'eu-withdrawal-compliance' );
+		}
+
+		$lines[] = __( 'It was registered because “Accept unmatched requests” is enabled. Verify it manually against your records before deciding.', 'eu-withdrawal-compliance' );
+	}
 
 	if ( ! empty( $excluded_items ) ) {
 		$lines[] = '';

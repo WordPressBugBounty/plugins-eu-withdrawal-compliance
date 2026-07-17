@@ -204,6 +204,7 @@ function ayudawp_euw_stream_csv( $posts, $include_pii = false ) {
 		__( 'Acknowledgement sent at (UTC)', 'eu-withdrawal-compliance' ),
 		__( 'Receipt hash (SHA-256)', 'eu-withdrawal-compliance' ),
 		__( 'Excluded items', 'eu-withdrawal-compliance' ),
+		__( 'Unverified', 'eu-withdrawal-compliance' ),
 	);
 
 	if ( $include_pii ) {
@@ -252,6 +253,7 @@ function ayudawp_euw_stream_csv( $posts, $include_pii = false ) {
 			get_post_meta( $id, '_ayudawp_euw_receipt_sent_at', true ),
 			get_post_meta( $id, '_ayudawp_euw_receipt_hash', true ),
 			$excluded_str,
+			ayudawp_euw_unverified_reason_label( (string) get_post_meta( $id, '_ayudawp_euw_unverified', true ) ),
 		);
 
 		if ( $include_pii ) {

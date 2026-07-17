@@ -45,6 +45,13 @@ a.ayudawp-euw-status:hover {
 	color: #999;
 }
 
+/* Requests registered without a matching order ("Accept unmatched requests"):
+   amber badge next to the order reference in the listing. */
+.ayudawp-euw-status-unverified {
+	background: #fdf0e6;
+	color: #944500;
+}
+
 .ayudawp-euw-meta-table {
 	width: 100%;
 	border-collapse: collapse;
@@ -87,13 +94,6 @@ a.ayudawp-euw-status:hover {
 	border: 1px solid #c3c4c7;
 	padding: 20px;
 	margin-top: 20px;
-}
-
-.aeuw-promo-notice > h4 {
-	margin: 0 0 20px;
-	font-size: 15px;
-	font-weight: 600;
-	color: #1d2327;
 }
 
 .aeuw-promo-columns {

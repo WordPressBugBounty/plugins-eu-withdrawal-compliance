@@ -85,6 +85,16 @@ function ayudawp_euw_register_settings() {
 		)
 	);
 
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_accept_unmatched',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'no',
+		)
+	);
+
 	add_settings_section(
 		'ayudawp_euw_main_section',
 		__( 'General', 'eu-withdrawal-compliance' ),
@@ -119,6 +129,14 @@ function ayudawp_euw_register_settings() {
 		'ayudawp_euw_allowed_statuses',
 		__( 'Show withdrawal option for', 'eu-withdrawal-compliance' ),
 		'ayudawp_euw_field_allowed_statuses_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_eligibility_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_accept_unmatched',
+		__( 'Accept unmatched requests', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_accept_unmatched_callback',
 		'ayudawp-euw-settings',
 		'ayudawp_euw_eligibility_section'
 	);
@@ -840,6 +858,39 @@ function ayudawp_euw_field_allowed_statuses_callback() {
 	echo '</fieldset>';
 
 	echo '<p class="description">' . wp_kses( __( '<strong>Recommended.</strong> Defaults to Processing and Completed. Plugins that register additional statuses (e.g. shipping plugins) appear here automatically.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+}
+
+/**
+ * Accept-unmatched-requests checkbox callback.
+ */
+function ayudawp_euw_field_accept_unmatched_callback() {
+
+	if ( ! function_exists( 'wc_get_order' ) ) {
+		echo '<p class="description">' . esc_html__( 'WooCommerce is not active. Without an order database to check against, every request is registered as-is, so this option does not apply.', 'eu-withdrawal-compliance' ) . '</p>';
+		return;
+	}
+
+	$enabled = get_option( 'ayudawp_euw_accept_unmatched', 'no' );
+
+	?>
+	<fieldset>
+		<label>
+			<input type="checkbox" name="ayudawp_euw_accept_unmatched" value="yes" <?php checked( 'yes', $enabled ); ?>>
+			<?php esc_html_e( 'Register requests that do not match any order, flagged as “Unverified”', 'eu-withdrawal-compliance' ); ?>
+		</label>
+		<p class="description">
+			<?php
+			echo wp_kses(
+				__( '<strong>Optional, off by default.</strong> By default a request is rejected upfront when the order number and email do not match a WooCommerce order. With this option enabled it is registered anyway, marked as <em>Unverified</em> in the log and highlighted in the notification email, and you verify it manually against your records before deciding. Useful when customers mistype the reference, or when some sales happen outside WooCommerce. Unverified requests are never linked to an order (no order note, no status or deadline checks) and the acknowledgement of receipt is still sent to the address submitted.', 'eu-withdrawal-compliance' ),
+				array(
+					'strong' => array(),
+					'em'     => array(),
+				)
+			);
+			?>
+		</p>
+	</fieldset>
+	<?php
 }
 
 /**
@@ -1687,9 +1738,9 @@ function ayudawp_euw_settings_page_html() {
 		</p>
 
 		<?php
-		// Promotional banner with rotating AyudaWP plugins and services.
+		// Promotional banner with rotating AyudaWP services.
 		if ( class_exists( 'Ayudawp_Euw_Promo_Banner' ) ) {
-			$promo_banner = new Ayudawp_Euw_Promo_Banner( 'eu-withdrawal-compliance', 'aeuw' );
+			$promo_banner = new Ayudawp_Euw_Promo_Banner( 'aeuw' );
 			$promo_banner->render( 'horizontal' );
 		}
 		?>

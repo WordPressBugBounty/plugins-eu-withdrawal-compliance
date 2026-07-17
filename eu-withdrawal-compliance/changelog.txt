@@ -3,6 +3,10 @@ EU Withdrawal Compliance — Full changelog
 For each release, see the entries below. The latest version is always at the top.
 The current release notes also live in readme.txt under "== Changelog ==".
 
+= 2.1.0 =
+* New: "Accept unmatched requests" opt-in setting (Withdrawals → Settings → Eligible order statuses). When the order number and email do not match any WooCommerce order the request can now be registered anyway, flagged as "Unverified" for manual review, instead of being rejected upfront. The consumer sees a notice on the confirmation screen inviting them to double-check the reference (and can still confirm); the request arrives highlighted in the notification email (with the matched-order hint when only the billing email differs), in the requests list, in the request detail and in a new "Unverified" column of the CSV export. Unverified requests are never linked to an order and the acknowledgement of receipt is still sent. Off by default: nothing changes unless you enable it.
+* Fix: Uninstall now removes every plugin option and the custom role capabilities the plugin had granted; it previously deleted only three options.
+
 = 2.0.1 =
 * Improved: On Polylang and WPML sites, the links to the withdrawal page now resolve to the page translation in the visitor's language: the printable Annex I.B form, the button in WooCommerce emails, the excluded-product "See the full withdrawal policy" link and the [ayudawp_withdrawal_link] shortcode. Single-language sites are unaffected.
 * Fix: The mandatory digital-content consent checkbox (Art. 16(m)) is now validated before WooCommerce PayPal Payments (and other express-checkout smart buttons) open their payment window, so the "you must accept the consent" message appears up front instead of only after returning from PayPal. The payment was never completed without the checkbox; this only corrects the confusing timing.

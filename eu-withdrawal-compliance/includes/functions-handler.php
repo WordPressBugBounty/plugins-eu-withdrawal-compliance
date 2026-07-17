@@ -84,7 +84,9 @@ function ayudawp_euw_validate_submission( $data ) {
 	 * the `ayudawp_euw_form_before_submit` action. Custom error codes fall back to
 	 * the generic message unless added to `ayudawp_euw_get_error_message`.
 	 *
-	 * @param array $wc_validation Result: array( 'valid', 'error', 'order_id' ).
+	 * @param array $wc_validation Result: array( 'valid', 'error', 'order_id' ),
+	 *                             plus 'unverified' (and 'unverified_hint') when
+	 *                             the unmatched-requests setting accepted it.
 	 * @param array $data          Sanitized submission data.
 	 */
 	$wc_validation = apply_filters( 'ayudawp_euw_validation_result', $wc_validation, $data );
@@ -245,6 +247,18 @@ function ayudawp_euw_handle_confirm() {
 		update_post_meta( $post_id, '_ayudawp_euw_consumer', '1' );
 		update_post_meta( $post_id, '_ayudawp_euw_consumer_text', $consumer_text );
 		update_post_meta( $post_id, '_ayudawp_euw_consumer_at', $submitted_at );
+	}
+
+	// Unmatched request accepted for manual verification (opt-in setting):
+	// store the reason and, when the reference matched an order whose billing
+	// email differs, an admin-only hint that speeds up the manual check. Never
+	// linked to the order itself: no proof of ownership, so no order note either.
+	if ( ! empty( $wc_validation['unverified'] ) ) {
+		update_post_meta( $post_id, '_ayudawp_euw_unverified', sanitize_key( $wc_validation['unverified'] ) );
+
+		if ( ! empty( $wc_validation['unverified_hint'] ) ) {
+			update_post_meta( $post_id, '_ayudawp_euw_unverified_order_hint', absint( $wc_validation['unverified_hint'] ) );
+		}
 	}
 
 	$excluded_items = array();

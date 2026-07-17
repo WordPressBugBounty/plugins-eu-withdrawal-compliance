@@ -273,6 +273,12 @@
 	color: #7a1d1f;
 }
 
+.ayudawp-euw-wrapper .ayudawp-euw-notice--warning {
+	background: #fcf9e8;
+	border-color: #dba617;
+	color: #6c5700;
+}
+
 /* --- Honeypot (hidden visually but accessible to bots) ------------------- */
 
 .ayudawp-euw-wrapper .ayudawp-euw-hp {
