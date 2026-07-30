@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Multilingual configuration for EU Withdrawal Compliance.
+
+	Read automatically by WPML (and by Polylang, which supports the same file),
+	so nothing has to be configured by hand on a multilingual shop:
+
+	- admin-texts: the settings that print customer-facing copy become
+	  translatable strings under WPML > String Translation (or Languages >
+	  Translations in Polylang). Only settings the trader can edit are listed;
+	  every default text shipped by the plugin is a regular translatable string
+	  and comes from the language pack instead.
+	- custom-fields / custom-term-fields: the withdrawal status is copied to
+	  translations, so a translated product or category keeps the exclusion and
+	  the checkout consent of its original. The plugin also resolves the status
+	  back to the original language at runtime, so this is a convenience that
+	  keeps the value visible in the editor of each translation.
+	- custom-types: withdrawal requests are audit records, never translated
+	  content.
+-->
+<wpml-config>
+
+	<admin-texts>
+		<key name="ayudawp_euw_excluded_notice_title_art16m_digital" />
+		<key name="ayudawp_euw_excluded_notice_body_art16m_digital" />
+		<key name="ayudawp_euw_excluded_notice_title_art16l_accommodation" />
+		<key name="ayudawp_euw_excluded_notice_body_art16l_accommodation" />
+		<key name="ayudawp_euw_excluded_notice_title_art16_other" />
+		<key name="ayudawp_euw_excluded_notice_body_art16_other" />
+		<key name="ayudawp_euw_form_intro_text" />
+		<key name="ayudawp_euw_consent_a_text" />
+		<key name="ayudawp_euw_consent_b_text" />
+		<key name="ayudawp_euw_consumer_check_text" />
+		<key name="ayudawp_euw_trader_address" />
+		<key name="ayudawp_euw_from_name" />
+	</admin-texts>
+
+	<custom-fields>
+		<custom-field action="copy">_ayudawp_euw_withdrawal_status</custom-field>
+		<custom-field action="copy">_ayudawp_euw_excluded</custom-field>
+	</custom-fields>
+
+	<custom-term-fields>
+		<custom-term-field action="copy">_ayudawp_euw_withdrawal_status</custom-term-field>
+	</custom-term-fields>
+
+	<custom-types>
+		<custom-type translate="0">ayudawp_withdrawal</custom-type>
+	</custom-types>
+
+</wpml-config>

@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free, complete EU Directive 2023/2673 toolkit: withdrawal button, checkout consents (Art. 16(m) & 14(4)(a)), Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration. Standalone or with WooCommerce.
- * Version:           2.1.0
+ * Version:           2.1.1
  * Requires at least: 6.0
  * Tested up to:      7.0
  * Requires PHP:      7.4
@@ -24,13 +24,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.1.0' );
+define( 'AYUDAWP_EUW_VERSION', '2.1.1' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
 define( 'AYUDAWP_EUW_BASENAME', plugin_basename( __FILE__ ) );
 
 // Load core files.
+require_once AYUDAWP_EUW_DIR . 'includes/functions-multilang.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-cpt.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-form.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-shortcode.php';
@@ -205,53 +206,6 @@ add_action(
 function ayudawp_euw_get_settings_url() {
 
 	return admin_url( 'edit.php?post_type=ayudawp_withdrawal&page=ayudawp-euw-settings' );
-}
-
-/**
- * Resolve the ID of the configured withdrawal page for the current language.
- *
- * Reads the canonical page stored in `ayudawp_euw_page_id` and, on a
- * multilingual site, maps it to its translation in the active language so the
- * front-end points each visitor at the page in their own language instead of
- * always the original: the printable Annex I.B form, the WooCommerce email
- * button, the excluded-product link and the `[ayudawp_withdrawal_link]`
- * shortcode. Polylang (`pll_get_post()`) and WPML (the `wpml_object_id`
- * filter) are both supported; with no multilingual plugin the canonical ID is
- * returned unchanged, so this is a no-op on single-language sites.
- *
- * Admin-side reads (the settings selector, the activation notice edit link)
- * deliberately keep using the raw option: there the trader manages the single
- * canonical page, not a per-language view.
- *
- * @return int Resolved page ID, or 0 when none is configured.
- */
-function ayudawp_euw_get_page_id() {
-
-	$page_id = (int) get_option( 'ayudawp_euw_page_id', 0 );
-
-	if ( ! $page_id ) {
-		return 0;
-	}
-
-	// Polylang: use the translation in the current language when it exists,
-	// otherwise fall back to the canonical page.
-	if ( function_exists( 'pll_get_post' ) ) {
-
-		$translated = (int) pll_get_post( $page_id );
-
-		return $translated ? $translated : $page_id;
-	}
-
-	// WPML: the filter returns the canonical ID itself when no translation
-	// exists (fourth argument true), so the result is always usable.
-	if ( has_filter( 'wpml_object_id' ) ) {
-
-		$translated = (int) apply_filters( 'wpml_object_id', $page_id, 'page', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Consuming WPML's own documented filter, not a hook defined by this plugin.
-
-		return $translated ? $translated : $page_id;
-	}
-
-	return $page_id;
 }
 
 /**

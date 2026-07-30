@@ -144,8 +144,7 @@ function ayudawp_euw_handle_review() {
 	$token = wp_generate_password( 40, false );
 	set_transient( 'ayudawp_euw_pending_' . $token, $data, 15 * MINUTE_IN_SECONDS );
 
-	$referer = wp_get_referer();
-	$url     = $referer ? $referer : home_url();
+	$url = ayudawp_euw_get_return_url();
 	$url     = remove_query_arg( array( 'ayudawp_euw_error', 'ayudawp_euw_sent' ), $url );
 	$url     = add_query_arg( 'ayudawp_euw_confirm', $token, $url );
 
@@ -354,6 +353,42 @@ function ayudawp_euw_get_user_ip() {
 }
 
 /**
+ * Resolve where to send the consumer back to after handling a submission.
+ *
+ * Normally the referer, which is the page holding the form. When it does not
+ * resolve, the configured withdrawal page is used instead of the site home, so
+ * the consumer lands back on the form and sees the step that follows rather
+ * than on the front page with no explanation. A missing referer is not
+ * hypothetical: security plugins that restrict access to /wp-admin/ intercept
+ * the POST to admin-post.php before it is dispatched, and privacy setups strip
+ * the header. The home URL stays as the last resort for shops that have no
+ * withdrawal page configured.
+ *
+ * @return string
+ */
+function ayudawp_euw_get_return_url() {
+
+	$referer = wp_get_referer();
+
+	if ( $referer ) {
+		return $referer;
+	}
+
+	$page_id = ayudawp_euw_get_page_id();
+
+	if ( $page_id ) {
+
+		$permalink = get_permalink( $page_id );
+
+		if ( $permalink ) {
+			return $permalink;
+		}
+	}
+
+	return home_url();
+}
+
+/**
  * Redirect back to the previous page with an error code.
  *
  * When the collected submission is passed in, its values are stashed in a
@@ -369,8 +404,7 @@ function ayudawp_euw_get_user_ip() {
  */
 function ayudawp_euw_redirect_with_error( $code, $data = array(), $invalid = array() ) {
 
-	$referer = wp_get_referer();
-	$url     = $referer ? $referer : home_url();
+	$url = ayudawp_euw_get_return_url();
 
 	// Drop the confirmation/edit tokens so an error raised during step 2 lands
 	// back on the form (showing the error) instead of the confirmation screen,
@@ -409,8 +443,7 @@ function ayudawp_euw_redirect_with_error( $code, $data = array(), $invalid = arr
  */
 function ayudawp_euw_redirect_with_success() {
 
-	$referer = wp_get_referer();
-	$url     = $referer ? $referer : home_url();
+	$url = ayudawp_euw_get_return_url();
 
 	$url = remove_query_arg( array( 'ayudawp_euw_error', 'ayudawp_euw_confirm' ), $url );
 	$url = add_query_arg(

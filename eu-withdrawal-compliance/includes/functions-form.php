@@ -567,7 +567,7 @@ function ayudawp_euw_get_error_message( $code ) {
 		'order'   => __( 'We could not match this email with the order number provided.', 'eu-withdrawal-compliance' ),
 		'status'  => __( 'This order is not eligible for withdrawal because of its current order status. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
 		'expired' => __( 'The withdrawal period for this order has passed. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
-		'session' => __( 'Your confirmation link has expired or was already used. Please fill in the form again.', 'eu-withdrawal-compliance' ),
+		'session' => __( 'This request is no longer awaiting confirmation. The review screen stays available for 15 minutes and can only be confirmed once, so please fill in the form again.', 'eu-withdrawal-compliance' ),
 		'general' => __( 'An error occurred. Please try again later.', 'eu-withdrawal-compliance' ),
 	);
 

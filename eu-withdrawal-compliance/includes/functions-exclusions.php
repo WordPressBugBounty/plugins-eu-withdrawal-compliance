@@ -239,7 +239,35 @@ function ayudawp_euw_get_product_withdrawal_status( $product_id ) {
 		return 'art16_other';
 	}
 
+	// On Polylang and WPML sites the status is set on the original-language
+	// product, while each language serves a different post ID. Read it from
+	// there when this product carries none of its own, so a translated product
+	// behaves exactly like the original: notice on the product page, consent at
+	// checkout and excluded item recorded on the order. An explicit status on
+	// the translation still wins, which keeps per-language overrides possible.
+	$source_id = ayudawp_euw_get_source_post_id( $product_id, 'product' );
+	$source_id = ( $source_id && $source_id !== $product_id ) ? $source_id : 0;
+
+	if ( $source_id ) {
+
+		$source_own = (string) get_post_meta( $source_id, '_ayudawp_euw_withdrawal_status', true );
+
+		if ( ayudawp_euw_is_valid_withdrawal_status( $source_own ) ) {
+			return $source_own;
+		}
+
+		if ( 'yes' === (string) get_post_meta( $source_id, '_ayudawp_euw_excluded', true ) ) {
+			return 'art16_other';
+		}
+	}
+
 	$inherited = ayudawp_euw_get_inherited_withdrawal_status( $product_id );
+
+	// Translations are normally assigned the translated categories, but when
+	// they carry none at all the original product's categories still apply.
+	if ( null === $inherited && $source_id ) {
+		$inherited = ayudawp_euw_get_inherited_withdrawal_status( $source_id );
+	}
 
 	if ( null !== $inherited ) {
 		return $inherited['status'];
@@ -288,7 +316,18 @@ function ayudawp_euw_get_inherited_withdrawal_status( $product_id ) {
 
 		foreach ( $chain as $candidate_id ) {
 
+			// A translated category is a separate term with its own (empty)
+			// meta, so every candidate is also matched against its
+			// original-language term. The term object returned stays the one in
+			// the current language, which is what the shopper reads on the
+			// product page and what the product editor shows.
+			$source_id   = ayudawp_euw_get_source_term_id( $candidate_id, 'product_cat' );
+			$source_id   = ( $source_id && $source_id !== $candidate_id ) ? $source_id : 0;
 			$term_status = (string) get_term_meta( $candidate_id, '_ayudawp_euw_withdrawal_status', true );
+
+			if ( $source_id && ! ayudawp_euw_is_valid_withdrawal_status( $term_status ) ) {
+				$term_status = (string) get_term_meta( $source_id, '_ayudawp_euw_withdrawal_status', true );
+			}
 
 			if ( ayudawp_euw_is_valid_withdrawal_status( $term_status ) && 'standard' !== $term_status ) {
 
@@ -302,7 +341,9 @@ function ayudawp_euw_get_inherited_withdrawal_status( $product_id ) {
 				}
 			}
 
-			if ( in_array( $candidate_id, $legacy_excluded_ids, true ) ) {
+			if ( in_array( $candidate_id, $legacy_excluded_ids, true )
+				|| ( $source_id && in_array( $source_id, $legacy_excluded_ids, true ) )
+			) {
 
 				$term = get_term( $candidate_id, 'product_cat' );
 
@@ -360,6 +401,39 @@ function ayudawp_euw_render_product_exclusion_field() {
 
 		$inherit_option_label = __( '— Inherit from category (Standard)', 'eu-withdrawal-compliance' );
 		$description          = __( 'Defines whether this product is excluded from the EU right of withdrawal and which checkout consent (if any) is shown to the customer. Categories can set a default that products inherit.', 'eu-withdrawal-compliance' );
+	}
+
+	// On Polylang and WPML sites the status is managed on the original-language
+	// product and applies to every translation, taking precedence over category
+	// inheritance. Spell that out here, or this screen would look unflagged
+	// while the front-end (rightly) shows the notice and asks for consent.
+	$source_status = '';
+
+	if ( $product_id && '' === $own ) {
+
+		$source_id = ayudawp_euw_get_source_post_id( $product_id, 'product' );
+
+		if ( $source_id && $source_id !== $product_id ) {
+
+			$candidate = (string) get_post_meta( $source_id, '_ayudawp_euw_withdrawal_status', true );
+
+			if ( ayudawp_euw_is_valid_withdrawal_status( $candidate ) ) {
+				$source_status = $candidate;
+			}
+		}
+	}
+
+	if ( '' !== $source_status ) {
+
+		$source_status_label = isset( $options[ $source_status ] ) ? $options[ $source_status ] : $source_status;
+
+		$inherit_option_label = __( '— Inherit from the original language', 'eu-withdrawal-compliance' );
+
+		$description = sprintf(
+			/* translators: %s: short label of the status set on the original-language product, e.g. "Digital content (Art. 16(m))". */
+			__( 'This is a translation and it currently takes “%s” from the product in the site original language, where this status is managed. Pick an explicit status here to override it for this translation only.', 'eu-withdrawal-compliance' ),
+			$source_status_label
+		);
 	}
 
 	$select_options = array( '' => $inherit_option_label ) + $options;

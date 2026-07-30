@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -67,10 +67,20 @@ The plugin helps you implement the right of withdrawal requirements of Directive
 * **Legal disclaimer block** in the settings page making it explicit that the plugin provides optional technical tools and does not guarantee legal compliance.
 * **Mandatory / Recommended / Optional tags** on every setting description so the merchant can scan the form quickly.
 
+= Multilingual stores: WPML and Polylang =
+
+Compliance cannot depend on the language the customer was browsing in, so both plugins are supported natively, with nothing to configure:
+
+* **Set the withdrawal status once**, on the product or category in your original language, and it holds across every translation: excluded-product notice, Art. 16(m) and Art. 14(4)(a) checkout consents, and excluded items recorded on the order. An explicit status on a translation still wins, for per-language exceptions.
+* **Every link follows the visitor's language**: withdrawal page, printable Annex I.B view, button in the WooCommerce emails, excluded-notice link and `[ayudawp_withdrawal_link]` shortcode.
+* **Your own texts stay translatable**, with no snippets: a bundled `wpml-config.xml` exposes the notice titles and bodies, the form intro, the consent texts and the trader address under String Translation, copies the withdrawal status to translations, and marks the request log as non-translatable.
+
+The plugin's own strings arrive as language packs per locale. See the FAQ for the current limitation on the plugin's emails.
+
 = Built for production =
 
 * Conditional asset loading: CSS only loads on the withdrawal page, single-product pages that actually show the excluded notice, and plugin admin screens.
-* Translation-ready, bundled es_ES translation, follows WordPress Coding Standards, fully escaped output and sanitized input, capability checks and nonces on every admin action.
+* Translation-ready: Spanish (es_ES) and every other locale are delivered as language packs from [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/eu-withdrawal-compliance/), so they update on their own. Follows WordPress Coding Standards, fully escaped output and sanitized input, capability checks and nonces on every admin action.
 * **11 documented filters and 4 actions** for developers and agencies to extend the plugin without forking.
 * PHP 7.4+, WordPress 6.0+, WooCommerce 7.0+ (optional).
 
@@ -87,28 +97,21 @@ The EU directive becomes enforceable in every member state on June 19, 2026, so 
 * **Native integration with the WordPress GDPR tools** (Privacy Policy snippet + personal-data exporter and eraser) — no second GDPR plugin to install.
 * **Standalone or with WooCommerce.** Works without WooCommerce as a self-contained tool (form, shortcode, log, emails, SHA-256, GDPR, Annex I.B) and lights up store-specific features automatically when WooCommerce is detected.
 * **Compatible by default** with Sequential Order Numbers (free and Pro) and Custom Order Numbers for WooCommerce (Tyche and WPFactory), with a filter for any other numbering scheme.
+* **Real multilingual support (WPML, Polylang)**: exclusions and checkout consents configured once hold across every translation, and your editable texts are translatable from String Translation.
 * **Configurable from the settings UI**, without writing code: deadline basis (order date vs. completion date) and grace days plus an optional strict deadline mode, eligible order statuses, withdrawal page, notification email (now accepting several recipients), email sender and editable status-email texts, consent text per type, excluded-notice text per type, editable form intro, optional B2B consumer self-declaration, Annex I.B trader address/phone/email, and which roles may manage requests.
 * **Developer-friendly**: 11 documented filters + 4 actions so agencies can extend it without forking.
-* **Maintained by a Spanish WordPress trainer with 20+ years on the platform**: bundled es_ES translation, prompt replies on the WordPress.org support forum and an active roadmap of free improvements (classic widget, Gutenberg block, dashboard widget, custom WC order status and more — all free).
+* **Maintained by a Spanish WordPress trainer with 20+ years on the platform**: es_ES translation kept up to date by the author on the official WordPress.org translation platform, prompt replies on the WordPress.org support forum and an active roadmap of free improvements (classic widget, Gutenberg block, dashboard widget, custom WC order status and more — all free).
 
 == Roadmap ==
 
 Planned for upcoming free versions:
 
-* **WooCommerce Checkout block support** for the Art. 16(m) and Art. 14(4)(a) consent checkboxes, using `woocommerce_register_additional_checkout_field()` so the consents work on stores that have already migrated from the classic `[woocommerce_checkout]` shortcode to the block.
-* Classic widget to surface the withdrawal link in themes with widget areas.
-* Gutenberg block for the withdrawal link, fully supported in block themes (align, color, typography).
-* Dashboard widget with counters, pending requests and monthly basic stats.
-* Custom WooCommerce order status "Withdrawal requested" with automatic transition on acceptance.
-* Urgency indicators in the request list (days remaining, expired).
-* PDF download of the request with the SHA-256 receipt hash printed on it, reusing the same standalone-print infrastructure as the Annex I.B view.
-* Signed token in the email link so guest customers can check status without logging in.
-* Rate limiting on the public form to prevent abuse.
-* Optional IBAN field to speed up manual refunds.
-* HTML email templates that inherit the WooCommerce email theme.
-* Optional modal display mode for the shortcode.
-* Visible audit log on each request detail screen (status transitions, admin comments, email-delivery timestamps).
-* Optional opt-in auto-injection of the withdrawal link in `wp_footer`.
+* **WooCommerce Checkout block support** for the Art. 16(m) and Art. 14(4)(a) consents, for stores already migrated away from the classic checkout shortcode.
+* HTML email templates inheriting the WooCommerce email theme, and plugin emails composed in the customer's own language on multilingual stores.
+* Gutenberg block and classic widget for the withdrawal link.
+* Custom WooCommerce order status "Withdrawal requested", with automatic transition on acceptance.
+* PDF download of the request with the SHA-256 receipt hash printed on it.
+* Dashboard widget with counters, pending requests and monthly stats.
 
 == Privacy ==
 
@@ -208,6 +211,10 @@ Yes. The form accepts both the internal WooCommerce order ID and the displayed o
 
 By default the form validates the order number and email against your WooCommerce orders and rejects the submission upfront when they do not match. If you prefer not to lose those requests (typos, purchases made outside WooCommerce, a numbering scheme the resolver does not recognise), enable **Accept unmatched requests** under **Withdrawals → Settings → Eligible order statuses**. The request is then registered anyway and flagged as *Unverified*: the consumer sees a notice on the confirmation screen inviting them to double-check the reference (they can still confirm and submit), and the request arrives highlighted in the notification email, in the requests list and in its detail screen, so you verify it manually against your records before deciding. Unverified requests are never linked to an order (no order note, no status or deadline checks) and the acknowledgement of receipt is still sent to the address submitted. Off by default.
 
+= The form says the request is no longer awaiting confirmation, right after the customer submitted it. Why? =
+
+The two-step flow required by Article 11a keeps the validated declaration on the server, in a 15-minute single-use transient, between the form and the review screen. When an object cache does not store transients reliably (a misconfigured Redis or Memcached drop-in, or a cache plugin flushing them aggressively) the declaration is already gone by the time the customer confirms, and the form asks them to start over. To confirm the cause, disable the object cache for a moment and submit again: if the flow completes, that was it. Transients are the standard WordPress mechanism for this, and the alternative (carrying the declaration in the URL or in hidden fields) would break the guarantee that what gets registered is exactly what was validated, so the fix belongs to the cache configuration.
+
 = Will the notice appear on every WooCommerce email? =
 
 No. By default the notice is only added to the customer-facing emails relevant to the withdrawal window: order processing, completed and customer invoice (the manually triggered one). Admin emails never receive the notice. The notice is also gated by the configured list of eligible order statuses (default: Processing and Completed) so the manual invoice email only carries it when the order is in one of those statuses. You can change the email list with the `ayudawp_euw_email_ids` filter and the status list under **Withdrawals → Settings → Eligible order statuses** or with the `ayudawp_euw_allowed_statuses` filter.
@@ -223,6 +230,12 @@ This only affects the emails: the My Account button, the public form and the sit
 = In which languages is the plugin available? =
 
 All strings are translation-ready. Translations are managed through the official WordPress.org platform at [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/eu-withdrawal-compliance/), so any locale with enough translated strings is delivered automatically to your site when the WordPress site language matches. Contributions to existing or new locales are welcome there.
+
+= Does it work on multilingual sites (WPML, Polylang)? =
+
+Yes. The withdrawal status is set once, on the product (or category) in the site original language, and applies to every translation: the excluded-product notice, the checkout consents and the excluded items recorded on the order all resolve back to the original, so nothing has to be flagged twice. An explicit status on a translation still wins, if you need a per-language exception. Links to the withdrawal page follow the visitor language whenever a translation of that page exists. The plugin also ships a `wpml-config.xml` file, read by WPML and Polylang alike, that turns the settings holding customer-facing copy (the excluded-product notice titles and bodies, the form intro, the consent texts, the trader address) into translatable strings under **WPML → String Translation** or **Languages → Translations**. The texts bundled with the plugin need no configuration: they come from the language pack of each locale.
+
+One current limitation worth knowing: the plugin's own emails (acknowledgement of receipt, admin notification and status changes) are composed in the site default language, not in the language the customer was browsing in, because they are generated outside the language routing of both plugins. The withdrawal notice injected into the WooCommerce transactional emails does follow the order language, since WooCommerce Multilingual and Polylang for WooCommerce switch the locale for those. Per-customer language for the plugin's own emails is on the roadmap.
 
 = Does the plugin pass GDPR requirements? =
 
@@ -288,6 +301,12 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.1.1 =
+* Improved: settings that hold customer-facing copy are now translatable on multilingual sites. The plugin ships a `wpml-config.xml` file, read by both WPML and Polylang, that exposes the excluded-product notice titles and bodies, the form intro text, the consent texts, the trader postal address and the email sender name under String Translation, and copies the withdrawal status to translated products and categories. Texts bundled with the plugin keep coming from the language pack of each locale, as before.
+* Improved: clearer message when a request is no longer awaiting confirmation. The old wording mentioned a "confirmation link", which sounded like a link sent by email instead of the review screen of step 2; it now explains that the screen stays available for 15 minutes and can only be confirmed once. A new FAQ documents the usual cause when it happens right after submitting: an object cache that does not keep transients.
+* Fix: on WPML and Polylang sites, products and categories in a translated language ignored their withdrawal status, which is stored on the original-language product. The excluded-product notice did not appear (and its stylesheet was not loaded), the Art. 16(m) and Art. 14(4)(a) consents were not requested at checkout when buying in a translated language, and excluded items were not recorded on the order. The status now resolves back to the original product or category, and an explicit status set on a translation still takes precedence, so per-language exceptions remain possible. The product editor of a translation also states where its effective status comes from, instead of looking unflagged. Single-language sites are unaffected.
+* Fix: the form now returns the customer to the configured withdrawal page when the referer is not available, instead of to the site home page, so they land back on the form and see the step that follows. Security plugins that restrict access to /wp-admin/ can intercept the submission before it is dispatched, which is when this happened.
+
 = 2.1.0 =
 * New: "Accept unmatched requests" opt-in setting (Withdrawals → Settings → Eligible order statuses). When the order number and email do not match any WooCommerce order the request can now be registered anyway, flagged as "Unverified" for manual review, instead of being rejected upfront. The consumer sees a notice on the confirmation screen inviting them to double-check the reference (and can still confirm); the request arrives highlighted in the notification email (with the matched-order hint when only the billing email differs), in the requests list, in the request detail and in a new "Unverified" column of the CSV export. Unverified requests are never linked to an order and the acknowledgement of receipt is still sent. Off by default: nothing changes unless you enable it.
 * Fix: Uninstall now removes every plugin option and the custom role capabilities the plugin had granted; it previously deleted only three options.
@@ -296,8 +315,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.1.0 =
-Adds the opt-in "Accept unmatched requests" setting: register non-matching requests as Unverified for manual review instead of rejecting them upfront. Also a services-only promo banner and complete uninstall cleanup. Nothing changes unless you enable the new setting.
+= 2.1.1 =
+Multilingual fix: translated products (WPML, Polylang) now honour the withdrawal status set on the original, so the excluded-product notice appears and the Art. 16(m) and 14(4)(a) consents are requested at checkout in every language. Single-language sites are unaffected.
 
 == Support ==
 
