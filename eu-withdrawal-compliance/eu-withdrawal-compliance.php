@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free, complete EU Directive 2023/2673 toolkit: withdrawal button, checkout consents (Art. 16(m) & 14(4)(a)), Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration. Standalone or with WooCommerce.
- * Version:           2.1.1
+ * Version:           2.1.2
  * Requires at least: 6.0
  * Tested up to:      7.0
  * Requires PHP:      7.4
@@ -13,7 +13,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       eu-withdrawal-compliance
  * WC requires at least: 7.0
- * WC tested up to:   10.9
+ * WC tested up to:   11.0
  *
  * @package AyudaWP_EU_Withdrawal
  */
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.1.1' );
+define( 'AYUDAWP_EUW_VERSION', '2.1.2' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
@@ -152,14 +152,14 @@ function ayudawp_euw_deactivate() {
 register_deactivation_hook( __FILE__, 'ayudawp_euw_deactivate' );
 
 /**
- * Flush rewrite rules once after a plugin upgrade.
+ * Upgrade routine: runs once after the plugin version changes.
  *
  * Runs at init priority 100 (after add_rewrite_endpoint registers our
  * endpoint at default priority 10), so the new ruleset includes
  * /my-account/withdrawal/. Only triggers when the stored version differs
  * from the running version, so we never pay the cost on regular requests.
  *
- * Without this, users updating from 1.0.0 (where the activation hook
+ * Without the flush, users updating from 1.0.0 (where the activation hook
  * flushed before the endpoint was registered) would keep getting a 404
  * on the My Account withdrawal endpoint until they manually re-saved
  * the Permalinks settings page.
@@ -177,6 +177,12 @@ function ayudawp_euw_maybe_flush_rewrite_rules() {
 	// with edit_others_posts), so an existing site keeps its current access
 	// until the admin tightens it from the new Permissions section.
 	ayudawp_euw_setup_capabilities( true );
+
+	// Drop the settings that merely store a bundled default text, so those
+	// texts go back to following the language of each visitor. Installs
+	// updating from 2.1.1 or earlier stored them the first time the settings
+	// page was saved, because the editors used to pre-fill each field.
+	ayudawp_euw_clear_stored_default_texts();
 
 	update_option( 'ayudawp_euw_version', AYUDAWP_EUW_VERSION );
 }

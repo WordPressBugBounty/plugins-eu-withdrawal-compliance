@@ -3,6 +3,11 @@ EU Withdrawal Compliance — Full changelog
 For each release, see the entries below. The latest version is always at the top.
 The current release notes also live in readme.txt under "== Changelog ==".
 
+= 2.1.2 =
+* Improved: Compatibility with WooCommerce 11.0 verified.
+* Fix: The settings that hold customer-facing copy stopped following the language of each visitor. Their editors pre-filled the field with the bundled default text, so the first time the settings page was saved that text was stored verbatim and printed as is from then on, leaving the form intro, the consumer self-declaration, the checkout consent texts, the excluded-product notices and the status-change email bodies stuck in the language of whoever saved. The fields now show the default as a placeholder and discard a text identical to it on save, and updating clears the defaults stored by an earlier save, so the bundled translations apply again. Texts written by the trader are left untouched.
+* Fix: The status-change email bodies were missing from `wpml-config.xml`, so on WPML and Polylang there was no way to translate them once customised. They are now exposed under String Translation with the rest of the editable texts.
+
 = 2.1.1 =
 * Improved: settings that hold customer-facing copy are now translatable on multilingual sites. The plugin ships a `wpml-config.xml` file, read by both WPML and Polylang, that exposes the excluded-product notice titles and bodies, the form intro text, the consent texts, the trader postal address and the email sender name under String Translation, and copies the withdrawal status to translated products and categories. Texts bundled with the plugin keep coming from the language pack of each locale, as before.
 * Improved: clearer message when a request is no longer awaiting confirmation. The old wording mentioned a "confirmation link", which sounded like a link sent by email instead of the review screen of step 2; it now explains that the screen stays available for 15 minutes and can only be confirmed once. A new FAQ documents the usual cause when it happens right after submitting: an object cache that does not keep transients.

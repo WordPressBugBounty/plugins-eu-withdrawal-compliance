@@ -642,6 +642,15 @@ function ayudawp_euw_register_settings() {
 		'ayudawp_euw_link_visibility_section_callback',
 		'ayudawp-euw-settings'
 	);
+
+	// Drop a submitted text that is identical to the bundled default, so the
+	// setting stays empty and the text keeps following the language of the
+	// visitor. It runs after the sanitize callback registered above, which
+	// register_setting() hooks at priority 10 (and with a single argument, so
+	// the option name has to be picked up from a filter of our own).
+	foreach ( array_keys( ayudawp_euw_editable_text_defaults() ) as $editable_option ) {
+		add_filter( "sanitize_option_{$editable_option}", 'ayudawp_euw_discard_default_text', 20, 2 );
+	}
 }
 add_action( 'admin_init', 'ayudawp_euw_register_settings' );
 
@@ -654,6 +663,137 @@ add_action( 'admin_init', 'ayudawp_euw_register_settings' );
 function ayudawp_euw_sanitize_yes_no( $value ) {
 
 	return 'yes' === $value ? 'yes' : 'no';
+}
+
+/**
+ * Map every setting that holds customer-facing copy to its bundled default.
+ *
+ * Each of these texts ships as a regular translatable string and is only stored
+ * as an option when the trader writes their own wording. Keeping the map in one
+ * place is what lets the editors show the default as a placeholder instead of
+ * pre-filling it, the sanitizer discard a value identical to it, and the upgrade
+ * routine clean up installs that stored one before 2.1.2.
+ *
+ * The default providers live in the modules that own each text and are loaded
+ * after this file, so they are guarded: the map is always built at runtime.
+ *
+ * @return array<string, string> Option name => bundled default text.
+ */
+function ayudawp_euw_editable_text_defaults() {
+
+	$defaults = array();
+
+	if ( function_exists( 'ayudawp_euw_form_intro_default' ) ) {
+		$defaults['ayudawp_euw_form_intro_text'] = ayudawp_euw_form_intro_default();
+	}
+
+	if ( function_exists( 'ayudawp_euw_consumer_check_default_text' ) ) {
+		$defaults['ayudawp_euw_consumer_check_text'] = ayudawp_euw_consumer_check_default_text();
+	}
+
+	if ( function_exists( 'ayudawp_euw_consent_a_default_text' ) ) {
+		$defaults['ayudawp_euw_consent_a_text'] = ayudawp_euw_consent_a_default_text();
+	}
+
+	if ( function_exists( 'ayudawp_euw_consent_b_default_text' ) ) {
+		$defaults['ayudawp_euw_consent_b_text'] = ayudawp_euw_consent_b_default_text();
+	}
+
+	if ( function_exists( 'ayudawp_euw_excluded_notice_defaults' ) ) {
+		foreach ( ayudawp_euw_excluded_notice_defaults() as $status => $texts ) {
+			$defaults[ 'ayudawp_euw_excluded_notice_title_' . $status ] = $texts['title'];
+			$defaults[ 'ayudawp_euw_excluded_notice_body_' . $status ]  = $texts['body'];
+		}
+	}
+
+	if ( function_exists( 'ayudawp_euw_status_email_defaults' ) ) {
+		foreach ( ayudawp_euw_status_email_defaults() as $status => $body ) {
+			$defaults[ 'ayudawp_euw_status_email_body_' . $status ] = $body;
+		}
+	}
+
+	return $defaults;
+}
+
+/**
+ * Bundled default text for a single editable setting.
+ *
+ * @param string $option Option name.
+ * @return string Default text, or an empty string when the option has none.
+ */
+function ayudawp_euw_editable_text_default( $option ) {
+
+	$defaults = ayudawp_euw_editable_text_defaults();
+
+	return isset( $defaults[ $option ] ) ? $defaults[ $option ] : '';
+}
+
+/**
+ * Discard a submitted text that is identical to the bundled default.
+ *
+ * Storing the default verbatim looks harmless but freezes the text in the
+ * language the admin happened to be using: every reader of these settings
+ * prints the stored value as is, so the string stops going through translation
+ * and shows in that one language on a multilingual shop. Saving an empty value
+ * instead keeps the setting on the bundled string, which follows the language
+ * of each visitor.
+ *
+ * Hooked on `sanitize_option_{$option}` at priority 20, after the sanitize
+ * callback of each setting, and with two arguments so it knows which option it
+ * is looking at. The value arrives already unslashed and trimmed, because
+ * wp-admin/options.php does both before calling update_option().
+ *
+ * @param mixed  $value  Already sanitized value.
+ * @param string $option Option name being sanitized.
+ * @return mixed The value, or an empty string when it matches the default.
+ */
+function ayudawp_euw_discard_default_text( $value, $option ) {
+
+	$default = ayudawp_euw_editable_text_default( (string) $option );
+
+	if ( '' === $default ) {
+		return $value;
+	}
+
+	return ( trim( (string) $value ) === trim( $default ) ) ? '' : $value;
+}
+
+/**
+ * Clear settings that only hold a copy of a bundled default text.
+ *
+ * Until 2.1.2 the editors pre-filled each textarea with the bundled default, so
+ * the first "Save changes" on the settings page stored it verbatim, whatever the
+ * setting was actually being changed. From then on the text was printed as
+ * stored and no longer followed the language of the visitor, which on a
+ * multilingual shop left those texts stuck in the language of the admin who
+ * saved. This restores the fallback on installs that went through that.
+ *
+ * Compares against the default in every locale the site has installed plus the
+ * original English, which covers the language the admin could have been using.
+ * A text the trader actually wrote never matches and is left untouched.
+ */
+function ayudawp_euw_clear_stored_default_texts() {
+
+	$locales = array_unique( array_merge( array( 'en_US', get_locale() ), get_available_languages() ) );
+
+	foreach ( $locales as $locale ) {
+
+		$switched = switch_to_locale( $locale );
+		$defaults = ayudawp_euw_editable_text_defaults();
+
+		if ( $switched ) {
+			restore_previous_locale();
+		}
+
+		foreach ( $defaults as $option => $default ) {
+
+			$stored = trim( (string) get_option( $option, '' ) );
+
+			if ( '' !== $stored && $stored === trim( $default ) ) {
+				update_option( $option, '' );
+			}
+		}
+	}
 }
 
 /**
@@ -1099,10 +1239,7 @@ function ayudawp_euw_field_consent_a_callback() {
 
 	$enabled = get_option( 'ayudawp_euw_consent_a_enabled', 'yes' );
 	$text    = (string) get_option( 'ayudawp_euw_consent_a_text', '' );
-
-	if ( '' === trim( $text ) && function_exists( 'ayudawp_euw_consent_a_default_text' ) ) {
-		$text = ayudawp_euw_consent_a_default_text();
-	}
+	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_consent_a_text' );
 
 	?>
 	<fieldset>
@@ -1120,10 +1257,10 @@ function ayudawp_euw_field_consent_a_callback() {
 		</p>
 		<p>
 			<label for="ayudawp_euw_consent_a_text"><strong><?php esc_html_e( 'Checkbox text shown at checkout', 'eu-withdrawal-compliance' ); ?></strong></label>
-			<textarea name="ayudawp_euw_consent_a_text" id="ayudawp_euw_consent_a_text" rows="3" class="large-text"><?php echo esc_textarea( $text ); ?></textarea>
+			<textarea name="ayudawp_euw_consent_a_text" id="ayudawp_euw_consent_a_text" rows="3" class="large-text" placeholder="<?php echo esc_attr( $default ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
 		</p>
 		<p class="description">
-			<?php esc_html_e( 'Leave empty to fall back to the bundled default. Basic HTML allowed: links, strong, em.', 'eu-withdrawal-compliance' ); ?>
+			<?php esc_html_e( 'Leave it empty to use the bundled text shown in the field, which follows the language of each customer. Your own text is shown exactly as written, in every language. Basic HTML allowed: links, strong, em.', 'eu-withdrawal-compliance' ); ?>
 		</p>
 	</fieldset>
 	<?php
@@ -1141,10 +1278,7 @@ function ayudawp_euw_field_consent_b_callback() {
 
 	$enabled = get_option( 'ayudawp_euw_consent_b_enabled', 'yes' );
 	$text    = (string) get_option( 'ayudawp_euw_consent_b_text', '' );
-
-	if ( '' === trim( $text ) && function_exists( 'ayudawp_euw_consent_b_default_text' ) ) {
-		$text = ayudawp_euw_consent_b_default_text();
-	}
+	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_consent_b_text' );
 
 	?>
 	<fieldset>
@@ -1162,10 +1296,10 @@ function ayudawp_euw_field_consent_b_callback() {
 		</p>
 		<p>
 			<label for="ayudawp_euw_consent_b_text"><strong><?php esc_html_e( 'Checkbox text shown at checkout', 'eu-withdrawal-compliance' ); ?></strong></label>
-			<textarea name="ayudawp_euw_consent_b_text" id="ayudawp_euw_consent_b_text" rows="3" class="large-text"><?php echo esc_textarea( $text ); ?></textarea>
+			<textarea name="ayudawp_euw_consent_b_text" id="ayudawp_euw_consent_b_text" rows="3" class="large-text" placeholder="<?php echo esc_attr( $default ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
 		</p>
 		<p class="description">
-			<?php esc_html_e( 'Leave empty to fall back to the bundled default. Basic HTML allowed: links, strong, em.', 'eu-withdrawal-compliance' ); ?>
+			<?php esc_html_e( 'Leave it empty to use the bundled text shown in the field, which follows the language of each customer. Your own text is shown exactly as written, in every language. Basic HTML allowed: links, strong, em.', 'eu-withdrawal-compliance' ); ?>
 		</p>
 	</fieldset>
 	<?php
@@ -1323,30 +1457,26 @@ function ayudawp_euw_render_excluded_notice_status_editor( $status ) {
 	$title_option = 'ayudawp_euw_excluded_notice_title_' . $status;
 	$body_option  = 'ayudawp_euw_excluded_notice_body_' . $status;
 
-	$title = (string) get_option( $title_option, '' );
-	if ( '' === trim( $title ) && function_exists( 'ayudawp_euw_excluded_notice_title' ) ) {
-		$title = ayudawp_euw_excluded_notice_title( $status );
-	}
+	$title         = (string) get_option( $title_option, '' );
+	$title_default = ayudawp_euw_editable_text_default( $title_option );
 
-	$body = (string) get_option( $body_option, '' );
-	if ( '' === trim( $body ) && function_exists( 'ayudawp_euw_excluded_notice_body' ) ) {
-		$body = ayudawp_euw_excluded_notice_body( $status );
-	}
+	$body         = (string) get_option( $body_option, '' );
+	$body_default = ayudawp_euw_editable_text_default( $body_option );
 	?>
 	<p>
 		<label for="<?php echo esc_attr( $title_option ); ?>"><strong><?php esc_html_e( 'Title', 'eu-withdrawal-compliance' ); ?></strong></label>
 		<br>
-		<input type="text" name="<?php echo esc_attr( $title_option ); ?>" id="<?php echo esc_attr( $title_option ); ?>" value="<?php echo esc_attr( $title ); ?>" class="regular-text">
+		<input type="text" name="<?php echo esc_attr( $title_option ); ?>" id="<?php echo esc_attr( $title_option ); ?>" value="<?php echo esc_attr( $title ); ?>" placeholder="<?php echo esc_attr( $title_default ); ?>" class="regular-text">
 	</p>
 	<p>
 		<label for="<?php echo esc_attr( $body_option ); ?>"><strong><?php esc_html_e( 'Body', 'eu-withdrawal-compliance' ); ?></strong></label>
 		<br>
-		<textarea name="<?php echo esc_attr( $body_option ); ?>" id="<?php echo esc_attr( $body_option ); ?>" rows="3" class="large-text"><?php echo esc_textarea( $body ); ?></textarea>
+		<textarea name="<?php echo esc_attr( $body_option ); ?>" id="<?php echo esc_attr( $body_option ); ?>" rows="3" class="large-text" placeholder="<?php echo esc_attr( $body_default ); ?>"><?php echo esc_textarea( $body ); ?></textarea>
 	</p>
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Optional.</strong> Leave any field empty to fall back to the bundled default. The body supports basic HTML (links, strong, em) and the <code>{withdrawal_page_link}</code> placeholder, which expands to a link to the configured withdrawal page.', 'eu-withdrawal-compliance' ),
+			__( '<strong>Optional.</strong> Leave a field empty to use the bundled text shown in it, which follows the language of each visitor; your own text is shown exactly as written, in every language. The body supports basic HTML (links, strong, em) and the <code>{withdrawal_page_link}</code> placeholder, which expands to a link to the configured withdrawal page.', 'eu-withdrawal-compliance' ),
 			array(
 				'strong' => array(),
 				'code'   => array(),
@@ -1472,17 +1602,14 @@ function ayudawp_euw_render_status_email_body_editor( $status ) {
 	$option = 'ayudawp_euw_status_email_body_' . $status;
 	$text   = (string) get_option( $option, '' );
 
-	if ( '' === trim( $text ) ) {
-		$text = $defaults[ $status ];
-	}
-
 	printf(
-		'<textarea name="%1$s" id="%1$s" rows="3" class="large-text">%2$s</textarea>',
+		'<textarea name="%1$s" id="%1$s" rows="3" class="large-text" placeholder="%3$s">%2$s</textarea>',
 		esc_attr( $option ),
-		esc_textarea( $text )
+		esc_textarea( $text ),
+		esc_attr( $defaults[ $status ] )
 	);
 
-	echo '<p class="description">' . esc_html__( 'Leave empty to fall back to the bundled default. The order number and a sober sign-off are always appended automatically, as is any per-request comment you add when changing the status.', 'eu-withdrawal-compliance' ) . '</p>';
+	echo '<p class="description">' . esc_html__( 'Leave it empty to use the bundled text shown in the field, which follows the language of the shop. The order number and a sober sign-off are always appended automatically, as is any per-request comment you add when changing the status.', 'eu-withdrawal-compliance' ) . '</p>';
 }
 
 /**
@@ -1524,10 +1651,7 @@ function ayudawp_euw_field_form_intro_callback() {
 
 	$enabled = get_option( 'ayudawp_euw_form_intro_enabled', 'yes' );
 	$text    = (string) get_option( 'ayudawp_euw_form_intro_text', '' );
-
-	if ( '' === trim( $text ) && function_exists( 'ayudawp_euw_form_intro_default' ) ) {
-		$text = ayudawp_euw_form_intro_default();
-	}
+	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_form_intro_text' );
 
 	?>
 	<fieldset>
@@ -1537,10 +1661,10 @@ function ayudawp_euw_field_form_intro_callback() {
 		</label>
 		<p>
 			<label for="ayudawp_euw_form_intro_text"><strong><?php esc_html_e( 'Intro text', 'eu-withdrawal-compliance' ); ?></strong></label>
-			<textarea name="ayudawp_euw_form_intro_text" id="ayudawp_euw_form_intro_text" rows="3" class="large-text"><?php echo esc_textarea( $text ); ?></textarea>
+			<textarea name="ayudawp_euw_form_intro_text" id="ayudawp_euw_form_intro_text" rows="3" class="large-text" placeholder="<?php echo esc_attr( $default ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
 		</p>
 		<p class="description">
-			<?php esc_html_e( 'Untick the box to hide the intro entirely. Leave the text empty to use the bundled default. Plain text only; the fixed legal note is always shown below it.', 'eu-withdrawal-compliance' ); ?>
+			<?php esc_html_e( 'Untick the box to hide the intro entirely. Leave the text empty to use the bundled text shown in the field, which follows the language of each visitor; your own text is shown exactly as written, in every language. Plain text only; the fixed legal note is always shown below it.', 'eu-withdrawal-compliance' ); ?>
 		</p>
 	</fieldset>
 	<?php
@@ -1553,10 +1677,7 @@ function ayudawp_euw_field_consumer_check_callback() {
 
 	$enabled = get_option( 'ayudawp_euw_consumer_check_enabled', 'no' );
 	$text    = (string) get_option( 'ayudawp_euw_consumer_check_text', '' );
-
-	if ( '' === trim( $text ) && function_exists( 'ayudawp_euw_consumer_check_default_text' ) ) {
-		$text = ayudawp_euw_consumer_check_default_text();
-	}
+	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_consumer_check_text' );
 
 	?>
 	<fieldset>
@@ -1574,10 +1695,10 @@ function ayudawp_euw_field_consumer_check_callback() {
 		</p>
 		<p>
 			<label for="ayudawp_euw_consumer_check_text"><strong><?php esc_html_e( 'Declaration text shown on the form', 'eu-withdrawal-compliance' ); ?></strong></label>
-			<textarea name="ayudawp_euw_consumer_check_text" id="ayudawp_euw_consumer_check_text" rows="2" class="large-text"><?php echo esc_textarea( $text ); ?></textarea>
+			<textarea name="ayudawp_euw_consumer_check_text" id="ayudawp_euw_consumer_check_text" rows="2" class="large-text" placeholder="<?php echo esc_attr( $default ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
 		</p>
 		<p class="description">
-			<?php esc_html_e( 'Leave empty to use the bundled default. Plain text only.', 'eu-withdrawal-compliance' ); ?>
+			<?php esc_html_e( 'Leave it empty to use the bundled text shown in the field, which follows the language of each visitor. Your own text is shown exactly as written, in every language. Plain text only.', 'eu-withdrawal-compliance' ); ?>
 		</p>
 	</fieldset>
 	<?php

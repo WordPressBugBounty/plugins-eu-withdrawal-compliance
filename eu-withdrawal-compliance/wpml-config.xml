@@ -9,7 +9,9 @@
 	  translatable strings under WPML > String Translation (or Languages >
 	  Translations in Polylang). Only settings the trader can edit are listed;
 	  every default text shipped by the plugin is a regular translatable string
-	  and comes from the language pack instead.
+	  and comes from the language pack instead. The status-change email bodies
+	  are listed too, although the plugin's own emails are still composed in the
+	  language of the shop, not in the one the customer was browsing in.
 	- custom-fields / custom-term-fields: the withdrawal status is copied to
 	  translations, so a translated product or category keeps the exclusion and
 	  the checkout consent of its original. The plugin also resolves the status
@@ -31,6 +33,9 @@
 		<key name="ayudawp_euw_consent_a_text" />
 		<key name="ayudawp_euw_consent_b_text" />
 		<key name="ayudawp_euw_consumer_check_text" />
+		<key name="ayudawp_euw_status_email_body_accepted" />
+		<key name="ayudawp_euw_status_email_body_rejected" />
+		<key name="ayudawp_euw_status_email_body_completed" />
 		<key name="ayudawp_euw_trader_address" />
 		<key name="ayudawp_euw_from_name" />
 	</admin-texts>

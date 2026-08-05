@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.1.1
+Stable tag: 2.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -233,7 +233,7 @@ All strings are translation-ready. Translations are managed through the official
 
 = Does it work on multilingual sites (WPML, Polylang)? =
 
-Yes. The withdrawal status is set once, on the product (or category) in the site original language, and applies to every translation: the excluded-product notice, the checkout consents and the excluded items recorded on the order all resolve back to the original, so nothing has to be flagged twice. An explicit status on a translation still wins, if you need a per-language exception. Links to the withdrawal page follow the visitor language whenever a translation of that page exists. The plugin also ships a `wpml-config.xml` file, read by WPML and Polylang alike, that turns the settings holding customer-facing copy (the excluded-product notice titles and bodies, the form intro, the consent texts, the trader address) into translatable strings under **WPML → String Translation** or **Languages → Translations**. The texts bundled with the plugin need no configuration: they come from the language pack of each locale.
+Yes. The withdrawal status is set once, on the product (or category) in the site original language, and applies to every translation: the excluded-product notice, the checkout consents and the excluded items recorded on the order all resolve back to the original, so nothing has to be flagged twice. An explicit status on a translation still wins, if you need a per-language exception. Links to the withdrawal page follow the visitor language whenever a translation of that page exists. The plugin also ships a `wpml-config.xml` file, read by WPML and Polylang alike, that turns the settings holding customer-facing copy (the excluded-product notice titles and bodies, the form intro, the consent texts, the trader address) into translatable strings under **WPML → String Translation** or **Languages → Translations**. A setting shows up there once you have written your own text in it: left empty, there is nothing to translate, because the text then comes from the language pack of each locale and already follows the language of the visitor. So you have both routes: leave a field empty and let the bundled translation do the work, or write your own text and translate it under String Translation. The texts bundled with the plugin need no configuration.
 
 One current limitation worth knowing: the plugin's own emails (acknowledgement of receipt, admin notification and status changes) are composed in the site default language, not in the language the customer was browsing in, because they are generated outside the language routing of both plugins. The withdrawal notice injected into the WooCommerce transactional emails does follow the order language, since WooCommerce Multilingual and Polylang for WooCommerce switch the locale for those. Per-customer language for the plugin's own emails is on the roadmap.
 
@@ -301,6 +301,11 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.1.2 =
+* Improved: Compatibility with WooCommerce 11.0 verified.
+* Fix: The settings that hold customer-facing copy stopped following the language of each visitor. Their editors pre-filled the field with the bundled default text, so the first time the settings page was saved that text was stored verbatim and printed as is from then on, leaving the form intro, the consumer self-declaration, the checkout consent texts, the excluded-product notices and the status-change email bodies stuck in the language of whoever saved. The fields now show the default as a placeholder and discard a text identical to it on save, and updating clears the defaults stored by an earlier save, so the bundled translations apply again. Texts written by the trader are left untouched.
+* Fix: The status-change email bodies were missing from `wpml-config.xml`, so on WPML and Polylang there was no way to translate them once customised. They are now exposed under String Translation with the rest of the editable texts.
+
 = 2.1.1 =
 * Improved: settings that hold customer-facing copy are now translatable on multilingual sites. The plugin ships a `wpml-config.xml` file, read by both WPML and Polylang, that exposes the excluded-product notice titles and bodies, the form intro text, the consent texts, the trader postal address and the email sender name under String Translation, and copies the withdrawal status to translated products and categories. Texts bundled with the plugin keep coming from the language pack of each locale, as before.
 * Improved: clearer message when a request is no longer awaiting confirmation. The old wording mentioned a "confirmation link", which sounded like a link sent by email instead of the review screen of step 2; it now explains that the screen stays available for 15 minutes and can only be confirmed once. A new FAQ documents the usual cause when it happens right after submitting: an object cache that does not keep transients.
@@ -315,8 +320,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.1.1 =
-Multilingual fix: translated products (WPML, Polylang) now honour the withdrawal status set on the original, so the excluded-product notice appears and the Art. 16(m) and 14(4)(a) consents are requested at checkout in every language. Single-language sites are unaffected.
+= 2.1.2 =
+Multilingual fix: the editable texts of the plugin follow the language of each visitor again (form intro, consumer declaration, checkout consents, excluded-product notices, status emails). Updating clears the default texts stored by an earlier save; your own texts are untouched.
 
 == Support ==
 
