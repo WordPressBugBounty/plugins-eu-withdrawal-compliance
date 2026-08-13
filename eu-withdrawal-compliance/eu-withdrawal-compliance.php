@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free, complete EU Directive 2023/2673 toolkit: withdrawal button, checkout consents (Art. 16(m) & 14(4)(a)), Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration. Standalone or with WooCommerce.
- * Version:           2.1.2
+ * Version:           2.2.0
  * Requires at least: 6.0
  * Tested up to:      7.0
  * Requires PHP:      7.4
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.1.2' );
+define( 'AYUDAWP_EUW_VERSION', '2.2.0' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
@@ -81,8 +81,6 @@ function ayudawp_euw_activate() {
 
 	if ( ! $page_id || ! get_post( $page_id ) ) {
 
-		$disclaimer = __( '[Sample template — review with a legal advisor before publishing. Delete the sections below that don\'t apply to your shop.]', 'eu-withdrawal-compliance' );
-
 		$h2_right = __( 'Your 14-day right of withdrawal', 'eu-withdrawal-compliance' );
 		$p_right  = __( 'You have a 14-day withdrawal period from the moment you receive your order to cancel your purchase, without giving any reason and without penalty, as established by EU Directive 2023/2673 and the consumer protection laws applicable in your country.', 'eu-withdrawal-compliance' );
 
@@ -104,8 +102,13 @@ function ayudawp_euw_activate() {
 		$h3_dated = __( 'Dated accommodation, rentals, catering or leisure services', 'eu-withdrawal-compliance' );
 		$p_dated  = __( 'Services tied to a specific date or period of performance — accommodation other than for residential purpose (hotels, vacation rentals), vehicle rental, transport of goods, catering and leisure services such as event tickets — are excluded from the right of withdrawal — Art. 16(l) of Directive 2011/83/EU.', 'eu-withdrawal-compliance' );
 
+		// The page is created ready to publish, so it carries no "sample
+		// template, review before publishing" paragraph: that warning used to
+		// travel as the first block of the content and went live, in front of
+		// the shop's customers, whenever nobody remembered to delete it. It is
+		// now shown in the dashboard instead, next to the page selector in
+		// Settings, for as long as the page stays untouched.
 		$blocks = array(
-			sprintf( "<!-- wp:paragraph -->\n<p><strong>%s</strong></p>\n<!-- /wp:paragraph -->", esc_html( $disclaimer ) ),
 			sprintf( "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">%s</h2>\n<!-- /wp:heading -->", esc_html( $h2_right ) ),
 			sprintf( "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->", esc_html( $p_right ) ),
 			sprintf( "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">%s</h2>\n<!-- /wp:heading -->", esc_html( $h2_how ) ),
@@ -138,6 +141,10 @@ function ayudawp_euw_activate() {
 
 		if ( ! is_wp_error( $new_page_id ) ) {
 			update_option( 'ayudawp_euw_page_id', $new_page_id );
+
+			// Remember which page the plugin wrote, so Settings can tell the
+			// bundled template apart from a page the trader has written.
+			update_option( 'ayudawp_euw_page_created_id', $new_page_id );
 		}
 	}
 }

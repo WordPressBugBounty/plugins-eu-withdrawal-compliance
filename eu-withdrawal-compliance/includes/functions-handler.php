@@ -184,10 +184,17 @@ function ayudawp_euw_handle_confirm() {
 	$data  = $token ? get_transient( 'ayudawp_euw_pending_' . $token ) : false;
 
 	if ( ! is_array( $data ) ) {
-		ayudawp_euw_redirect_with_error( 'session' );
+		ayudawp_euw_redirect_with_error( ayudawp_euw_token_was_confirmed( $token ) ? 'done' : 'session' );
 	}
 
 	delete_transient( 'ayudawp_euw_pending_' . $token );
+
+	// Leave a short-lived marker behind. The confirmation screen and the "Edit
+	// data" link both land on a missing transient whether the declaration was
+	// already confirmed (the browser back button, a double submit) or simply
+	// expired, and the two need opposite advice: "fill in the form again" would
+	// walk a customer whose request is already registered into a duplicate.
+	set_transient( 'ayudawp_euw_used_' . $token, 1, 15 * MINUTE_IN_SECONDS );
 
 	// 3. Re-validate: the order may have changed status during the window.
 	$wc_validation = ayudawp_euw_validate_submission( $data );
@@ -221,6 +228,18 @@ function ayudawp_euw_handle_confirm() {
 	update_post_meta( $post_id, '_ayudawp_euw_ip', ayudawp_euw_get_user_ip() );
 	update_post_meta( $post_id, '_ayudawp_euw_user_agent', isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '' );
 	update_post_meta( $post_id, '_ayudawp_euw_status', 'pending' );
+
+	// Who sent it, when they were logged in. This is proof of ownership at the
+	// moment of submission, which is what lets the customer see the request
+	// listed in their account later. The email address on the request is not:
+	// WooCommerce lets a customer change the address of their account without
+	// confirming it, so anyone could point their account at an address someone
+	// else used as a guest.
+	$submitter_id = get_current_user_id();
+
+	if ( $submitter_id ) {
+		update_post_meta( $post_id, '_ayudawp_euw_user_id', $submitter_id );
+	}
 
 	// The acknowledgement records the exact date and time of submission
 	// (Article 11a(4)). That is the moment the consumer confirms, i.e. now.
@@ -290,7 +309,7 @@ function ayudawp_euw_handle_confirm() {
 	// 6. Send notifications. The customer email is the durable-medium
 	// acknowledgement of receipt (Article 11a(4)); record whether it was
 	// accepted for delivery as proof the trader fulfilled that duty.
-	$receipt_sent = ayudawp_euw_send_customer_email( $data['email'], $data['name'], $data['order'], $data['scope'], $receipt_hash, $submitted_at, $data['details'], $data['date'] );
+	$receipt_sent = ayudawp_euw_send_customer_email( $data['email'], $data['name'], $data['order'], $data['scope'], $receipt_hash, $submitted_at, $data['details'], $data['date'], $post_id );
 
 	update_post_meta( $post_id, '_ayudawp_euw_receipt_sent', $receipt_sent ? '1' : '0' );
 
@@ -350,6 +369,28 @@ function ayudawp_euw_get_user_ip() {
 	}
 
 	return '';
+}
+
+/**
+ * Whether a pending token was consumed by a successful confirmation.
+ *
+ * The pending declaration is deleted the moment it is confirmed (single use,
+ * Article 11a(3)), so its absence alone cannot tell "already submitted" apart
+ * from "expired". ayudawp_euw_handle_confirm() leaves a marker for as long as
+ * the original window would have lasted, which is what this reads.
+ *
+ * @param string $token Single-use token.
+ * @return bool
+ */
+function ayudawp_euw_token_was_confirmed( $token ) {
+
+	$token = (string) $token;
+
+	if ( '' === $token ) {
+		return false;
+	}
+
+	return (bool) get_transient( 'ayudawp_euw_used_' . $token );
 }
 
 /**

@@ -158,6 +158,79 @@ function ayudawp_euw_consent_is_enabled( $type ) {
 }
 
 /**
+ * Whether a consent type applies to the current checkout.
+ *
+ * Single gate for the three places that have to agree: the checkbox rendered,
+ * the validation that demands it and the record written on the order. When they
+ * disagree a consent is either shown and never recorded, or demanded and never
+ * shown, so they all read this.
+ *
+ * @param string $type Consent type: 'a' or 'b'.
+ * @return bool
+ */
+function ayudawp_euw_consent_applies( $type ) {
+
+	$applies = ayudawp_euw_consent_is_enabled( $type ) && ayudawp_euw_cart_requires_consent( $type );
+
+	/**
+	 * Filters whether a checkout consent applies to the current cart.
+	 *
+	 * The default answer is "the consent is enabled in settings and the cart
+	 * holds at least one product on the matching withdrawal status". Use this to
+	 * decide per cart, customer or product what that rule cannot express, for
+	 * example asking for the digital-content consent only above a given amount,
+	 * or never asking a returning customer twice.
+	 *
+	 * @param bool   $applies Whether the consent applies.
+	 * @param string $type    Consent type: 'a' (Art. 16(m)) or 'b' (Art. 14(4)(a)).
+	 */
+	return (bool) apply_filters( 'ayudawp_euw_consent_applies', $applies, $type );
+}
+
+/**
+ * Whether a consent type must be ticked before the order can be placed.
+ *
+ * Type A is always required: the Article 16(m) exception exists only if the
+ * consumer expressly consents, so an unticked box means the exception does not
+ * apply and the order cannot claim it. Type B is optional by default, because
+ * asking for early performance is the consumer's choice, but a shop whose
+ * service always starts immediately (live sessions, bookings inside the
+ * withdrawal window) can make it a condition of the sale.
+ *
+ * @param string $type Consent type: 'a' or 'b'.
+ * @return bool
+ */
+function ayudawp_euw_consent_is_required( $type ) {
+
+	$required = ( 'a' === $type )
+		? true
+		: ( 'yes' === get_option( 'ayudawp_euw_consent_b_required', 'no' ) );
+
+	/**
+	 * Filters whether a checkout consent is mandatory.
+	 *
+	 * @param bool   $required Whether the consent must be accepted.
+	 * @param string $type     Consent type: 'a' (Art. 16(m)) or 'b' (Art. 14(4)(a)).
+	 */
+	return (bool) apply_filters( 'ayudawp_euw_consent_is_required', $required, $type );
+}
+
+/**
+ * Error message shown when a required consent is left unticked.
+ *
+ * @param string $type Consent type: 'a' or 'b'.
+ * @return string
+ */
+function ayudawp_euw_consent_error_message( $type ) {
+
+	if ( 'a' === $type ) {
+		return __( 'You must accept the digital content consent required to apply the withdrawal-right exception under Article 16(m) of Directive 2011/83/EU.', 'eu-withdrawal-compliance' );
+	}
+
+	return __( 'You must accept the early service start consent under Article 14(4)(a) of Directive 2011/83/EU to place this order.', 'eu-withdrawal-compliance' );
+}
+
+/**
  * Render the consent checkboxes inside the checkout form.
  *
  * Hooked to `woocommerce_after_order_notes`, in the customer-details column.
@@ -183,10 +256,9 @@ function ayudawp_euw_checkout_render_consent_fields() {
 		return;
 	}
 
-	$show_a = ayudawp_euw_consent_is_enabled( 'a' ) && ayudawp_euw_cart_requires_consent( 'a' );
-	$show_b = ayudawp_euw_consent_is_enabled( 'b' ) && ayudawp_euw_cart_requires_consent( 'b' );
+	$types = array_filter( array( 'a', 'b' ), 'ayudawp_euw_consent_applies' );
 
-	if ( ! $show_a && ! $show_b ) {
+	if ( empty( $types ) ) {
 		return;
 	}
 
@@ -205,36 +277,30 @@ function ayudawp_euw_checkout_render_consent_fields() {
 
 	echo '<div class="ayudawp-euw-checkout-consents">';
 
-	if ( $show_a ) {
+	foreach ( $types as $type ) {
+
+		$required = ayudawp_euw_consent_is_required( $type );
+		$field_id = 'ayudawp_euw_consent_' . $type;
+
+		$classes = array( 'form-row', 'form-row-wide', 'ayudawp-euw-checkout-consent', 'ayudawp-euw-checkout-consent--' . $type );
+
+		if ( $required ) {
+			$classes[] = 'validate-required';
+		}
 		?>
-		<p class="form-row form-row-wide validate-required ayudawp-euw-checkout-consent ayudawp-euw-checkout-consent--a">
-			<label class="checkbox" for="ayudawp_euw_consent_a">
+		<p class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>">
+			<label class="checkbox" for="<?php echo esc_attr( $field_id ); ?>">
 				<input type="checkbox"
-					id="ayudawp_euw_consent_a"
-					name="ayudawp_euw_consent_a"
+					id="<?php echo esc_attr( $field_id ); ?>"
+					name="<?php echo esc_attr( $field_id ); ?>"
 					value="1"
 					class="input-checkbox"
-					required>
+					<?php echo esc_attr( $required ? 'required' : '' ); ?>>
 				<span class="ayudawp-euw-checkout-consent__text">
-					<?php echo wp_kses( ayudawp_euw_get_consent_text( 'a' ), $allowed_html ); ?>
-					<span class="required" aria-hidden="true">*</span>
-				</span>
-			</label>
-		</p>
-		<?php
-	}
-
-	if ( $show_b ) {
-		?>
-		<p class="form-row form-row-wide ayudawp-euw-checkout-consent ayudawp-euw-checkout-consent--b">
-			<label class="checkbox" for="ayudawp_euw_consent_b">
-				<input type="checkbox"
-					id="ayudawp_euw_consent_b"
-					name="ayudawp_euw_consent_b"
-					value="1"
-					class="input-checkbox">
-				<span class="ayudawp-euw-checkout-consent__text">
-					<?php echo wp_kses( ayudawp_euw_get_consent_text( 'b' ), $allowed_html ); ?>
+					<?php echo wp_kses( ayudawp_euw_get_consent_text( $type ), $allowed_html ); ?>
+					<?php if ( $required ) : ?>
+						<span class="required" aria-hidden="true">*</span>
+					<?php endif; ?>
 				</span>
 			</label>
 		</p>
@@ -243,7 +309,49 @@ function ayudawp_euw_checkout_render_consent_fields() {
 
 	echo '</div>';
 }
-add_action( 'woocommerce_after_order_notes', 'ayudawp_euw_checkout_render_consent_fields', 10 );
+
+/**
+ * Hook the consent render at the configurable checkout location.
+ *
+ * Registered on `wp_loaded` rather than at file load so a theme's functions.php
+ * (which loads after every plugin) can still filter the location.
+ *
+ * The default is `woocommerce_after_order_notes`, in the customer-details
+ * column, and it is not an arbitrary choice: see the note on the render above.
+ * Moving the checkboxes into the order-review panel
+ * (`woocommerce_review_order_before_submit`,
+ * `woocommerce_checkout_after_terms_and_conditions`) puts them where
+ * WooCommerce re-renders on every `update_order_review` AJAX call, which
+ * duplicates the checkbox and clears what the customer already ticked whenever
+ * they change address, shipping or payment method. Grouping the consents next
+ * to the terms acceptance reads better, so the choice is available, but it is a
+ * trade-off and not a free improvement. Returning an empty string suppresses
+ * the render entirely, for shops that place the checkboxes with their own code.
+ */
+function ayudawp_euw_register_consent_render() {
+
+	/**
+	 * Filters the checkout hook where the consent checkboxes are rendered.
+	 *
+	 * @param string $hook Hook name. Empty string to render nothing.
+	 */
+	$hook = (string) apply_filters( 'ayudawp_euw_consent_hook', 'woocommerce_after_order_notes' );
+
+	if ( '' === $hook ) {
+		return;
+	}
+
+	/**
+	 * Filters the priority of the consent render on its checkout hook.
+	 *
+	 * @param int    $priority Hook priority.
+	 * @param string $hook     Hook the render is attached to.
+	 */
+	$priority = (int) apply_filters( 'ayudawp_euw_consent_hook_priority', 10, $hook );
+
+	add_action( $hook, 'ayudawp_euw_checkout_render_consent_fields', $priority );
+}
+add_action( 'wp_loaded', 'ayudawp_euw_register_consent_render' );
 
 /**
  * Reject the checkout submission when the mandatory Type A consent is missing.
@@ -262,16 +370,19 @@ add_action( 'woocommerce_after_order_notes', 'ayudawp_euw_checkout_render_consen
  */
 function ayudawp_euw_checkout_validate_consents() {
 
-	if ( ! ayudawp_euw_consent_is_enabled( 'a' ) || ! ayudawp_euw_cart_requires_consent( 'a' ) ) {
-		return;
-	}
+	foreach ( array( 'a', 'b' ) as $type ) {
 
-	if ( empty( $_POST['ayudawp_euw_consent_a'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the checkout nonce earlier on the same hook chain.
+		if ( ! ayudawp_euw_consent_applies( $type ) || ! ayudawp_euw_consent_is_required( $type ) ) {
+			continue;
+		}
 
-		wc_add_notice(
-			esc_html__( 'You must accept the digital content consent required to apply the withdrawal-right exception under Article 16(m) of Directive 2011/83/EU.', 'eu-withdrawal-compliance' ),
-			'error'
-		);
+		if ( empty( $_POST[ 'ayudawp_euw_consent_' . $type ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the checkout nonce earlier on the same hook chain.
+
+			wc_add_notice(
+				esc_html( ayudawp_euw_consent_error_message( $type ) ),
+				'error'
+			);
+		}
 	}
 }
 add_action( 'woocommerce_after_checkout_validation', 'ayudawp_euw_checkout_validate_consents' );
@@ -298,7 +409,7 @@ function ayudawp_euw_checkout_save_consents( $order, $data ) { // phpcs:ignore G
 
 	foreach ( $types as $type ) {
 
-		if ( ! ayudawp_euw_consent_is_enabled( $type ) || ! ayudawp_euw_cart_requires_consent( $type ) ) {
+		if ( ! ayudawp_euw_consent_applies( $type ) ) {
 			continue;
 		}
 

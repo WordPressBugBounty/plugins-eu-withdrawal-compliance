@@ -477,6 +477,15 @@ function ayudawp_euw_handle_status_transition( $post_id, $new_status, $comment =
 	// so it doubles as the resolution timestamp once the status is final.
 	update_post_meta( $post_id, '_ayudawp_euw_status_changed_at', current_time( 'mysql', true ) );
 
+	// Keep the note that goes out with the status email. It is already customer
+	// facing, and the account screen shows it next to the status so a rejection
+	// is not a decision without a reason there either.
+	if ( '' !== $comment ) {
+		update_post_meta( $post_id, '_ayudawp_euw_status_comment', $comment );
+	} else {
+		delete_post_meta( $post_id, '_ayudawp_euw_status_comment' );
+	}
+
 	$wc_order_id = absint( get_post_meta( $post_id, '_ayudawp_euw_wc_order_id', true ) );
 
 	if ( $wc_order_id ) {
@@ -490,7 +499,7 @@ function ayudawp_euw_handle_status_transition( $post_id, $new_status, $comment =
 		$order = get_post_meta( $post_id, '_ayudawp_euw_order', true );
 
 		if ( $email && is_email( $email ) ) {
-			ayudawp_euw_send_status_email( $email, $name, $order, $new_status, $comment );
+			ayudawp_euw_send_status_email( $email, $name, $order, $new_status, $comment, $post_id );
 		}
 	}
 

@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.1.2
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,7 +33,7 @@ The plugin helps you implement the right of withdrawal requirements of Directive
 
 = Public-facing pieces =
 
-* Public withdrawal page automatically created on activation with a neutral, translation-ready template and the form embedded via shortcode (with a "review with a legal advisor" disclaimer).
+* Public withdrawal page automatically created on activation with a neutral, translation-ready template and the form embedded via shortcode, ready to publish and with the reminder to review it with a legal advisor kept in the dashboard instead of in the page itself.
 * `[ayudawp_withdrawal_form]` shortcode for embedding the form anywhere on the site.
 * `[ayudawp_withdrawal_link]` shortcode for a permanent link to the withdrawal page from any widget area, footer or template part — helps meet the "clearly identifiable" requirement of Article 11a of Directive 2023/2673 without forcing a specific footer layout.
 * `[ayudawp_withdrawal_excluded_notice]` shortcode to place the excluded-product notice with page builders (Divi, Elementor, Bricks, ShopLentor) that render their own product template and skip the standard WooCommerce hooks.
@@ -44,6 +44,7 @@ The plugin helps you implement the right of withdrawal requirements of Directive
 = WooCommerce-specific pieces (auto-activated when WooCommerce is detected) =
 
 * **My Account → Right of withdrawal** endpoint with a per-order "Withdraw" button shown while the order is in an eligible status, deep-linked to the form with the order pre-filled.
+* **Request tracking for the customer**: the same endpoint lists their own requests with date, order, scope, status, the note written when resolving them and the receipt code, and the order row shows the status of a request already open instead of an empty slot. Covers the requests they sent while signed in, including those registered without a matching order.
 * **Withdrawal notice injected into transactional emails** (processing, completed, customer invoice) with a direct link to the form pre-filled with the order number. Eligible order statuses configurable; admin emails never receive the notice.
 * **Automatic verification of the order/email pair** when WooCommerce is active: the request is matched to a real order and gated by the configured eligible statuses. The 14-day deadline is surfaced as an advisory flag for the admin, not an automatic rejection (the period legally runs from delivery, which the shop verifies).
 * **Optional "Accept unmatched requests" mode**: register requests that do not match any order as *Unverified* for manual review instead of rejecting them upfront, highlighted across the admin (notification email, list badge, detail warning and CSV column). Off by default.
@@ -135,6 +136,20 @@ You should add a section to your site's privacy policy describing this storage. 
 5. Add the URL of the withdrawal page to your footer or to the legal links section so it is visible from any page on your site.
 
 == Frequently Asked Questions ==
+
+= Can customers see what happened to a request they sent? =
+
+Yes, on WooCommerce sites and for customers with an account. **My Account → Right of withdrawal** opens with their own requests: when each one was submitted, the order it refers to, whether it covers the full order or specific products, its current status, the note you write when you accept, reject or complete it, and the receipt code of the acknowledgement. The row of an order that already has a request also shows that status next to "View", where the withdrawal button was before, and a rejected request keeps its "Contest the rejection" button. A request is listed when the customer sent it while signed in, which covers the ones sent from the public form and those registered without a matching order, or when it is linked to one of their own orders. Both are proof that the request is theirs.
+
+What is deliberately not used is the address of the account: WooCommerce lets a customer change it without confirming the new one, so listing by address would show requests sent as a guest from any address that has no account on the shop. Requests sent as a guest therefore stay out of the account, and for them (as for guests in general, and for sites without WooCommerce) the trace is the acknowledgement email and the status emails, which is the durable medium the directive asks for. You can switch the whole thing off under **Withdrawals → Settings → General** if you would rather resolve requests by email only.
+
+= Can I move the checkout consent checkboxes somewhere else? =
+
+Yes, with the `ayudawp_euw_consent_hook` filter, but read the trade-off first. They render by default on `woocommerce_after_order_notes`, in the customer-details column, which WooCommerce renders once and leaves alone. The order-review panel next to the terms acceptance looks like the natural home, and it is where most shops want them, but WooCommerce re-renders that panel on every AJAX refresh, so a checkbox placed there is duplicated and loses what the customer already ticked whenever they change address, shipping or payment method.
+
+`add_filter( 'ayudawp_euw_consent_hook', function () { return 'woocommerce_review_order_before_submit'; } );`
+
+Returning an empty string suppresses the render entirely, for shops that place the checkboxes with their own template code. `ayudawp_euw_consent_applies` decides per cart whether each consent is asked for, and `ayudawp_euw_consent_is_required` makes either one mandatory or optional; both receive the consent type (`a` for Art. 16(m), `b` for Art. 14(4)(a)).
 
 = Will the form check the 14-day deadline? =
 
@@ -301,27 +316,21 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
-= 2.1.2 =
-* Improved: Compatibility with WooCommerce 11.0 verified.
-* Fix: The settings that hold customer-facing copy stopped following the language of each visitor. Their editors pre-filled the field with the bundled default text, so the first time the settings page was saved that text was stored verbatim and printed as is from then on, leaving the form intro, the consumer self-declaration, the checkout consent texts, the excluded-product notices and the status-change email bodies stuck in the language of whoever saved. The fields now show the default as a placeholder and discard a text identical to it on save, and updating clears the defaults stored by an earlier save, so the bundled translations apply again. Texts written by the trader are left untouched.
-* Fix: The status-change email bodies were missing from `wpml-config.xml`, so on WPML and Polylang there was no way to translate them once customised. They are now exposed under String Translation with the rest of the editable texts.
-
-= 2.1.1 =
-* Improved: settings that hold customer-facing copy are now translatable on multilingual sites. The plugin ships a `wpml-config.xml` file, read by both WPML and Polylang, that exposes the excluded-product notice titles and bodies, the form intro text, the consent texts, the trader postal address and the email sender name under String Translation, and copies the withdrawal status to translated products and categories. Texts bundled with the plugin keep coming from the language pack of each locale, as before.
-* Improved: clearer message when a request is no longer awaiting confirmation. The old wording mentioned a "confirmation link", which sounded like a link sent by email instead of the review screen of step 2; it now explains that the screen stays available for 15 minutes and can only be confirmed once. A new FAQ documents the usual cause when it happens right after submitting: an object cache that does not keep transients.
-* Fix: on WPML and Polylang sites, products and categories in a translated language ignored their withdrawal status, which is stored on the original-language product. The excluded-product notice did not appear (and its stylesheet was not loaded), the Art. 16(m) and Art. 14(4)(a) consents were not requested at checkout when buying in a translated language, and excluded items were not recorded on the order. The status now resolves back to the original product or category, and an explicit status set on a translation still takes precedence, so per-language exceptions remain possible. The product editor of a translation also states where its effective status comes from, instead of looking unflagged. Single-language sites are unaffected.
-* Fix: the form now returns the customer to the configured withdrawal page when the referer is not available, instead of to the site home page, so they land back on the form and see the step that follows. Security plugins that restrict access to /wp-admin/ can intercept the submission before it is dispatched, which is when this happened.
-
-= 2.1.0 =
-* New: "Accept unmatched requests" opt-in setting (Withdrawals → Settings → Eligible order statuses). When the order number and email do not match any WooCommerce order the request can now be registered anyway, flagged as "Unverified" for manual review, instead of being rejected upfront. The consumer sees a notice on the confirmation screen inviting them to double-check the reference (and can still confirm); the request arrives highlighted in the notification email (with the matched-order hint when only the billing email differs), in the requests list, in the request detail and in a new "Unverified" column of the CSV export. Unverified requests are never linked to an order and the acknowledgement of receipt is still sent. Off by default: nothing changes unless you enable it.
-* Fix: Uninstall now removes every plugin option and the custom role capabilities the plugin had granted; it previously deleted only three options.
+= 2.2.0 =
+* New: Customers can follow their withdrawal requests from their account. The "Right of withdrawal" tab of My Account now opens with their own requests, each with the date it was submitted, the order, the scope, its current status, the note you write when you resolve it and the receipt code, and the row of an order that already has a request shows that status where the withdrawal button used to be, instead of leaving the slot empty with no explanation. It lists the requests they sent while signed in, including those registered without a matching order, and the ones linked to their own orders. The acknowledgement and the status emails link to the same screen. On by default, with a setting to turn it off (Withdrawals → Settings → General).
+* New: The Article 14(4)(a) service-start consent can be made mandatory (Withdrawals → Settings → Checkout consent). Off by default, since asking for the service to start early is the customer's choice; useful for shops whose service always starts inside the withdrawal window, such as live sessions or bookings, where placing the order without that request makes no sense.
+* New: Developer filters for the checkout consents. `ayudawp_euw_consent_hook` and `ayudawp_euw_consent_hook_priority` move the checkboxes to another checkout hook (or suppress the render with an empty string), `ayudawp_euw_consent_applies` decides per cart whether each consent is asked for, and `ayudawp_euw_consent_is_required` makes either one mandatory or optional. See the FAQ for the trade-off of moving them into the order-review panel.
+* Improved: The settings page now warns when the configured withdrawal page is missing, in the trash, unpublished or no longer contains the form shortcode, so a page deleted or unpublished by mistake does not leave every withdrawal link pointing nowhere.
+* Improved: The page created on activation no longer carries the "sample template, review before publishing" paragraph in its content, where it was published to customers whenever nobody remembered to delete it. The reminder is now shown in the settings page, and only until you edit the page.
+* Improved: Each help text of the public form is now linked to its field with `aria-describedby`, so screen readers announce it with the field instead of as loose text.
+* Fix: The "Edit data" button of the confirmation screen looked like it did nothing once the review window had passed or the request had already been confirmed. It re-rendered the form with no explanation, empty on the public page and back to the order details, still read-only, in My Account. It now says what happened, and tells an already-submitted request apart from an expired one, so a customer whose request is registered is no longer invited to send it again.
 
 For older changelog entries, please check the [changelog.txt](https://plugins.svn.wordpress.org/eu-withdrawal-compliance/trunk/changelog.txt) file
 
 == Upgrade Notice ==
 
-= 2.1.2 =
-Multilingual fix: the editable texts of the plugin follow the language of each visitor again (form intro, consumer declaration, checkout consents, excluded-product notices, status emails). Updating clears the default texts stored by an earlier save; your own texts are untouched.
+= 2.2.0 =
+Customers can now follow their withdrawal requests from My Account, and the order row shows the status where the withdrawal button used to be. Also fixes the Edit data button of the confirmation screen, which looked like it did nothing once the review window had passed.
 
 == Support ==
 

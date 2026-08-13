@@ -631,6 +631,16 @@ add_filter( 'woocommerce_account_menu_items', 'ayudawp_euw_add_account_menu_item
  */
 function ayudawp_euw_account_endpoint_content() {
 
+	// The review screen of step 2 is the dedicated confirmation function of
+	// Article 11a(3) and stays free of anything else, so the list is skipped
+	// while it is on screen.
+	$confirming = ( '' !== ayudawp_euw_get_confirm_token() );
+	$listed     = false;
+
+	if ( ! $confirming && ayudawp_euw_show_account_status() ) {
+		$listed = ayudawp_euw_render_account_requests();
+	}
+
 	$prefill_ref = ayudawp_euw_get_prefill_order_id();
 	$atts        = ( '' !== $prefill_ref ) ? ayudawp_euw_get_order_prefill( $prefill_ref ) : array();
 
@@ -641,9 +651,306 @@ function ayudawp_euw_account_endpoint_content() {
 		);
 	}
 
+	// The heading only earns its place once something precedes the form. With
+	// no requests yet the endpoint is what it has always been, a form.
+	if ( $listed ) {
+		printf(
+			'<h2 class="ayudawp-euw-account-heading">%s</h2>',
+			esc_html__( 'Submit a new request', 'eu-withdrawal-compliance' )
+		);
+	}
+
 	ayudawp_euw_render_form( $atts );
 }
 add_action( 'woocommerce_account_withdrawal_endpoint', 'ayudawp_euw_account_endpoint_content' );
+
+/**
+ * IDs of the withdrawal requests that belong to a customer.
+ *
+ * Two criteria, both of them proof of ownership. Requests sent while logged in
+ * carry the author's user ID, which covers the ones sent from the public form
+ * and the unverified ones, never linked to an order and otherwise invisible to
+ * the person who sent them. The order link covers the rest, including requests
+ * sent with an address other than the account's, common when the billing email
+ * of the order is not the one used to register.
+ *
+ * Matching by the address of the account, which is what the GDPR exporter does,
+ * is deliberately NOT one of them: that exporter runs on an address the owner
+ * has confirmed through the WordPress data-request flow, while WooCommerce lets
+ * a customer change the address of their own account without confirming it. A
+ * self-service list keyed on it would hand anyone the requests sent as a guest
+ * from any address that has no account on the shop. Guest requests therefore
+ * stay out of the account until there is a way to claim them, and their trace
+ * remains the acknowledgement email.
+ *
+ * @param int $user_id Optional user ID. Defaults to the current user.
+ * @param int $limit   Maximum number of requests to return.
+ * @return array<int, int> Request IDs, newest first.
+ */
+function ayudawp_euw_get_customer_requests( $user_id = 0, $limit = 20 ) {
+
+	$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+
+	if ( ! $user_id ) {
+		return array();
+	}
+
+	$criteria = array(
+		'relation' => 'OR',
+		array(
+			'key'   => '_ayudawp_euw_user_id',
+			'value' => $user_id,
+		),
+	);
+
+	$order_ids = ayudawp_euw_get_customer_order_ids( $user_id );
+
+	if ( ! empty( $order_ids ) ) {
+		$criteria[] = array(
+			'key'     => '_ayudawp_euw_wc_order_id',
+			'value'   => $order_ids,
+			'compare' => 'IN',
+		);
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => 'ayudawp_withdrawal',
+			'post_status'            => 'any',
+			'posts_per_page'         => absint( $limit ),
+			'orderby'                => 'date',
+			'order'                  => 'DESC',
+			'fields'                 => 'ids',
+			'no_found_rows'          => true,
+			'update_post_term_cache' => false,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One bounded query, on a screen a customer opens to read their own requests, over meta keys indexed by WordPress. The alternative would be a custom table.
+			'meta_query'             => $criteria,
+		)
+	);
+
+	return array_map( 'absint', $query->posts );
+}
+
+/**
+ * Order IDs of a customer, capped so the lookup above stays bounded.
+ *
+ * The cap is not a coverage problem in practice: a request sent with the same
+ * address as the account is matched by email regardless of how old its order is.
+ *
+ * @param int $user_id User ID.
+ * @return array<int, int>
+ */
+function ayudawp_euw_get_customer_order_ids( $user_id ) {
+
+	if ( ! function_exists( 'wc_get_orders' ) ) {
+		return array();
+	}
+
+	$orders = wc_get_orders(
+		array(
+			'customer_id' => absint( $user_id ),
+			'limit'       => 100,
+			'orderby'     => 'date',
+			'order'       => 'DESC',
+			'return'      => 'ids',
+		)
+	);
+
+	return is_array( $orders ) ? array_map( 'absint', $orders ) : array();
+}
+
+/**
+ * Render the customer's own withdrawal requests above the form.
+ *
+ * Echoes nothing when the customer has no requests: an empty table pushing the
+ * form down is worse than the form on its own.
+ *
+ * @return bool Whether anything was rendered.
+ */
+function ayudawp_euw_render_account_requests() {
+
+	$requests = ayudawp_euw_get_customer_requests();
+
+	if ( empty( $requests ) ) {
+		return false;
+	}
+
+	$date_format = get_option( 'date_format' );
+	?>
+	<section class="ayudawp-euw-requests" id="ayudawp-euw-requests">
+
+		<h2 class="ayudawp-euw-account-heading"><?php esc_html_e( 'Your withdrawal requests', 'eu-withdrawal-compliance' ); ?></h2>
+
+		<table class="ayudawp-euw-requests-table">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Submitted', 'eu-withdrawal-compliance' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Order', 'eu-withdrawal-compliance' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Scope', 'eu-withdrawal-compliance' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Status', 'eu-withdrawal-compliance' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $requests as $request_id ) : ?>
+					<?php
+					$status = get_post_meta( $request_id, '_ayudawp_euw_status', true );
+					$status = $status ? $status : 'pending';
+
+					$submitted = get_post_meta( $request_id, '_ayudawp_euw_submitted_at', true );
+					$submitted = $submitted ? strtotime( $submitted . ' UTC' ) : get_post_time( 'U', true, $request_id );
+
+					$resolved = get_post_meta( $request_id, '_ayudawp_euw_status_changed_at', true );
+					$resolved = $resolved ? strtotime( $resolved . ' UTC' ) : 0;
+
+					$order_ref = (string) get_post_meta( $request_id, '_ayudawp_euw_order', true );
+					$order_id  = absint( get_post_meta( $request_id, '_ayudawp_euw_wc_order_id', true ) );
+					$comment   = (string) get_post_meta( $request_id, '_ayudawp_euw_status_comment', true );
+					$hash      = (string) get_post_meta( $request_id, '_ayudawp_euw_receipt_hash', true );
+
+					$scope_label = ( 'partial' === get_post_meta( $request_id, '_ayudawp_euw_scope', true ) )
+						? __( 'Specific products', 'eu-withdrawal-compliance' )
+						: __( 'Full order', 'eu-withdrawal-compliance' );
+					?>
+					<tr>
+						<td data-title="<?php esc_attr_e( 'Submitted', 'eu-withdrawal-compliance' ); ?>">
+							<?php echo esc_html( $submitted ? wp_date( $date_format, $submitted ) : '—' ); ?>
+						</td>
+						<td data-title="<?php esc_attr_e( 'Order', 'eu-withdrawal-compliance' ); ?>">
+							<?php if ( $order_id && function_exists( 'wc_get_endpoint_url' ) && function_exists( 'wc_get_page_permalink' ) ) : ?>
+								<a href="<?php echo esc_url( wc_get_endpoint_url( 'view-order', $order_id, wc_get_page_permalink( 'myaccount' ) ) ); ?>">
+									<?php echo esc_html( $order_ref ); ?>
+								</a>
+							<?php else : ?>
+								<?php echo esc_html( '' !== $order_ref ? $order_ref : '—' ); ?>
+							<?php endif; ?>
+						</td>
+						<td data-title="<?php esc_attr_e( 'Scope', 'eu-withdrawal-compliance' ); ?>">
+							<?php echo esc_html( $scope_label ); ?>
+						</td>
+						<td data-title="<?php esc_attr_e( 'Status', 'eu-withdrawal-compliance' ); ?>">
+
+							<span class="ayudawp-euw-request-status ayudawp-euw-request-status--<?php echo esc_attr( sanitize_html_class( $status ) ); ?>">
+								<?php echo esc_html( ayudawp_euw_customer_status_label( $status ) ); ?>
+							</span>
+
+							<span class="ayudawp-euw-request-detail">
+								<?php if ( 'pending' === $status ) : ?>
+									<?php esc_html_e( 'Awaiting review against the legal deadlines and conditions.', 'eu-withdrawal-compliance' ); ?>
+								<?php elseif ( $resolved ) : ?>
+									<?php
+									printf(
+										/* translators: %s: date the request was resolved. */
+										esc_html__( 'Resolved on %s.', 'eu-withdrawal-compliance' ),
+										esc_html( wp_date( $date_format, $resolved ) )
+									);
+									?>
+								<?php endif; ?>
+
+								<?php if ( '' !== $comment ) : ?>
+									<span class="ayudawp-euw-request-note">
+										<?php
+										printf(
+											/* translators: %s: note written by the shop when resolving the request. */
+											esc_html__( 'Note from the shop: %s', 'eu-withdrawal-compliance' ),
+											esc_html( $comment )
+										);
+										?>
+									</span>
+								<?php endif; ?>
+
+								<?php if ( '' !== $hash ) : ?>
+									<span class="ayudawp-euw-request-hash">
+										<?php
+										printf(
+											/* translators: %s: SHA-256 acknowledgement code. */
+											esc_html__( 'Receipt code: %s', 'eu-withdrawal-compliance' ),
+											esc_html( $hash )
+										);
+										?>
+									</span>
+								<?php endif; ?>
+							</span>
+
+							<?php if ( 'rejected' === $status && $order_id ) : ?>
+								<a class="ayudawp-euw-button ayudawp-euw-button--secondary" href="<?php echo esc_url( ayudawp_euw_get_prefill_endpoint_url( $order_ref ) ); ?>">
+									<?php esc_html_e( 'Contest the rejection', 'eu-withdrawal-compliance' ); ?>
+								</a>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	</section>
+	<?php
+
+	return true;
+}
+
+/**
+ * URL where a customer can follow their requests, for the plugin's emails.
+ *
+ * Empty unless the address belongs to an account, WooCommerce provides the My
+ * Account screen and the request itself will actually be listed there. Pointing
+ * someone at a screen that turns out to be empty is worse than not mentioning
+ * it: a request sent as a guest is not attributed to any account, even when the
+ * address happens to have one.
+ *
+ * @param string $email      Customer email address.
+ * @param int    $request_id Optional request this email is about.
+ * @return string
+ */
+function ayudawp_euw_get_customer_requests_url( $email, $request_id = 0 ) {
+
+	$url = ayudawp_euw_get_requests_list_url();
+
+	if ( '' === $url || ! ayudawp_euw_show_account_status() || ! is_email( $email ) ) {
+		return '';
+	}
+
+	$user = get_user_by( 'email', $email );
+
+	if ( ! $user ) {
+		return '';
+	}
+
+	if ( $request_id && ! ayudawp_euw_request_belongs_to_user( $request_id, $user->ID ) ) {
+		return '';
+	}
+
+	return $url;
+}
+
+/**
+ * Whether a request is attributed to a user, by the same rules as the account list.
+ *
+ * @param int $request_id Request ID.
+ * @param int $user_id    User ID.
+ * @return bool
+ */
+function ayudawp_euw_request_belongs_to_user( $request_id, $user_id ) {
+
+	$request_id = absint( $request_id );
+	$user_id    = absint( $user_id );
+
+	if ( ! $request_id || ! $user_id ) {
+		return false;
+	}
+
+	if ( absint( get_post_meta( $request_id, '_ayudawp_euw_user_id', true ) ) === $user_id ) {
+		return true;
+	}
+
+	$order_id = absint( get_post_meta( $request_id, '_ayudawp_euw_wc_order_id', true ) );
+
+	if ( ! $order_id || ! function_exists( 'wc_get_order' ) ) {
+		return false;
+	}
+
+	$order = wc_get_order( $order_id );
+
+	return ( $order && method_exists( $order, 'get_customer_id' ) && absint( $order->get_customer_id() ) === $user_id );
+}
 
 /**
  * Build the locked pre-fill set from a verified order reference in My Account.
@@ -708,6 +1015,34 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 		return $actions;
 	}
 
+	// Reporting a request that exists is not the same as offering a new one, so
+	// this runs before the order-status gate below: an order that has since
+	// moved to a status which offers nothing (refunded, cancelled) is exactly
+	// when the customer comes looking for what happened to their request. An
+	// open request used to leave this slot empty, so the button simply vanished
+	// from the row and left no trace anywhere in the account. The lookup skips
+	// its fallback query, so rows without a request cost nothing: the mirror it
+	// reads has been written on every linked request since 1.4.0.
+	$existing        = ayudawp_euw_get_request_for_order( $order->get_id(), false );
+	$existing_status = '';
+
+	if ( $existing ) {
+
+		$existing_status = get_post_meta( $existing, '_ayudawp_euw_status', true );
+		$existing_status = $existing_status ? $existing_status : 'pending';
+
+		if ( ayudawp_euw_show_account_status() ) {
+			$actions['ayudawp_euw_status'] = array(
+				'url'  => ayudawp_euw_get_requests_list_url(),
+				'name' => sprintf(
+					/* translators: %s: withdrawal status, e.g. "Submitted". */
+					__( 'Withdrawal: %s', 'eu-withdrawal-compliance' ),
+					ayudawp_euw_customer_status_label( $existing_status )
+				),
+			);
+		}
+	}
+
 	// Order-status eligibility gates every entry point. The strict-mode deadline
 	// is applied further down, and only to a brand-new request: a rejected one can
 	// still be contested past the deadline, since strict mode blocks opening new
@@ -716,12 +1051,7 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 		return $actions;
 	}
 
-	$existing = ayudawp_euw_get_request_for_order( $order->get_id() );
-
 	if ( $existing ) {
-
-		$existing_status = get_post_meta( $existing, '_ayudawp_euw_status', true );
-		$existing_status = $existing_status ? $existing_status : 'pending';
 
 		// A non-rejected request is already open: nothing to offer the customer here.
 		if ( 'rejected' !== $existing_status ) {
@@ -744,22 +1074,88 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 		$button_label = __( 'Withdraw from contract', 'eu-withdrawal-compliance' );
 	}
 
-	$endpoint_url = wc_get_account_endpoint_url( 'withdrawal' );
-	$order_ref    = method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order->get_id();
-	$endpoint_url = add_query_arg(
-		array(
-			'order_id' => $order_ref,
-			'_wpnonce' => wp_create_nonce( 'ayudawp_euw_prefill_' . $order_ref ),
-		),
-		$endpoint_url
-	);
+	$order_ref = method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order->get_id();
 
 	$actions['ayudawp_euw'] = array(
-		'url'  => $endpoint_url,
+		'url'  => ayudawp_euw_get_prefill_endpoint_url( $order_ref ),
 		'name' => $button_label,
 	);
 
 	return $actions;
+}
+
+/**
+ * Build the signed My Account form URL that pre-fills a given order.
+ *
+ * The nonce is created against the specific order reference and verified by
+ * ayudawp_euw_get_prefill_order_id(), so only links the plugin generated itself
+ * unlock the locked pre-fill of the customer's own order details.
+ *
+ * @param string $order_ref Order number as shown to the customer.
+ * @return string Endpoint URL, or an empty string without WooCommerce.
+ */
+function ayudawp_euw_get_prefill_endpoint_url( $order_ref ) {
+
+	if ( ! function_exists( 'wc_get_account_endpoint_url' ) ) {
+		return '';
+	}
+
+	return add_query_arg(
+		array(
+			'order_id' => $order_ref,
+			'_wpnonce' => wp_create_nonce( 'ayudawp_euw_prefill_' . $order_ref ),
+		),
+		wc_get_account_endpoint_url( 'withdrawal' )
+	);
+}
+
+/**
+ * URL of the customer's own list of withdrawal requests.
+ *
+ * @return string My Account endpoint URL, or an empty string without WooCommerce.
+ */
+function ayudawp_euw_get_requests_list_url() {
+
+	if ( ! function_exists( 'wc_get_account_endpoint_url' ) ) {
+		return '';
+	}
+
+	return wc_get_account_endpoint_url( 'withdrawal' ) . '#ayudawp-euw-requests';
+}
+
+/**
+ * Whether the customer-facing status of a request is shown in My Account.
+ *
+ * @return bool
+ */
+function ayudawp_euw_show_account_status() {
+
+	return 'yes' === get_option( 'ayudawp_euw_account_status_enabled', 'yes' );
+}
+
+/**
+ * Customer-facing label for a withdrawal status.
+ *
+ * Deliberately not the wording of the admin column. On the customer's orders
+ * table the order status cell of the same row can already read "Completed"
+ * (delivered) while the withdrawal is completed too (refunded), and the two
+ * meanings side by side read as a contradiction, so the refund is named after
+ * what the customer gets back. "Not accepted" over "Rejected" for the same
+ * reason: it is a decision the customer may still contest, not a verdict.
+ *
+ * @param string $status Stored status.
+ * @return string Translated label.
+ */
+function ayudawp_euw_customer_status_label( $status ) {
+
+	$labels = array(
+		'pending'   => __( 'Submitted', 'eu-withdrawal-compliance' ),
+		'accepted'  => __( 'Accepted', 'eu-withdrawal-compliance' ),
+		'rejected'  => __( 'Not accepted', 'eu-withdrawal-compliance' ),
+		'completed' => __( 'Refund issued', 'eu-withdrawal-compliance' ),
+	);
+
+	return isset( $labels[ $status ] ) ? $labels[ $status ] : $labels['pending'];
 }
 add_filter( 'woocommerce_my_account_my_orders_actions', 'ayudawp_euw_add_order_action', 10, 2 );
 
@@ -836,14 +1232,41 @@ add_filter( 'shortcode_atts_ayudawp_withdrawal_form', 'ayudawp_euw_prefill_from_
  *
  * Returns 0 if none exists.
  *
- * @param int $wc_order_id WC order ID.
+ * @param int  $wc_order_id WC order ID.
+ * @param bool $deep        Whether to fall back to a meta query when the order
+ *                          carries no link. Worth it on the admin column, which
+ *                          reports on a handful of orders and should never miss
+ *                          one; skipped on customer-facing rows, where it would
+ *                          add a query for every order that has no request.
  * @return int Withdrawal CPT ID or 0.
  */
-function ayudawp_euw_get_request_for_order( $wc_order_id ) {
+function ayudawp_euw_get_request_for_order( $wc_order_id, $deep = true ) {
 
 	$wc_order_id = absint( $wc_order_id );
 
 	if ( ! $wc_order_id ) {
+		return 0;
+	}
+
+	// Fast path. The link is mirrored on the order itself when the request is
+	// registered (see ayudawp_euw_add_wc_order_note), and orders on a listing
+	// screen are already loaded, so this resolves from cache instead of running
+	// a meta query per row. Entries deleted since fall through to the query.
+	if ( function_exists( 'wc_get_order' ) ) {
+
+		$order = wc_get_order( $wc_order_id );
+
+		if ( $order && method_exists( $order, 'get_meta' ) ) {
+
+			$mirrored = absint( $order->get_meta( '_ayudawp_euw_request_id' ) );
+
+			if ( $mirrored && 'ayudawp_withdrawal' === get_post_type( $mirrored ) ) {
+				return $mirrored;
+			}
+		}
+	}
+
+	if ( ! $deep ) {
 		return 0;
 	}
 

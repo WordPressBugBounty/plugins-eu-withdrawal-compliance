@@ -19,6 +19,7 @@ $ayudawp_euw_options = array(
 	// General.
 	'ayudawp_euw_notify_email',
 	'ayudawp_euw_page_id',
+	'ayudawp_euw_account_status_enabled',
 	// Eligibility and deadline.
 	'ayudawp_euw_allowed_statuses',
 	'ayudawp_euw_accept_unmatched',
@@ -32,6 +33,7 @@ $ayudawp_euw_options = array(
 	'ayudawp_euw_consent_a_text',
 	'ayudawp_euw_consent_b_enabled',
 	'ayudawp_euw_consent_b_text',
+	'ayudawp_euw_consent_b_required',
 	// Annex I.B model form.
 	'ayudawp_euw_annex_b_enabled',
 	'ayudawp_euw_trader_address',
@@ -53,6 +55,7 @@ $ayudawp_euw_options = array(
 	'ayudawp_euw_caps_setup_done',
 	// Internal flags and legacy migrations.
 	'ayudawp_euw_version',
+	'ayudawp_euw_page_created_id',
 	'ayudawp_euw_excluded_categories',
 	'ayudawp_euw_excluded_categories_migrated',
 );

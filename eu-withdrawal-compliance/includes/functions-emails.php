@@ -90,9 +90,10 @@ function ayudawp_euw_with_sender( $send ) {
  * @param string $submitted_at Optional GMT timestamp (Y-m-d H:i:s) of submission.
  * @param string $details      Optional free-text details of the declaration.
  * @param string $date         Optional order date as provided by the customer.
+ * @param int    $request_id   Optional request ID, used to decide whether to link the account screen.
  * @return bool Whether the email was accepted for delivery.
  */
-function ayudawp_euw_send_customer_email( $email, $name, $order, $scope, $receipt_hash = '', $submitted_at = '', $details = '', $date = '' ) {
+function ayudawp_euw_send_customer_email( $email, $name, $order, $scope, $receipt_hash = '', $submitted_at = '', $details = '', $date = '', $request_id = 0 ) {
 
 	$site_name = get_bloginfo( 'name' );
 
@@ -148,6 +149,15 @@ function ayudawp_euw_send_customer_email( $email, $name, $order, $scope, $receip
 	$lines[] = ayudawp_euw_legal_conditions_text();
 	$lines[] = '';
 	$lines[] = __( 'We will review the request and confirm next steps within 24 hours. If you do not hear from us, please reply to this email.', 'eu-withdrawal-compliance' );
+
+	$account_url = ayudawp_euw_get_customer_requests_url( $email, $request_id );
+
+	if ( '' !== $account_url ) {
+		$lines[] = '';
+		$lines[] = __( 'You can also follow your withdrawal requests from your account:', 'eu-withdrawal-compliance' );
+		$lines[] = $account_url;
+	}
+
 	$lines[] = '';
 	$lines[] = sprintf(
 		/* translators: %s: site name. */
@@ -339,13 +349,14 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
  * Only fires for accepted/rejected/completed transitions; pending is the
  * initial state and already covered by the submission acknowledgement.
  *
- * @param string $email   Customer email.
- * @param string $name    Customer name.
- * @param string $order   Order reference.
- * @param string $status  New status (accepted|rejected|completed).
- * @param string $comment Optional admin comment.
+ * @param string $email      Customer email.
+ * @param string $name       Customer name.
+ * @param string $order      Order reference.
+ * @param string $status     New status (accepted|rejected|completed).
+ * @param string $comment    Optional admin comment.
+ * @param int    $request_id Optional request ID, used to decide whether to link the account screen.
  */
-function ayudawp_euw_send_status_email( $email, $name, $order, $status, $comment = '' ) {
+function ayudawp_euw_send_status_email( $email, $name, $order, $status, $comment = '', $request_id = 0 ) {
 
 	$site_name = get_bloginfo( 'name' );
 
@@ -397,6 +408,14 @@ function ayudawp_euw_send_status_email( $email, $name, $order, $status, $comment
 		$lines[] = '';
 		$lines[] = __( 'Additional information from our team:', 'eu-withdrawal-compliance' );
 		$lines[] = $comment;
+	}
+
+	$account_url = ayudawp_euw_get_customer_requests_url( $email, $request_id );
+
+	if ( '' !== $account_url ) {
+		$lines[] = '';
+		$lines[] = __( 'You can also follow your withdrawal requests from your account:', 'eu-withdrawal-compliance' );
+		$lines[] = $account_url;
 	}
 
 	$lines[] = '';

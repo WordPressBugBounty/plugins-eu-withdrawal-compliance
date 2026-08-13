@@ -142,6 +142,10 @@ function ayudawp_euw_personal_data_exporter( $email_address, $page = 1 ) {
 				'name'  => __( 'Receipt hash (SHA-256)', 'eu-withdrawal-compliance' ),
 				'value' => get_post_meta( $post_id, '_ayudawp_euw_receipt_hash', true ),
 			),
+			array(
+				'name'  => __( 'Note from the shop', 'eu-withdrawal-compliance' ),
+				'value' => get_post_meta( $post_id, '_ayudawp_euw_status_comment', true ),
+			),
 		);
 
 		// Strip empty rows so the export reads cleanly.

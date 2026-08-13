@@ -57,6 +57,16 @@ function ayudawp_euw_register_settings() {
 
 	register_setting(
 		'ayudawp_euw_settings_group',
+		'ayudawp_euw_account_status_enabled',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'yes',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
 		'ayudawp_euw_grace_days',
 		array(
 			'type'              => 'integer',
@@ -114,6 +124,14 @@ function ayudawp_euw_register_settings() {
 		'ayudawp_euw_page_id',
 		__( 'Withdrawal page', 'eu-withdrawal-compliance' ),
 		'ayudawp_euw_field_page_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_main_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_account_status_enabled',
+		__( 'Status in the customer account', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_account_status_callback',
 		'ayudawp-euw-settings',
 		'ayudawp_euw_main_section'
 	);
@@ -207,6 +225,16 @@ function ayudawp_euw_register_settings() {
 			'type'              => 'string',
 			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
 			'default'           => 'yes',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_consent_b_required',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'no',
 		)
 	);
 
@@ -909,6 +937,126 @@ function ayudawp_euw_field_page_callback() {
 	);
 
 	echo '<p class="description">' . wp_kses( __( '<strong>Mandatory.</strong> Page where the withdrawal form is published. Make sure it includes the <code>[ayudawp_withdrawal_form]</code> shortcode. The plugin creates one automatically on activation.', 'eu-withdrawal-compliance' ), array( 'strong' => array(), 'code' => array() ) ) . '</p>';
+
+	$problem = ayudawp_euw_get_page_problem( $selected );
+
+	if ( '' !== $problem ) {
+		echo '<p class="ayudawp-euw-page-warning"><span class="dashicons dashicons-warning" aria-hidden="true"></span> ' . esc_html( $problem ) . '</p>';
+	}
+
+	if ( ayudawp_euw_page_is_untouched_template( $selected ) ) {
+
+		$notice = sprintf(
+			/* translators: %s: URL of the page editor. */
+			__( 'This page still holds the text the plugin wrote on activation. It is a sample: <a href="%s">review it with your legal advisor</a> and delete the sections that do not apply to your shop.', 'eu-withdrawal-compliance' ),
+			esc_url( (string) get_edit_post_link( $selected ) )
+		);
+
+		echo '<p class="ayudawp-euw-page-warning"><span class="dashicons dashicons-info-outline" aria-hidden="true"></span> ' . wp_kses( $notice, array( 'a' => array( 'href' => array() ) ) ) . '</p>';
+	}
+}
+
+/**
+ * Whether the configured page is the bundled template, still unedited.
+ *
+ * The sample text used to carry its own "review before publishing" paragraph in
+ * the page content, which meant it was published to customers whenever nobody
+ * deleted it. The reminder lives here instead, and disappears on its own the
+ * first time the page is saved.
+ *
+ * @param int $page_id Configured page ID.
+ * @return bool
+ */
+function ayudawp_euw_page_is_untouched_template( $page_id ) {
+
+	$page_id = absint( $page_id );
+
+	if ( ! $page_id || $page_id !== absint( get_option( 'ayudawp_euw_page_created_id', 0 ) ) ) {
+		return false;
+	}
+
+	$page = get_post( $page_id );
+
+	if ( ! $page ) {
+		return false;
+	}
+
+	// wp_insert_post() stamps both dates alike, so any later save moves the
+	// modified one. Cheaper and more reliable than diffing the content against
+	// a template that is translated per locale.
+	return $page->post_modified_gmt === $page->post_date_gmt;
+}
+
+/**
+ * Describe what is wrong with the configured withdrawal page, if anything.
+ *
+ * A page that was trashed, unpublished or emptied of the shortcode fails
+ * silently: every link the plugin prints keeps pointing at it and the customer
+ * lands somewhere without a form, which is the one thing Article 11a asks the
+ * trader to make easy to find. Reported next to the selector, without blocking
+ * the save: the shop may be mid-rebuild.
+ *
+ * @param int $page_id Configured page ID.
+ * @return string Human-readable problem, or an empty string when all is well.
+ */
+function ayudawp_euw_get_page_problem( $page_id ) {
+
+	$page_id = absint( $page_id );
+
+	if ( ! $page_id ) {
+		return __( 'No page selected yet, so the links to the withdrawal form (emails, product notices, the model form) have nowhere to point.', 'eu-withdrawal-compliance' );
+	}
+
+	$page = get_post( $page_id );
+
+	if ( ! $page || 'page' !== $page->post_type ) {
+		return __( 'The selected page no longer exists. Pick another one, or let the plugin create a new page.', 'eu-withdrawal-compliance' );
+	}
+
+	if ( 'trash' === $page->post_status ) {
+		return __( 'The selected page is in the trash, so customers following a withdrawal link reach a page not found.', 'eu-withdrawal-compliance' );
+	}
+
+	if ( 'publish' !== $page->post_status ) {
+		return __( 'The selected page is not published, so only logged-in editors can see the form.', 'eu-withdrawal-compliance' );
+	}
+
+	// Page builders keep their layout elsewhere and leave post_content empty or
+	// full of their own markup, so an absent shortcode there is not proof that
+	// the form is missing. Only flag it when the content is plain and has none.
+	if ( '' !== trim( $page->post_content ) && ! has_shortcode( $page->post_content, 'ayudawp_withdrawal_form' ) ) {
+		return __( 'The selected page does not contain the [ayudawp_withdrawal_form] shortcode. If you build it with a page builder or a block that renders the form, ignore this notice.', 'eu-withdrawal-compliance' );
+	}
+
+	return '';
+}
+
+/**
+ * "Status in the customer account" field callback.
+ */
+function ayudawp_euw_field_account_status_callback() {
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there is no customer account where the status could be shown. Customers still receive the acknowledgement of receipt and every status change by email.', 'eu-withdrawal-compliance' ) . '</p>';
+		return;
+	}
+
+	$enabled = get_option( 'ayudawp_euw_account_status_enabled', 'yes' );
+
+	?>
+	<label>
+		<input type="checkbox" name="ayudawp_euw_account_status_enabled" value="yes" <?php checked( 'yes', $enabled ); ?>>
+		<?php esc_html_e( 'Let customers follow their withdrawal requests from My Account', 'eu-withdrawal-compliance' ); ?>
+	</label>
+	<p class="description">
+		<?php
+		echo wp_kses(
+			__( '<strong>Recommended.</strong> Lists the customer\'s own requests, with their status and the note you write when resolving them, at the top of the "Right of withdrawal" tab, and replaces the withdrawal button of an order that already has a request with its current status. Unticked, a submitted request only leaves a trace in the emails the customer receives.', 'eu-withdrawal-compliance' ),
+			array( 'strong' => array() )
+		);
+		?>
+	</p>
+	<?php
 }
 
 /**
@@ -1300,6 +1448,20 @@ function ayudawp_euw_field_consent_b_callback() {
 		</p>
 		<p class="description">
 			<?php esc_html_e( 'Leave it empty to use the bundled text shown in the field, which follows the language of each customer. Your own text is shown exactly as written, in every language. Basic HTML allowed: links, strong, em.', 'eu-withdrawal-compliance' ); ?>
+		</p>
+		<p>
+			<label>
+				<input type="checkbox" name="ayudawp_euw_consent_b_required" value="yes" <?php checked( 'yes', get_option( 'ayudawp_euw_consent_b_required', 'no' ) ); ?>>
+				<strong><?php esc_html_e( 'Require it to place the order', 'eu-withdrawal-compliance' ); ?></strong>
+			</label>
+		</p>
+		<p class="description">
+			<?php
+			echo wp_kses(
+				__( '<strong>Optional.</strong> Off by default, because asking for the service to start early is the customer\'s choice. Tick it only if your service always starts inside the 14-day window (live sessions, bookings, anything delivered on a date the customer picks), so that placing the order without that request would not make sense. With it on, the checkbox becomes mandatory like the digital content one and the order cannot be placed without it.', 'eu-withdrawal-compliance' ),
+				array( 'strong' => array() )
+			);
+			?>
 		</p>
 	</fieldset>
 	<?php

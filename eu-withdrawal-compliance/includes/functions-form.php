@@ -109,6 +109,24 @@ function ayudawp_euw_print_field_error( $field, $errors, $error_code ) {
 }
 
 /**
+ * Token of the declaration waiting on the confirmation screen, if any.
+ *
+ * Single reader of that query arg, so the callers that need to know whether the
+ * review screen of step 2 is on display (the form itself, and the My Account
+ * endpoint, which keeps the request list off that screen) share one place. The
+ * token is a 40-character single-use secret held server-side and is what
+ * authorises the screen, so no nonce gates reading it: an invalid or expired
+ * token resolves to nothing and the caller falls back to the form.
+ *
+ * @return string Token, or an empty string.
+ */
+function ayudawp_euw_get_confirm_token() {
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the single-use token is the secret; nothing is written on this read.
+	return isset( $_GET['ayudawp_euw_confirm'] ) ? sanitize_text_field( wp_unslash( $_GET['ayudawp_euw_confirm'] ) ) : '';
+}
+
+/**
  * Render the withdrawal form HTML directly to output.
  *
  * This function echoes the form markup. Callers that need a string (e.g. the
@@ -189,10 +207,8 @@ function ayudawp_euw_render_form( $atts = array() ) {
 
 	// Step 2: a validated declaration is waiting to be confirmed. Article
 	// 11a(3) requires the consumer to confirm through a dedicated confirmation
-	// function before the request is submitted. The single-use token is the
-	// secret, so this does not depend on the feedback nonce checked above.
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	$confirm_token = isset( $_GET['ayudawp_euw_confirm'] ) ? sanitize_text_field( wp_unslash( $_GET['ayudawp_euw_confirm'] ) ) : '';
+	// function before the request is submitted.
+	$confirm_token = ayudawp_euw_get_confirm_token();
 
 	if ( '' !== $confirm_token ) {
 		$pending = get_transient( 'ayudawp_euw_pending_' . $confirm_token );
@@ -202,8 +218,9 @@ function ayudawp_euw_render_form( $atts = array() ) {
 			return;
 		}
 
-		// Expired or already used: fall back to the form with a notice.
-		$error = 'session';
+		// Expired or already used: fall back to the form with a notice. The two
+		// cases need opposite advice, so tell them apart before choosing it.
+		$error = ayudawp_euw_token_was_confirmed( $confirm_token ) ? 'done' : 'session';
 	}
 
 	// "Edit data" on the confirmation screen sends the customer back here with
@@ -223,6 +240,14 @@ function ayudawp_euw_render_form( $atts = array() ) {
 			}
 
 			$lock = false;
+		} else {
+
+			// The declaration is gone: the window elapsed, it was already
+			// confirmed, or an object cache dropped the transient. Without a
+			// notice the form simply renders again (empty here, back to the
+			// order values and read-only in My Account), which reads as the
+			// "Edit data" button doing nothing at all.
+			$error = ayudawp_euw_token_was_confirmed( $edit_token ) ? 'done' : 'session';
 		}
 	}
 
@@ -255,8 +280,14 @@ function ayudawp_euw_render_form( $atts = array() ) {
 	?>
 	<div class="ayudawp-euw-wrapper" id="ayudawp-euw-form">
 
-		<?php if ( $error ) : ?>
-			<div class="ayudawp-euw-notice ayudawp-euw-notice--error" role="alert">
+		<?php
+		if ( $error ) :
+
+			// "Already submitted" is an outcome, not a failure: it gets the
+			// neutral notice and a polite live region, not the error styling.
+			$is_done = ( 'done' === $error );
+			?>
+			<div class="ayudawp-euw-notice ayudawp-euw-notice--<?php echo esc_attr( $is_done ? 'warning' : 'error' ); ?>" role="<?php echo esc_attr( $is_done ? 'status' : 'alert' ); ?>">
 				<p><?php echo esc_html( ayudawp_euw_get_error_message( $error ) ); ?></p>
 			</div>
 		<?php endif; ?>
@@ -304,15 +335,15 @@ function ayudawp_euw_render_form( $atts = array() ) {
 
 			<div class="ayudawp-euw-field<?php echo esc_attr( ayudawp_euw_field_error_class( 'email', $errors ) ); ?>">
 				<label for="ayudawp_euw_email"><?php esc_html_e( 'Email used in the order', 'eu-withdrawal-compliance' ); ?> <span class="ayudawp-euw-required">*</span></label>
-				<input type="email" id="ayudawp_euw_email" name="ayudawp_euw_email" value="<?php echo esc_attr( $prefill['email'] ); ?>" aria-invalid="<?php echo esc_attr( ayudawp_euw_field_aria_invalid( 'email', $errors ) ); ?>" <?php echo esc_attr( $lock_attr ); ?> required>
-				<small class="ayudawp-euw-help"><?php esc_html_e( 'The withdrawal acknowledgement will be sent to this address.', 'eu-withdrawal-compliance' ); ?></small>
+				<input type="email" id="ayudawp_euw_email" name="ayudawp_euw_email" value="<?php echo esc_attr( $prefill['email'] ); ?>" aria-invalid="<?php echo esc_attr( ayudawp_euw_field_aria_invalid( 'email', $errors ) ); ?>" aria-describedby="ayudawp_euw_email_help" <?php echo esc_attr( $lock_attr ); ?> required>
+				<small class="ayudawp-euw-help" id="ayudawp_euw_email_help"><?php esc_html_e( 'The withdrawal acknowledgement will be sent to this address.', 'eu-withdrawal-compliance' ); ?></small>
 				<?php ayudawp_euw_print_field_error( 'email', $errors, $error ); ?>
 			</div>
 
 			<div class="ayudawp-euw-field<?php echo esc_attr( ayudawp_euw_field_error_class( 'order', $errors ) ); ?>">
 				<label for="ayudawp_euw_order"><?php esc_html_e( 'Order number', 'eu-withdrawal-compliance' ); ?> <span class="ayudawp-euw-required">*</span></label>
-				<input type="text" id="ayudawp_euw_order" name="ayudawp_euw_order" value="<?php echo esc_attr( $prefill['order'] ); ?>" aria-invalid="<?php echo esc_attr( ayudawp_euw_field_aria_invalid( 'order', $errors ) ); ?>" <?php echo esc_attr( $lock_attr ); ?> required>
-				<small class="ayudawp-euw-help"><?php esc_html_e( 'You can find it in the confirmation email we sent you.', 'eu-withdrawal-compliance' ); ?></small>
+				<input type="text" id="ayudawp_euw_order" name="ayudawp_euw_order" value="<?php echo esc_attr( $prefill['order'] ); ?>" aria-invalid="<?php echo esc_attr( ayudawp_euw_field_aria_invalid( 'order', $errors ) ); ?>" aria-describedby="ayudawp_euw_order_help" <?php echo esc_attr( $lock_attr ); ?> required>
+				<small class="ayudawp-euw-help" id="ayudawp_euw_order_help"><?php esc_html_e( 'You can find it in the confirmation email we sent you.', 'eu-withdrawal-compliance' ); ?></small>
 				<?php ayudawp_euw_print_field_error( 'order', $errors, $error ); ?>
 			</div>
 
@@ -331,8 +362,8 @@ function ayudawp_euw_render_form( $atts = array() ) {
 
 			<div class="ayudawp-euw-field">
 				<label for="ayudawp_euw_details"><?php esc_html_e( 'Affected products / additional information', 'eu-withdrawal-compliance' ); ?></label>
-				<textarea id="ayudawp_euw_details" name="ayudawp_euw_details" rows="5"><?php echo esc_textarea( $prefill['details'] ); ?></textarea>
-				<small class="ayudawp-euw-help"><?php esc_html_e( 'If you have selected partial withdrawal, list the products affected here.', 'eu-withdrawal-compliance' ); ?></small>
+				<textarea id="ayudawp_euw_details" name="ayudawp_euw_details" rows="5" aria-describedby="ayudawp_euw_details_help"><?php echo esc_textarea( $prefill['details'] ); ?></textarea>
+				<small class="ayudawp-euw-help" id="ayudawp_euw_details_help"><?php esc_html_e( 'If you have selected partial withdrawal, list the products affected here.', 'eu-withdrawal-compliance' ); ?></small>
 			</div>
 
 			<?php
@@ -568,6 +599,7 @@ function ayudawp_euw_get_error_message( $code ) {
 		'status'  => __( 'This order is not eligible for withdrawal because of its current order status. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
 		'expired' => __( 'The withdrawal period for this order has passed. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
 		'session' => __( 'This request is no longer awaiting confirmation. The review screen stays available for 15 minutes and can only be confirmed once, so please fill in the form again.', 'eu-withdrawal-compliance' ),
+		'done'    => __( 'This withdrawal request has already been submitted, so there is nothing left to confirm. We sent the acknowledgement of receipt to your email address. Use the form below only if you want to submit a different request.', 'eu-withdrawal-compliance' ),
 		'general' => __( 'An error occurred. Please try again later.', 'eu-withdrawal-compliance' ),
 	);
 
