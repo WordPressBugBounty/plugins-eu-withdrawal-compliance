@@ -148,7 +148,7 @@ function ayudawp_euw_send_customer_email( $email, $name, $order, $scope, $receip
 	$lines[] = '';
 	$lines[] = ayudawp_euw_legal_conditions_text();
 	$lines[] = '';
-	$lines[] = __( 'We will review the request and confirm next steps within 24 hours. If you do not hear from us, please reply to this email.', 'eu-withdrawal-compliance' );
+	$lines[] = __( 'We will review the request and confirm next steps as soon as possible. If you do not hear from us, please reply to this email.', 'eu-withdrawal-compliance' );
 
 	$account_url = ayudawp_euw_get_customer_requests_url( $email, $request_id );
 
