@@ -43,7 +43,7 @@ function ayudawp_euw_annex_b_is_enabled() {
  */
 function ayudawp_euw_annex_b_get_trader_data() {
 
-	$name = (string) get_bloginfo( 'name' );
+	$name = ayudawp_euw_get_site_name();
 
 	// Contact email for the model form. Priority: the dedicated trader email,
 	// then the first notification recipient (the option may hold a comma-separated
@@ -350,7 +350,7 @@ function ayudawp_euw_annex_b_render_standalone() {
 		true
 	);
 
-	$site_name      = (string) get_bloginfo( 'name' );
+	$site_name      = ayudawp_euw_get_site_name();
 	$site_url       = (string) home_url( '/' );
 	$generated_at   = gmdate( 'Y-m-d H:i:s' );
 	$back_url       = (string) get_permalink( $page_id );

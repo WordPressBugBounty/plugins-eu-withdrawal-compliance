@@ -95,7 +95,7 @@ function ayudawp_euw_with_sender( $send ) {
  */
 function ayudawp_euw_send_customer_email( $email, $name, $order, $scope, $receipt_hash = '', $submitted_at = '', $details = '', $date = '', $request_id = 0 ) {
 
-	$site_name = get_bloginfo( 'name' );
+	$site_name = ayudawp_euw_get_site_name();
 
 	$subject = sprintf(
 		/* translators: %s: site name. */
@@ -211,7 +211,7 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
 		$admin_email = array( get_option( 'admin_email' ) );
 	}
 
-	$site_name = get_bloginfo( 'name' );
+	$site_name = ayudawp_euw_get_site_name();
 
 	// Saved before this email is composed, so the flag is already on the post.
 	$unverified = (string) get_post_meta( $post_id, '_ayudawp_euw_unverified', true );
@@ -358,7 +358,7 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
  */
 function ayudawp_euw_send_status_email( $email, $name, $order, $status, $comment = '', $request_id = 0 ) {
 
-	$site_name = get_bloginfo( 'name' );
+	$site_name = ayudawp_euw_get_site_name();
 
 	$subjects = array(
 		'accepted'  => sprintf(

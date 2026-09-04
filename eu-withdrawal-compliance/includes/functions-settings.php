@@ -1722,7 +1722,7 @@ function ayudawp_euw_field_from_name_callback() {
 	printf(
 		'<input type="text" name="ayudawp_euw_from_name" value="%1$s" class="regular-text" placeholder="%2$s">',
 		esc_attr( $value ),
-		esc_attr( get_bloginfo( 'name' ) )
+		esc_attr( ayudawp_euw_get_site_name() )
 	);
 
 	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Sender name for the plugin’s emails (acknowledgement, admin notification, status updates). Leave empty to use the site default.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';

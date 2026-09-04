@@ -556,3 +556,27 @@ function ayudawp_euw_format_datetime( $gmt ) {
 
 	return wp_date( 'Y-m-d H:i T', $timestamp );
 }
+
+/**
+ * Get the site name ready to print, with its HTML entities resolved.
+ *
+ * WordPress stores `blogname` already escaped: sanitize_option() runs the value
+ * through esc_html() before writing it (wp-includes/formatting.php:4998), so a
+ * name such as "Musée d'Impressionnisme" comes back from get_bloginfo() as
+ * "Musée d&#039;Impressionnisme". A browser resolves that entity and shows the
+ * apostrophe, but a plain-text email does not, and the customer reads the raw
+ * entity in the subject line and in the sign-off.
+ *
+ * Decoding at the source hands every caller the real name, so plain-text output
+ * stays literal and HTML output escapes it for its own context. This is the same
+ * recipe WordPress uses for its own notification emails, in
+ * wp-includes/pluggable.php:1835.
+ *
+ * @since 2.2.2
+ *
+ * @return string Site name with HTML entities decoded.
+ */
+function ayudawp_euw_get_site_name() {
+
+	return wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES );
+}

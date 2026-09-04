@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.2.1
+Stable tag: 2.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -316,6 +316,9 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.2.2 =
+* Fix: A site name containing an apostrophe, an ampersand or quotation marks reached customers as HTML code in the plugin emails. A shop called Musee d'Impressionnisme sent its acknowledgement with the apostrophe of its own name replaced by a string of HTML code in the subject line, and signed off the same way; the admin notification and the status emails did the same. WordPress stores the site name already escaped, and these emails are plain text, so no browser is there to turn that code back into an apostrophe. The name is now decoded before it is used, and every plugin email reads the way the shop is actually called. Reported in the support forum. The pages the plugin prints were never affected: there a browser resolved the code, so the name always displayed correctly.
+
 = 2.2.1 =
 * Improved: The acknowledgement email no longer promises to review the request and confirm next steps "within 24 hours". No rule imposes that deadline — Article 11a(4) asks for the acknowledgement on a durable medium without undue delay, which the automatic email already satisfies — so the plugin was putting in the merchant's mouth a commercial promise the shop may not be able to keep, in writing and inside the very email that serves as proof of submission. It now says "as soon as possible", and keeps the sentence inviting the customer to reply if no answer arrives, which is what prevents duplicate requests.
 * Improved: Tested up to WordPress 7.1. Verified against the changes that release brings to the areas this plugin uses: the new row headers of the post list tables, where the withdrawals list is drawn, the section markup of the Settings API and the privacy exporter and eraser. No adjustment was needed in any of them.
@@ -333,8 +336,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.2.1 =
-The acknowledgement email no longer promises to confirm next steps within 24 hours, a deadline no rule imposes and that your shop may not be able to keep. It now says as soon as possible. Also tested up to WordPress 7.1, which needed no adjustment.
+= 2.2.2 =
+The site name reached customers as HTML code in the plugin emails when it contains an apostrophe, an ampersand or quotation marks. It is now decoded, so the subject and the sign-off of every email read the way your shop is actually called.
 
 == Support ==
 
