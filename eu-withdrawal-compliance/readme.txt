@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.2.2
+Stable tag: 2.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -136,6 +136,14 @@ You should add a section to your site's privacy policy describing this storage. 
 5. Add the URL of the withdrawal page to your footer or to the legal links section so it is visible from any page on your site.
 
 == Frequently Asked Questions ==
+
+= WooCommerce ships its own order withdrawal page. Do I still need this plugin? =
+
+They solve different halves of the same obligation, so the honest answer is that the native feature is a form and this plugin is the toolkit around it.
+
+What WooCommerce 11.1 added (the `order_withdrawal` feature, off by default under **WooCommerce > Settings > Advanced > Features**) is a public two-step form on its own My Account endpoint, with a review screen and an acknowledgement email. What it does not do is link that form from anywhere: no entry in the My Account menu, no button on the order row, no line in the transactional emails and no footer link, which is the part Article 11a is actually about, a withdrawal function the customer can find as easily as the buy button. It also keeps no record you can work with (no statuses, no notes to the customer, no CSV export), and it knows nothing about the Article 16 exceptions and their inheritance by category, the checkout consents of Articles 16(m) and 14(4)(a), the Annex I.B model form or the deadline of each order.
+
+If you switch the WooCommerce feature on while this plugin is active, your shop answers with two different forms at two addresses, each one keeping its own record and sending its own acknowledgement, and nothing merges them afterwards. The settings page of the plugin warns you when that happens. Keep one of the two.
 
 = Can customers see what happened to a request they sent? =
 
@@ -316,6 +324,13 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.2.3 =
+The Edit data button of the review screen works again on themes with smooth scrolling, such as Kadence or Divi. The order button in My Account is shorter, and the settings page warns you when the WooCommerce withdrawal feature is switched on as well.
+
+* Improved: The settings page warns you when the order withdrawal feature that WooCommerce 11.1 introduced is switched on at the same time as this plugin. Both can run at once, and then your customers reach two different forms at two different addresses, each keeping its own record and sending its own acknowledgement, with nothing bringing the two together. The warning links straight to the WooCommerce screen where the feature is turned off, and a new entry in the FAQ explains what each of the two covers.
+* Improved: The withdrawal button on the My Account orders list is now labelled "Withdraw from order", which fits the narrow actions column of most themes; it used to wrap or overflow. The full sentence is still announced to screen readers, and the wording the directive suggests stays untouched where it belongs: the footer link, the transactional emails and the "Confirm withdrawal" button of the form.
+* Fix: The "Edit data" button of the review screen did nothing on themes that add smooth scrolling to links, such as Kadence or Divi. The link kept the address of the page it sits on and ended in a page anchor that exists on that same screen, so those scripts cancelled the click and scrolled the customer to where they already were. It no longer carries that anchor, and the form places the cursor on its first field when the customer goes back to it. Reported in the support forum.
+
 = 2.2.2 =
 * Fix: A site name containing an apostrophe, an ampersand or quotation marks reached customers as HTML code in the plugin emails. A shop called Musee d'Impressionnisme sent its acknowledgement with the apostrophe of its own name replaced by a string of HTML code in the subject line, and signed off the same way; the admin notification and the status emails did the same. WordPress stores the site name already escaped, and these emails are plain text, so no browser is there to turn that code back into an apostrophe. The name is now decoded before it is used, and every plugin email reads the way the shop is actually called. Reported in the support forum. The pages the plugin prints were never affected: there a browser resolved the code, so the name always displayed correctly.
 
@@ -336,8 +351,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.2.2 =
-The site name reached customers as HTML code in the plugin emails when it contains an apostrophe, an ampersand or quotation marks. It is now decoded, so the subject and the sign-off of every email read the way your shop is actually called.
+= 2.2.3 =
+The Edit data button of the review screen works again on themes with smooth scrolling, such as Kadence or Divi. The order button in My Account is shorter, and the settings page warns you when the WooCommerce withdrawal feature is switched on as well.
 
 == Support ==
 

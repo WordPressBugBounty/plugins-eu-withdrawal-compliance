@@ -1912,6 +1912,66 @@ function ayudawp_euw_field_manager_roles_callback() {
 }
 
 /**
+ * Whether WooCommerce is serving its own order withdrawal feature.
+ *
+ * WooCommerce 11.1 (September 2026) added `order_withdrawal`, a withdrawal form
+ * of its own under My Account, shipped off by default in Settings > Advanced >
+ * Features. Read through FeaturesUtil rather than the raw option, because the
+ * option name is internal and the feature only counts as enabled once the
+ * features controller says so.
+ *
+ * @return bool
+ */
+function ayudawp_euw_native_withdrawal_enabled() {
+
+	$features = 'Automattic\\WooCommerce\\Utilities\\FeaturesUtil';
+
+	if ( ! class_exists( $features ) || ! method_exists( $features, 'feature_is_enabled' ) ) {
+		return false;
+	}
+
+	return (bool) $features::feature_is_enabled( 'order_withdrawal' );
+}
+
+/**
+ * Warn when both this plugin and the WooCommerce feature are answering at once.
+ *
+ * Two live withdrawal flows mean two forms, two endpoints and two separate
+ * records of the same right, and which acknowledgement the customer gets
+ * depends on the form they happened to find. Neither of the two knows about
+ * the other, so nothing merges them afterwards. Rendered inside the settings
+ * page, where the decision is taken, not as a site-wide admin notice.
+ */
+function ayudawp_euw_render_native_feature_notice() {
+
+	if ( ! ayudawp_euw_native_withdrawal_enabled() ) {
+		return;
+	}
+
+	$features_url = admin_url( 'admin.php?page=wc-settings&tab=advanced&section=features' );
+
+	?>
+	<div class="notice notice-warning inline">
+		<p>
+			<strong><?php esc_html_e( 'WooCommerce is also running its own withdrawal form.', 'eu-withdrawal-compliance' ); ?></strong>
+		</p>
+		<p>
+			<?php esc_html_e( 'The "Order withdrawal" feature added in WooCommerce 11.1 is enabled on this site. With both running, your customers can reach two different forms at two different addresses, each one keeping its own record and sending its own acknowledgement, and nothing brings the two together afterwards.', 'eu-withdrawal-compliance' ); ?>
+		</p>
+		<p>
+			<?php
+			printf(
+				/* translators: %s: link to the WooCommerce features screen. */
+				esc_html__( 'Keep just one of them: turn the WooCommerce feature off in %s, or deactivate this plugin.', 'eu-withdrawal-compliance' ),
+				'<a href="' . esc_url( $features_url ) . '">' . esc_html__( 'WooCommerce > Settings > Advanced > Features', 'eu-withdrawal-compliance' ) . '</a>'
+			);
+			?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
  * Render the legal disclaimer block shown right before the Save button.
  *
  * Rendered once on the settings page (not as a WP notice) so it reads as a
@@ -1951,6 +2011,8 @@ function ayudawp_euw_settings_page_html() {
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
 		<?php
+		ayudawp_euw_render_native_feature_notice();
+		
 		$page_id = (int) get_option( 'ayudawp_euw_page_id', 0 );
 
 		if ( $page_id && get_post( $page_id ) ) {

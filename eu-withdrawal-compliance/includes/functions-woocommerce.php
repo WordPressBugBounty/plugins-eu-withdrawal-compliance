@@ -1062,6 +1062,8 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 		// and re-submitting the form is their only channel, so we keep the button
 		// (relabelled) even past the deadline in strict mode.
 		$button_label = __( 'Contest the rejection', 'eu-withdrawal-compliance' );
+		/* translators: %s: order number. */
+		$aria_template = __( 'Contest the rejection of the withdrawal request for order %s', 'eu-withdrawal-compliance' );
 
 	} elseif ( ! ayudawp_euw_should_show_withdrawal( $order ) ) {
 
@@ -1071,14 +1073,27 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 
 	} else {
 
-		$button_label = __( 'Withdraw from contract', 'eu-withdrawal-compliance' );
+		// Short label because this button shares a narrow column with "View" and
+		// wrapped badly on several themes. The literal wording the directive
+		// suggests stays where it belongs: the footer link and the transactional
+		// emails, which are the permanent withdrawal function, plus the aria-label
+		// here, so assistive technology still announces the full sentence. This
+		// button is only a shortcut that pre-fills the form; nothing is withdrawn
+		// until the "Confirm withdrawal" button of Article 11a(3).
+		$button_label = __( 'Withdraw from order', 'eu-withdrawal-compliance' );
+		/* translators: %s: order number. */
+		$aria_template = __( 'Withdraw from contract for order %s', 'eu-withdrawal-compliance' );
 	}
 
 	$order_ref = method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order->get_id();
 
 	$actions['ayudawp_euw'] = array(
-		'url'  => ayudawp_euw_get_prefill_endpoint_url( $order_ref ),
-		'name' => $button_label,
+		'url'        => ayudawp_euw_get_prefill_endpoint_url( $order_ref ),
+		'name'       => $button_label,
+		// Without this, the WooCommerce template builds the label itself and reads
+		// out "Withdraw from order order number 396" (templates/myaccount/orders.php,
+		// lines 78-84 in 11.1.0).
+		'aria-label' => sprintf( $aria_template, $order_ref ),
 	);
 
 	return $actions;
@@ -1216,7 +1231,7 @@ function ayudawp_euw_prefill_from_query( $atts ) {
 
 	// Fallback: accept a bare ?order_id (e.g. from the transactional email link).
 	if ( '' === $order_id && isset( $_GET['order_id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- pre-fills a non-secret, editable field; the submission is validated server-side.
-		$order_id = sanitize_text_field( wp_unslash( $_GET['order_id'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$order_id = sanitize_text_field( wp_unslash( $_GET['order_id'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- same read as the line above: pre-fills a non-secret, editable field, and the submission is validated server-side.
 	}
 
 	if ( '' !== $order_id ) {

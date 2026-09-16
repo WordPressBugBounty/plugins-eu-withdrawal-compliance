@@ -177,9 +177,10 @@ function ayudawp_euw_render_form( $atts = array() ) {
 	// Show success/error message if the form was just submitted. Both flags
 	// only render after a redirect from functions-handler.php that adds an
 	// 'ayudawp_euw_form_feedback' nonce to the URL.
-	$success = false;
-	$error   = '';
-	$errors  = array();
+	$success   = false;
+	$error     = '';
+	$errors    = array();
+	$autofocus = false;
 
 	if ( isset( $_GET['_wpnonce'] )
 		&& wp_verify_nonce(
@@ -240,6 +241,11 @@ function ayudawp_euw_render_form( $atts = array() ) {
 			}
 
 			$lock = false;
+
+			// The link back from the confirmation screen carries no fragment
+			// (see ayudawp_euw_render_confirmation), so bring the customer to
+			// the fields with focus instead of an anchor no theme can swallow.
+			$autofocus = true;
 		} else {
 
 			// The declaration is gone: the window elapsed, it was already
@@ -276,7 +282,8 @@ function ayudawp_euw_render_form( $atts = array() ) {
 		}
 	}
 
-	$lock_attr = $lock ? 'readonly' : '';
+	$lock_attr  = $lock ? 'readonly' : '';
+	$focus_attr = ( $autofocus && ! $lock ) ? 'autofocus' : '';
 	?>
 	<div class="ayudawp-euw-wrapper" id="ayudawp-euw-form">
 
@@ -329,7 +336,7 @@ function ayudawp_euw_render_form( $atts = array() ) {
 
 			<div class="ayudawp-euw-field<?php echo esc_attr( ayudawp_euw_field_error_class( 'name', $errors ) ); ?>">
 				<label for="ayudawp_euw_name"><?php esc_html_e( 'Full name', 'eu-withdrawal-compliance' ); ?> <span class="ayudawp-euw-required">*</span></label>
-				<input type="text" id="ayudawp_euw_name" name="ayudawp_euw_name" value="<?php echo esc_attr( $prefill['name'] ); ?>" aria-invalid="<?php echo esc_attr( ayudawp_euw_field_aria_invalid( 'name', $errors ) ); ?>" <?php echo esc_attr( $lock_attr ); ?> required>
+				<input type="text" id="ayudawp_euw_name" name="ayudawp_euw_name" value="<?php echo esc_attr( $prefill['name'] ); ?>" aria-invalid="<?php echo esc_attr( ayudawp_euw_field_aria_invalid( 'name', $errors ) ); ?>" <?php echo esc_attr( $lock_attr ); ?> <?php echo esc_attr( $focus_attr ); ?> required>
 				<?php ayudawp_euw_print_field_error( 'name', $errors, $error ); ?>
 			</div>
 
@@ -574,7 +581,17 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 			<?php wp_nonce_field( 'ayudawp_euw_confirm_action', 'ayudawp_euw_confirm_nonce' ); ?>
 
 			<div class="ayudawp-euw-submit ayudawp-euw-confirm-actions">
-				<a class="ayudawp-euw-button ayudawp-euw-button--secondary" href="<?php echo esc_url( add_query_arg( 'ayudawp_euw_edit', $token, remove_query_arg( 'ayudawp_euw_confirm' ) ) . '#ayudawp-euw-form' ); ?>"><?php esc_html_e( 'Edit data', 'eu-withdrawal-compliance' ); ?></a>
+				<?php
+				// No '#ayudawp-euw-form' fragment on this link, on purpose. It keeps
+				// the path of the page it sits on, and that anchor exists on this very
+				// screen, so a theme smooth-scroll script (the ones matching links with
+				// a fragment that compare only the path and ignore the query string)
+				// cancels the click and scrolls to where the customer already is: the
+				// button looks dead. Reported with Kadence 1.5.2, whose
+				// initAnchorScrollTo() does exactly that, and Divi behaves the same way.
+				// The form autofocuses its first field instead.
+				?>
+				<a class="ayudawp-euw-button ayudawp-euw-button--secondary" href="<?php echo esc_url( add_query_arg( 'ayudawp_euw_edit', $token, remove_query_arg( 'ayudawp_euw_confirm' ) ) ); ?>"><?php esc_html_e( 'Edit data', 'eu-withdrawal-compliance' ); ?></a>
 				<button type="submit" class="ayudawp-euw-button"><?php esc_html_e( 'Confirm withdrawal', 'eu-withdrawal-compliance' ); ?></button>
 			</div>
 		</form>
