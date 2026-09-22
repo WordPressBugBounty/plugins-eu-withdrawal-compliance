@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name:       EU Withdrawal Compliance
+ * Plugin Name:       EU Withdrawal and Legal Guarantee Compliance
  * Plugin URI:        https://servicios.ayudawp.com
- * Description:       Free, complete EU Directive 2023/2673 toolkit: withdrawal button, checkout consents (Art. 16(m) & 14(4)(a)), Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration. Standalone or with WooCommerce.
- * Version:           2.2.3
+ * Description:       Free EU consumer-rights toolkit: withdrawal function (Directive 2023/2673) and the harmonised legal guarantee notice (Directive 2024/825), checkout consents, Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration.
+ * Version:           2.3.0
  * Requires at least: 6.0
  * Tested up to:      7.1
  * Requires PHP:      7.4
@@ -13,7 +13,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       eu-withdrawal-compliance
  * WC requires at least: 7.0
- * WC tested up to:   11.0
+ * WC tested up to:   11.1
  *
  * @package AyudaWP_EU_Withdrawal
  */
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.2.3' );
+define( 'AYUDAWP_EUW_VERSION', '2.3.0' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
@@ -45,6 +45,9 @@ require_once AYUDAWP_EUW_DIR . 'includes/functions-emails-wc.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-exclusions.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-checkout-consent.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-annex-b.php';
+require_once AYUDAWP_EUW_DIR . 'includes/functions-guarantee.php';
+require_once AYUDAWP_EUW_DIR . 'includes/functions-guarantee-checkout.php';
+require_once AYUDAWP_EUW_DIR . 'includes/functions-guarantee-emails.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-footer-link.php';
 require_once AYUDAWP_EUW_DIR . 'includes/functions-privacy.php';
 require_once AYUDAWP_EUW_DIR . 'includes/class-ayudawp-euw-promo-banner.php';
@@ -53,6 +56,16 @@ require_once AYUDAWP_EUW_DIR . 'includes/class-ayudawp-euw-promo-banner.php';
  * Activation hook: schedule cleanup task and create default page.
  */
 function ayudawp_euw_activate() {
+
+	// A brand-new install starts with the harmonised guarantee notice already
+	// switched on: it is mandatory from 27 September 2026 for anyone selling
+	// goods in the EU, and nobody installing a compliance plugin today wants it
+	// off. Sites updating from an earlier version get it off plus a notice
+	// instead (see the upgrade routine below), because switching it on for them
+	// would change their checkout without anyone asking for it.
+	if ( ! get_option( 'ayudawp_euw_version' ) ) {
+		update_option( 'ayudawp_euw_guarantee_enabled', 'yes' );
+	}
 
 	// Register the CPT and the WooCommerce My Account "withdrawal" endpoint
 	// BEFORE flushing rewrite rules. Both register on the `init` hook
@@ -191,6 +204,16 @@ function ayudawp_euw_maybe_flush_rewrite_rules() {
 	// page was saved, because the editors used to pre-fill each field.
 	ayudawp_euw_clear_stored_default_texts();
 
+	// The guarantee notice module arrives switched off on an existing shop, and
+	// announces itself in the dashboard: it prints an official full-page notice
+	// right above the place-order button, which is not a change to make on
+	// someone's checkout while they are not looking. `false` tells an install
+	// that never saw the option apart from one that switched it off on purpose.
+	if ( false === get_option( 'ayudawp_euw_guarantee_enabled', false ) ) {
+		update_option( 'ayudawp_euw_guarantee_enabled', 'no' );
+		update_option( 'ayudawp_euw_guarantee_announce', 'yes' );
+	}
+
 	update_option( 'ayudawp_euw_version', AYUDAWP_EUW_VERSION );
 }
 add_action( 'init', 'ayudawp_euw_maybe_flush_rewrite_rules', 100 );
@@ -266,7 +289,7 @@ function ayudawp_euw_activation_notice() {
 	?>
 	<div class="notice notice-success is-dismissible">
 		<p>
-			<strong><?php esc_html_e( 'EU Withdrawal Compliance is active.', 'eu-withdrawal-compliance' ); ?></strong>
+			<strong><?php esc_html_e( 'EU Withdrawal and Legal Guarantee Compliance is active.', 'eu-withdrawal-compliance' ); ?></strong>
 		</p>
 		<p>
 			<?php

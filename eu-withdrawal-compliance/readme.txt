@@ -1,187 +1,184 @@
-=== EU Withdrawal Compliance ===
+=== EU Withdrawal and Legal Guarantee Compliance ===
 Contributors: fernandot, ayudawp
-Tags: woocommerce, withdrawal, consumer-rights, gdpr, compliance
+Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.2.3
+Stable tag: 2.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Free, complete EU Directive 2023/2673 toolkit: withdrawal button, checkout consents, Annex I.B form, Article 16 exclusions, SHA-256 proof.
+Free EU consumer-rights toolkit: withdrawal function, harmonised legal guarantee notice (GARAN), checkout consents, Article 16 exclusions.
 
 == Description ==
 
-From **June 19, 2026**, EU Directive 2023/2673 obliges every online retailer in the European Union to offer a digital withdrawal function that is at least as easy to use as the purchase flow itself. Most plugins in the directory stop at "a button". This one ships the **complete toolkit** every EU store needs to comply — and a few things competitors don't offer at any price.
+Two EU deadlines, one plugin. From **19 June 2026**, Directive 2023/2673 obliges every online retailer in the EU to offer a digital withdrawal function at least as easy to use as the purchase flow. From **27 September 2026**, Directive (EU) 2024/825 and Implementing Regulation (EU) 2025/1960 oblige every shop selling goods to display the harmonised notice on the legal guarantee of conformity. Most plugins in the directory stop at "a withdrawal button". This one covers both, free and complete.
 
-The plugin helps you implement the right of withdrawal requirements of Directive 2011/83/EU on consumer rights, as amended by Directive (EU) 2019/2161 (the Omnibus Directive).
+= The legal guarantee notice =
 
-= Only this plugin in the directory ships, all of it, for free =
+The official notice ships bundled in the 24 EU languages and is shown unedited, as the regulation requires: above the place-order button of both the classic and the block checkout, and in your order emails with the official PDF attached, so it survives the mail clients that block remote images. Three display modes (the whole notice, a disclosure, or a native popover for narrow columns), the Spanish three-year note where it applies, a shortcode for your own guarantee page, a footer link, and a private order note recording which notice each buyer saw. Only shown when the cart holds goods: the notice does not cover services or digital content.
 
-* **Two-step confirmation function (Art. 11a(3))** — the EU-wide baseline of the online withdrawal right. The public form leads to a review screen with a read-only summary and a dedicated "Confirm withdrawal" button; the request is registered only when that button is pressed, preventing the unintended exercise of the right. Held server-side between the two steps in a single-use token, so it works even without JavaScript.
-* **Complete durable-medium acknowledgement of receipt (Art. 11a(4))**: the confirmation email reproduces the full content of the declaration (name, order, order date, scope, affected products) and the exact date and time of submission, carrying a **verifiable SHA-256 receipt hash** as tamper-evident proof — recomputable from the stored fields if a dispute arises.
-* **Annex I.B model withdrawal form** (Directive 2011/83/EU) generated dynamically from your shop data, rendered as a collapsible block below the public form, with a printable view on the same URL. Meets the pre-contractual information obligation of Art. 6(1)(h).
-* **Double-consent checkboxes at the WooCommerce checkout** for the two consents the directive expects to apply specific exceptions:
-  * Mandatory consent for digital content (Art. 16(m)) — blocks the place-order step until accepted.
-  * Optional consent for services started within the 14-day window (Art. 14(4)(a)) — enables pro-rated billing if the customer later withdraws.
-  Every consent is persisted on the order with the exact text shown, accepted/declined state, timestamp, IP and user agent — durable proof in case of dispute.
-* **Single "Withdrawal status" dropdown per product and per category** with four explicit options (Standard, Digital content, Service started early, Other Article 16 exception). Drives both the Article 16 exclusion flag and the matching checkout consent in one place, with full subcategory inheritance.
-* **Configurable public notice on excluded products**, rendered between price and add-to-cart, with separate title+body for digital content and other Article 16 exceptions.
-* **Article 16 exclusions with category inheritance** — competing plugins gate this behind a paid Pro tier; here it's free.
-* **Native GDPR integration**: suggested Privacy Policy snippet + personal-data exporter + eraser, all keyed on the customer email — no second GDPR plugin to install.
-* **Standalone mode**: the form, shortcode, request log, email notifications, SHA-256 receipt hash, Annex I.B model and GDPR integration all run **without WooCommerce**. The plugin always lives in its own top-level **Withdrawals** menu (with a **Settings** submenu), with or without WooCommerce — same path on every install.
+= The withdrawal function =
 
-= Public-facing pieces =
+* **Two-step confirmation (Art. 11a(3))**: the form leads to a review screen with a read-only summary and a "Confirm withdrawal" button, and the request is registered only when that button is pressed. Held server-side in a single-use token, so it works without JavaScript.
+* **Durable-medium acknowledgement (Art. 11a(4))**: the confirmation email reproduces the full declaration and the exact date and time of submission, with a **verifiable SHA-256 receipt hash** recomputable from the stored fields if a dispute arises.
+* **Annex I.B model withdrawal form** generated from your shop data, collapsible below the public form and printable from the same URL. Meets the information obligation of Art. 6(1)(h), which the new directive does not replace.
+* **Two consent checkboxes at the WooCommerce checkout**: the mandatory one for digital content (Art. 16(m)), which blocks the order until accepted, and the optional one for services started inside the 14-day window (Art. 14(4)(a)), which enables pro-rated billing. Both are persisted on the order with the exact text shown, accepted or declined, timestamp, IP and user agent.
+* **One "Withdrawal status" dropdown per product and per category**, with four options, driving the Article 16 exclusion and the matching checkout consent at once, with full subcategory inheritance. Competing plugins gate this behind a paid tier.
+* **Configurable notice on excluded products**, between price and add-to-cart, with its own title and body per type of exception.
+* **Native GDPR integration**: Privacy Policy snippet, personal-data exporter and eraser, all keyed on the customer email.
+* **Standalone mode**: form, shortcode, request log, emails, receipt hash, Annex I.B and GDPR all run without WooCommerce, in the same **Withdrawals** menu on every install.
 
-* Public withdrawal page automatically created on activation with a neutral, translation-ready template and the form embedded via shortcode, ready to publish and with the reminder to review it with a legal advisor kept in the dashboard instead of in the page itself.
-* `[ayudawp_withdrawal_form]` shortcode for embedding the form anywhere on the site.
-* `[ayudawp_withdrawal_link]` shortcode for a permanent link to the withdrawal page from any widget area, footer or template part — helps meet the "clearly identifiable" requirement of Article 11a of Directive 2023/2673 without forcing a specific footer layout.
-* `[ayudawp_withdrawal_excluded_notice]` shortcode to place the excluded-product notice with page builders (Divi, Elementor, Bricks, ShopLentor) that render their own product template and skip the standard WooCommerce hooks.
-* HTML5-semantic form with HTML5 validation, honeypot anti-spam, escaped output, sanitized input and CSRF nonces.
-* Privacy-policy acceptance checkbox before submit, linked to the WordPress-configured Privacy Policy page.
-* Frontend and backend links generated by the plugin carry `rel="noopener nofollow"` to keep the site's link equity contained.
+= On the front end =
 
-= WooCommerce-specific pieces (auto-activated when WooCommerce is detected) =
+* A withdrawal page created on activation, with a neutral template ready to publish and the reminder to review it with a lawyer kept in the dashboard rather than in the page.
+* `[ayudawp_withdrawal_form]` for the form, `[ayudawp_withdrawal_link]` for a permanent link to it from any footer or widget area, `[ayudawp_guarantee_notice]` for the guarantee notice, `[ayudawp_guarantee_link]` for its page, and `[ayudawp_withdrawal_excluded_notice]` for page builders that skip the standard WooCommerce hooks.
+* Semantic form with HTML5 validation, honeypot, escaped output, sanitized input and CSRF nonces, plus a privacy-policy checkbox linked to your configured page.
 
-* **My Account → Right of withdrawal** endpoint with a per-order "Withdraw" button shown while the order is in an eligible status, deep-linked to the form with the order pre-filled.
-* **Request tracking for the customer**: the same endpoint lists their own requests with date, order, scope, status, the note written when resolving them and the receipt code, and the order row shows the status of a request already open instead of an empty slot. Covers the requests they sent while signed in, including those registered without a matching order.
-* **Withdrawal notice injected into transactional emails** (processing, completed, customer invoice) with a direct link to the form pre-filled with the order number. Eligible order statuses configurable; admin emails never receive the notice.
-* **Automatic verification of the order/email pair** when WooCommerce is active: the request is matched to a real order and gated by the configured eligible statuses. The 14-day deadline is surfaced as an advisory flag for the admin, not an automatic rejection (the period legally runs from delivery, which the shop verifies).
-* **Optional "Accept unmatched requests" mode**: register requests that do not match any order as *Unverified* for manual review instead of rejecting them upfront, highlighted across the admin (notification email, list badge, detail warning and CSV column). Off by default.
-* **Configurable advisory deadline**: choose order date vs. WooCommerce completion date as the basis, plus optional grace days, for the deadline flag surfaced to the admin — all from the settings UI, no code.
-* **Order-number compatibility** with Sequential Order Numbers (free and Pro) and Custom Order Numbers for WooCommerce (both Tyche and WPFactory) out of the box, plus a filter to add any other numbering plugin or resolver.
-* **"Withdrawal" column** on the WooCommerce orders screen (legacy and HPOS) showing the status of any linked request, toggleable from Screen Options.
-* **Private order notes** added at every lifecycle step (request received, accepted, rejected, completed) including any admin comment.
-* **HPOS-compatible** from day one, declared via `FeaturesUtil::declare_compatibility()`.
+= With WooCommerce =
 
-= Admin tooling =
+* **My Account → Right of withdrawal**, with a per-order "Withdraw" button while the order is in an eligible status, deep-linked to the form with the order pre-filled.
+* **Request tracking for the customer**: the same screen lists their requests with date, order, scope, status, your resolution note and the receipt code, and the order row shows an open request instead of an empty slot.
+* **Withdrawal notice in the transactional emails**, with a direct link to the form. Eligible statuses configurable; admin emails never receive it.
+* **Automatic verification of the order and email pair**, gated by the configured statuses. The 14-day deadline is an advisory flag for you, not an automatic rejection, because the period runs from delivery. Basis and grace days configurable, with an optional strict mode.
+* **Optional "Accept unmatched requests"** mode: register what does not match an order as *Unverified* for manual review instead of rejecting it. Off by default.
+* **Order-number compatibility** with Sequential Order Numbers and Custom Order Numbers (Tyche and WPFactory), plus a filter for any other scheme.
+* **"Withdrawal" column** on the orders screen, private order notes at every step, and HPOS compatibility declared.
 
-* **Full request log** as a private custom post type with status lifecycle (pending → accepted → rejected → completed), customer details, scope (full / partial), IP, user agent and UTC submission timestamp for legal traceability.
-* **CSV export of the request log** for accounting and consumer-protection audits: an "Export to CSV" bulk action on the listing plus a filtered export by status and date range under **Withdrawals → Export withdrawals**. Columns include submission and resolution timestamps, scope, status, acknowledgement-delivery flag, receipt hash and excluded items, with cells escaped against CSV/formula injection.
-* **Audit trail per request**: resolution timestamp recorded on every status change and a flag for whether the acknowledgement email was accepted for delivery (with its timestamp), both shown in the request detail and the CSV as burden-of-proof evidence.
-* **Bulk actions** to mark several requests as accepted, rejected or completed at once, with email notification on transition.
-* **Status metabox** with required comment when rejecting, optional comment when completing — comment forwarded to the customer email.
-* **Acknowledgement email to the customer** on confirmation: the Art. 11a(4) durable-medium receipt with the full declaration content, the date and time of submission and the SHA-256 hash as proof, plus a follow-up email on every status transition.
-* **Notification email to the shop admin** with reply-to set to the customer, sanitized against header injection.
-* **Captured checkout consents** surfaced in the request detail metabox: exact text, accepted/declined state, timestamp, IP, user agent — durable proof on file.
-* **Consistent admin menu**: always a top-level **Withdrawals** menu with a **Settings** submenu, regardless of whether WooCommerce is active. Same path on every install.
-* **Legal disclaimer block** in the settings page making it explicit that the plugin provides optional technical tools and does not guarantee legal compliance.
-* **Mandatory / Recommended / Optional tags** on every setting description so the merchant can scan the form quickly.
+= In the admin =
+
+* **Full request log** as a private post type with its status lifecycle, customer details, scope, IP, user agent and UTC timestamp.
+* **CSV export** for accounting and consumer-protection audits, by bulk action or filtered by status and date range, with cells escaped against formula injection.
+* **Audit trail per request**: resolution timestamp on every status change and whether the acknowledgement was accepted for delivery, in the detail screen and in the CSV.
+* **Bulk actions**, a status metabox with a required comment when rejecting, and the captured checkout consents on file.
+* **Emails**: acknowledgement to the customer, notification to the shop with reply-to set to the customer, and a follow-up on every status change.
+* **Legal disclaimer** in the settings page, and a Mandatory / Recommended / Optional tag on every setting.
 
 = Multilingual stores: WPML and Polylang =
 
-Compliance cannot depend on the language the customer was browsing in, so both plugins are supported natively, with nothing to configure:
-
-* **Set the withdrawal status once**, on the product or category in your original language, and it holds across every translation: excluded-product notice, Art. 16(m) and Art. 14(4)(a) checkout consents, and excluded items recorded on the order. An explicit status on a translation still wins, for per-language exceptions.
-* **Every link follows the visitor's language**: withdrawal page, printable Annex I.B view, button in the WooCommerce emails, excluded-notice link and `[ayudawp_withdrawal_link]` shortcode.
-* **Your own texts stay translatable**, with no snippets: a bundled `wpml-config.xml` exposes the notice titles and bodies, the form intro, the consent texts and the trader address under String Translation, copies the withdrawal status to translations, and marks the request log as non-translatable.
-
-The plugin's own strings arrive as language packs per locale. See the FAQ for the current limitation on the plugin's emails.
+Compliance cannot depend on the language the customer was browsing in, so both are supported with nothing to configure. Set the withdrawal status once, on the product or category in your original language, and it holds across every translation, with an explicit status on a translation still winning. Every link follows the visitor's language, and so does the guarantee notice. The bundled `wpml-config.xml` exposes your own editable texts to String Translation and marks the request log as non-translatable. See the FAQ for the current limitation on the plugin's own emails.
 
 = Built for production =
 
-* Conditional asset loading: CSS only loads on the withdrawal page, single-product pages that actually show the excluded notice, and plugin admin screens.
-* Translation-ready: Spanish (es_ES) and every other locale are delivered as language packs from [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/eu-withdrawal-compliance/), so they update on their own. Follows WordPress Coding Standards, fully escaped output and sanitized input, capability checks and nonces on every admin action.
-* **11 documented filters and 4 actions** for developers and agencies to extend the plugin without forking.
+* CSS only loads where it is needed: the withdrawal page, the checkout, product pages that actually show a notice, and the plugin's own admin screens.
+* Delivered as language packs from [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/eu-withdrawal-compliance/). Follows the WordPress Coding Standards, with escaped output, sanitized input, capability checks and nonces.
+* **19 documented filters and 4 actions**, so agencies can extend it without forking.
 * PHP 7.4+, WordPress 6.0+, WooCommerce 7.0+ (optional).
 
 == Why this plugin? ==
 
-The EU directive becomes enforceable in every member state on June 19, 2026, so the WordPress.org directory is filling up with "withdrawal button" plugins. This one stands out for verifiable reasons:
-
-* **Fully free, no paid tier.** No premium add-on, no feature locked behind an upsell, no "Pro" version on the horizon. Everything documented on this page is what you get on install.
-* **Two-step "confirm withdrawal" function built in**, the EU-wide baseline of Article 11a(3): the public form shows a read-only review screen and registers the request only after explicit confirmation, fully server-side and working without JavaScript — where many "button-only" plugins register the request on the very first click.
-* **The only plugin in the directory** that issues a SHA-256 receipt hash as durable-medium proof of every withdrawal request, recoverable from the stored fields if a dispute later arises.
-* **The only plugin in the directory** that ships the **Annex I.B model withdrawal form** dynamically generated from the shop data, with a printable view — meeting the Art. 6(1)(h) information obligation that the new directive does *not* replace.
-* **The only plugin in the directory** that injects the **two consent checkboxes** (Art. 16(m) digital content and Art. 14(4)(a) service started early) at the WooCommerce checkout, with durable proof persisted on the order.
-* **The only plugin in the directory** that ships **Article 16 product/category exclusions with full subcategory inheritance** — competing plugins gate this behind their own paid Pro tier.
-* **Native integration with the WordPress GDPR tools** (Privacy Policy snippet + personal-data exporter and eraser) — no second GDPR plugin to install.
-* **Standalone or with WooCommerce.** Works without WooCommerce as a self-contained tool (form, shortcode, log, emails, SHA-256, GDPR, Annex I.B) and lights up store-specific features automatically when WooCommerce is detected.
-* **Compatible by default** with Sequential Order Numbers (free and Pro) and Custom Order Numbers for WooCommerce (Tyche and WPFactory), with a filter for any other numbering scheme.
-* **Real multilingual support (WPML, Polylang)**: exclusions and checkout consents configured once hold across every translation, and your editable texts are translatable from String Translation.
-* **Configurable from the settings UI**, without writing code: deadline basis (order date vs. completion date) and grace days plus an optional strict deadline mode, eligible order statuses, withdrawal page, notification email (now accepting several recipients), email sender and editable status-email texts, consent text per type, excluded-notice text per type, editable form intro, optional B2B consumer self-declaration, Annex I.B trader address/phone/email, and which roles may manage requests.
-* **Developer-friendly**: 11 documented filters + 4 actions so agencies can extend it without forking.
-* **Maintained by a Spanish WordPress trainer with 20+ years on the platform**: es_ES translation kept up to date by the author on the official WordPress.org translation platform, prompt replies on the WordPress.org support forum and an active roadmap of free improvements (classic widget, Gutenberg block, dashboard widget, custom WC order status and more — all free).
+* **Fully free, no paid tier.** No premium add-on, no feature behind an upsell, no "Pro" version on the horizon.
+* **The only plugin in the directory** that issues a SHA-256 receipt hash as durable proof of each request, that ships the Annex I.B model form, that injects the two checkout consents with proof on the order, and that gives you Article 16 exclusions with subcategory inheritance without a paid tier.
+* **The harmonised guarantee notice included**, in the 24 languages, at the checkout and in the emails, which is the second obligation landing in 2026 and the one most plugins still ignore.
+* **Real multilingual support** with WPML and Polylang, and everything configurable from the settings screen without writing a line of code.
+* **Maintained by a Spanish WordPress trainer with 20+ years on the platform**, with the es_ES translation kept up to date by the author, replies on the support forum and an active roadmap of free improvements.
 
 == Roadmap ==
 
-Planned for upcoming free versions:
-
-* **WooCommerce Checkout block support** for the Art. 16(m) and Art. 14(4)(a) consents, for stores already migrated away from the classic checkout shortcode.
-* HTML email templates inheriting the WooCommerce email theme, and plugin emails composed in the customer's own language on multilingual stores.
-* Gutenberg block and classic widget for the withdrawal link.
-* Custom WooCommerce order status "Withdrawal requested", with automatic transition on acceptance.
-* PDF download of the request with the SHA-256 receipt hash printed on it.
-* Dashboard widget with counters, pending requests and monthly stats.
+Planned for upcoming free versions: the GARAN durability label per product; the checkout consents inside the Checkout block; HTML emails inheriting the WooCommerce theme, and plugin emails in the customer's language; a Gutenberg block and a widget for the withdrawal link; a custom "Withdrawal requested" order status; a PDF of the request with its receipt hash; and a dashboard widget.
 
 == Privacy ==
 
-This plugin stores the following personal data for each withdrawal request, exclusively to fulfil the legal traceability of consumer rights and to allow the shop to handle the request:
+For each request the plugin stores the customer name and email, the order reference and date, the IP address and User-Agent, the UTC submission timestamp and the SHA-256 receipt hash. All of it serves the legal traceability the directive asks for and lets the shop handle the request.
 
-* Customer name and email address (required to contact the consumer about the request).
-* Order reference and order date (required to validate the request against the purchase).
-* IP address and User-Agent string (required to evidence when and how the request was submitted, in line with the directive's "durable medium" requirement).
-* Submission timestamp (UTC) and SHA-256 receipt hash (required to recompute and verify the integrity of the original submission if disputed).
+Data lives in a private custom post type (`ayudawp_withdrawal`) reachable only by the roles you authorise. Nothing is sent to third-party services: everything happens between your shop and your customer through standard WordPress emails.
 
-Data is stored as a private custom post type entry (`ayudawp_withdrawal`) accessible only to administrators. The plugin does not transmit any data to third-party services; all communication happens between the shop and the customer via standard WordPress emails.
-
-You should add a section to your site's privacy policy describing this storage. The plugin contributes a suggested Privacy Policy snippet that you can paste from **Settings → Privacy → Policy Guide**. Withdrawal data is also exposed to the native WordPress **Tools → Export Personal Data** and **Tools → Erase Personal Data** screens (filtered by customer email).
+Add a section to your privacy policy describing this storage. The plugin contributes a suggested snippet you can paste from **Settings → Privacy → Policy Guide**, and withdrawal data is exposed to **Tools → Export Personal Data** and **Tools → Erase Personal Data**, filtered by customer email.
 
 == Installation ==
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin from the **Plugins** screen.
 3. The plugin creates a "Right of withdrawal" page automatically with a sample legal template. Review and edit it from **Pages**.
-4. Go to **Withdrawals → Settings** to configure the notification email address and the page that hosts the form.
+4. Go to **EU Compliance → Settings** to configure the notification email address and the page that hosts the form.
 5. Add the URL of the withdrawal page to your footer or to the legal links section so it is visible from any page on your site.
 
 == Frequently Asked Questions ==
 
+= What is the harmonised legal guarantee notice, and do I have to show it? =
+
+It is the official EU notice on the legal guarantee of conformity: the one headed "LEGAL GUARANTEE", with the QR code and the GARAN label. Article 22a of Directive 2011/83/EU, added by Directive (EU) 2024/825, makes it mandatory from **27 September 2026** for everyone selling goods to consumers in the EU, and Implementing Regulation (EU) 2025/1960 fixes its design. It does not cover B2B sales, services or digital content, so the plugin only shows it when the cart or the order holds at least one product that is not virtual.
+
+Online it has to be in colour, in full, unedited, legible at the default display size, in a prominent place and with a clickable link to the same destination as its QR code. The plugin does all of that, in the 24 EU languages, at both checkouts and in your order emails.
+
+It arrives **switched off on sites updating from an earlier version**, with a notice in the dashboard, because it changes what your customers see at the checkout. New installs start with it on. Switch it on under **EU Compliance → Settings → EU legal guarantee notice (GARAN)**.
+
+= Does the plugin show the GARAN label? =
+
+Not yet, and most shops do not need it. GARAN is a different thing from the notice: the notice covers the **legal** guarantee and every shop selling goods has to display it, while GARAN stands for a **commercial durability guarantee** that a *producer* chooses to offer. It is mandatory only when that guarantee costs the consumer nothing, covers the whole product and lasts more than two years. When it does, the producer must use the label and you, as the seller, have to show it on the products that carry one, which in many catalogues is none of them.
+
+It cannot ship bundled the way the notice does, because the producer fills in the years, the trademark and the model identifier. Per-product GARAN fields are the next step for this module. Unlike the notice, the label may be shown online in a nested format that expands on the first click.
+
+= Where do the notice files come from, and under what licence? =
+
+They are the official files from the European Commission [guidelines page](https://commission.europa.eu/publications/practical-guidelines-and-high-resolution-vector-files-eu-notice-and-label-product-guarantees_en), bundled unmodified under `assets/guarantee-notice/` with the md5 of each one in `CHECKSUMS.txt` so you can check that nothing was touched. The one exception is the English PNG: the Commission's PNG package ships 23 languages and no English, so that single file is rendered from the official English PDF at the same size as the other 23, with nothing edited, cropped or added. Its origin is recorded in the same file.
+
+© European Union, 2025. Reused under the [CC BY 4.0 licence](https://creativecommons.org/licenses/by/4.0/), the Commission reuse policy implemented by Decision 2011/833/EU.
+
+= The notice is too big, or too small, in my checkout. What do I do? =
+
+Pick another display mode under **EU Compliance → Settings → EU legal guarantee notice (GARAN)**:
+
+* **The whole notice** (default). The reading nobody disputes: the guidelines do accept showing it behind a first click, but the regulation describes that nested format only for the GARAN label.
+* **A disclosure**: a line that expands into the notice, with the native `<details>` element.
+* **A popover**: a button that opens the notice large over the page. This is the one for narrow columns, such as the Storefront order review at about 279px, where a full-width notice comes out too small to read.
+* **Nothing at the checkout**, for shops that place it themselves. Emails and footer link keep working.
+
+On phones the full notice is around 330px wide, so the image always links to the full-size file.
+
+= The notice says two years and in Spain the legal guarantee is three. Isn't that wrong? =
+
+The notice says "minimum two years" because that is the EU floor, and it cannot be edited: the regulation requires it unaltered. Spain raised the legal guarantee on new goods to three years from delivery (Art. 120.1 TRLGDCU), so the plugin prints a short line **next to** the notice, never inside it, linking to your terms and conditions page and, if you write the `id` of its heading in the settings, to the exact section. Automatic when your WooCommerce base country is Spain, and forceable either way for shops selling into Spain from elsewhere. Second-hand goods can carry a shorter period, never under one year, and the official notice already says so.
+
+= Can I publish the notice on its own page, or link it from my footer? =
+
+Yes. Put `[ayudawp_guarantee_notice]` on a page for the notice in full (`mode="details"` or `mode="popover"` for the other two), select that page in the settings, and `[ayudawp_guarantee_link]` gives you a permanent link to it, exactly like `[ayudawp_withdrawal_link]` does for the withdrawal page. Both accept `text` and `class`.
+
+You can also replace the bundled file per language from your media library, in the same settings section, for example to serve it from your own CDN. Whatever you pick is shown unedited, so it has to be the official notice in that language, in colour and complete.
+
+= In which language is the notice shown? =
+
+In the language of the page, and in the language of the order for the emails, on shops running WPML or Polylang. The Commission publishes it in the 24 official EU languages; a shop in a language that is not one of them gets the official language of its own member state, so Catalan, Basque and Galician get the Spanish notice and Luxembourgish the French one. Anything else falls back to the language you pick in settings. The `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases` filters change both rules.
+
 = WooCommerce ships its own order withdrawal page. Do I still need this plugin? =
 
-They solve different halves of the same obligation, so the honest answer is that the native feature is a form and this plugin is the toolkit around it.
+They solve different halves of the same obligation: the native feature is a form, and this plugin is the toolkit around it.
 
-What WooCommerce 11.1 added (the `order_withdrawal` feature, off by default under **WooCommerce > Settings > Advanced > Features**) is a public two-step form on its own My Account endpoint, with a review screen and an acknowledgement email. What it does not do is link that form from anywhere: no entry in the My Account menu, no button on the order row, no line in the transactional emails and no footer link, which is the part Article 11a is actually about, a withdrawal function the customer can find as easily as the buy button. It also keeps no record you can work with (no statuses, no notes to the customer, no CSV export), and it knows nothing about the Article 16 exceptions and their inheritance by category, the checkout consents of Articles 16(m) and 14(4)(a), the Annex I.B model form or the deadline of each order.
+WooCommerce 11.1 added `order_withdrawal` (off by default, under **WooCommerce > Settings > Advanced > Features**): a two-step public form on its own My Account endpoint, with a review screen and an acknowledgement email. What it does not do is link that form from anywhere: no My Account entry, no button on the order row, no line in the transactional emails, no footer link, which is the part Article 11a is actually about. It also keeps no record you can work with (no statuses, no notes, no export), and knows nothing about the Article 16 exceptions, the checkout consents, the Annex I.B model, the deadline of each order or the legal guarantee notice.
 
-If you switch the WooCommerce feature on while this plugin is active, your shop answers with two different forms at two addresses, each one keeping its own record and sending its own acknowledgement, and nothing merges them afterwards. The settings page of the plugin warns you when that happens. Keep one of the two.
+With both switched on, your shop answers with two forms at two addresses, each keeping its own record and sending its own acknowledgement, and nothing merges them. The settings page warns you when that happens. Keep one of the two.
 
 = Can customers see what happened to a request they sent? =
 
-Yes, on WooCommerce sites and for customers with an account. **My Account → Right of withdrawal** opens with their own requests: when each one was submitted, the order it refers to, whether it covers the full order or specific products, its current status, the note you write when you accept, reject or complete it, and the receipt code of the acknowledgement. The row of an order that already has a request also shows that status next to "View", where the withdrawal button was before, and a rejected request keeps its "Contest the rejection" button. A request is listed when the customer sent it while signed in, which covers the ones sent from the public form and those registered without a matching order, or when it is linked to one of their own orders. Both are proof that the request is theirs.
+Yes, on WooCommerce sites and for customers with an account. **My Account → Right of withdrawal** opens with their own requests: date, order, scope, current status, the note you write when you resolve it and the receipt code. The row of an order that already has a request shows that status where the button was, and a rejected request keeps its "Contest the rejection" button.
 
-What is deliberately not used is the address of the account: WooCommerce lets a customer change it without confirming the new one, so listing by address would show requests sent as a guest from any address that has no account on the shop. Requests sent as a guest therefore stay out of the account, and for them (as for guests in general, and for sites without WooCommerce) the trace is the acknowledgement email and the status emails, which is the durable medium the directive asks for. You can switch the whole thing off under **Withdrawals → Settings → General** if you would rather resolve requests by email only.
+A request is listed when the customer sent it while signed in, or when it is linked to one of their own orders. The address of the account is deliberately not used: WooCommerce lets a customer change it without confirming the new one, so listing by address would expose requests sent as a guest from any address with no account. For guests the trace is the acknowledgement and the status emails, which is the durable medium the directive asks for. You can switch the whole thing off under **EU Compliance → Settings → General**.
 
 = Can I move the checkout consent checkboxes somewhere else? =
 
-Yes, with the `ayudawp_euw_consent_hook` filter, but read the trade-off first. They render by default on `woocommerce_after_order_notes`, in the customer-details column, which WooCommerce renders once and leaves alone. The order-review panel next to the terms acceptance looks like the natural home, and it is where most shops want them, but WooCommerce re-renders that panel on every AJAX refresh, so a checkbox placed there is duplicated and loses what the customer already ticked whenever they change address, shipping or payment method.
+Yes, with `ayudawp_euw_consent_hook`, but read the trade-off first. They render on `woocommerce_after_order_notes`, in the customer-details column, which WooCommerce renders once and leaves alone. The order-review panel next to the terms acceptance looks like the natural home, but WooCommerce re-renders it on every AJAX refresh, so a checkbox placed there is duplicated and loses what the customer already ticked whenever they change address, shipping or payment.
 
 `add_filter( 'ayudawp_euw_consent_hook', function () { return 'woocommerce_review_order_before_submit'; } );`
 
-Returning an empty string suppresses the render entirely, for shops that place the checkboxes with their own template code. `ayudawp_euw_consent_applies` decides per cart whether each consent is asked for, and `ayudawp_euw_consent_is_required` makes either one mandatory or optional; both receive the consent type (`a` for Art. 16(m), `b` for Art. 14(4)(a)).
+Returning an empty string suppresses the render entirely. `ayudawp_euw_consent_applies` decides per cart and `ayudawp_euw_consent_is_required` makes either one mandatory.
 
 = Will the form check the 14-day deadline? =
 
-It does not auto-reject based on it. The 14-day withdrawal period legally runs from the moment the goods are delivered (or, for digital content, from the start of the download) — a date the shop cannot detect automatically — so rejecting a request on the order or completion date would risk turning away customers who are still within their legal window. Instead, the plugin **flags** requests that look past the approximate window in the admin notification email and lets you verify the real delivery date (for example from the carrier tracking) and decide. Eligibility for the form, the My Account button and the email notice is governed by the configured order statuses. You can still tune the advisory calculation (order date vs. completion date, plus grace days) under **Withdrawals → Settings**, and the `ayudawp_euw_grace_days` filter keeps working; the `ayudawp_euw_skip_deadline_check` filter no longer has any effect, since there is no longer a deadline gate to skip. If your shop's start date is reliable (services and digital content, where the period runs from the contract date, or shop pickup and predictable carriers), you can switch the **Deadline enforcement** setting from *Advisory* to *Strict*, which hides the button and blocks new requests once the deadline plus grace days has passed; *Advisory* remains the default and the safe choice for goods with unpredictable delivery.
+It does not auto-reject on it. The period legally runs from delivery (or, for digital content, from the start of the download), a date the shop cannot detect, so rejecting on the order date would turn away customers still inside their real window. Requests that look late are **flagged** in the admin notification instead, and you check the real delivery date and decide.
+
+You can tune the calculation under **EU Compliance → Settings**: order date or completion date as the basis, plus grace days. If your start date is reliable (services, digital content, shop pickup), switch **Deadline enforcement** from *Advisory* to *Strict* and late requests are blocked outright. Advisory is the default and the safe choice for goods.
 
 = How do I mark products that are excluded from the right of withdrawal (Article 16)? =
 
-The plugin uses a single **Withdrawal status** dropdown set per category and per product.
+With a single **Withdrawal status** dropdown, set per category (**Products → Categories**) or per product (General tab). A category applies its status to every product underneath and to its descendant categories; a product overrides it. The four options:
 
-1. **By category**: go to **Products → Categories**, edit the category and pick a "Withdrawal status" — for example *Other Article 16 exception* for perishable or custom-made goods, or *Digital content (Art. 16(m))* for sealed digital content. Every product in that category (and its descendant categories) will inherit the status automatically.
-2. **By product**: edit the product, scroll to the General tab and pick the "Withdrawal status" there. By default it is set to *— Inherit from category*; pick any other option (including *Standard*) to override the inheritance for that product only.
+* **Standard** — withdrawal applies normally.
+* **Digital content (Art. 16(m))** — excluded, and a mandatory consent checkbox appears at checkout for any cart containing it.
+* **Service started early (Art. 14(4)(a))** — withdrawal still applies, with an optional consent so you can charge a pro-rated amount.
+* **Dated services (Art. 16(l))** — accommodation, transport, car rental, catering, leisure: excluded, no consent needed.
+* **Other Article 16 exception** — perishable, custom-made, hygiene-sealed, sealed media: excluded, no consent needed.
 
-The four possible statuses are:
-
-* **Standard** — withdrawal applies normally (default).
-* **Digital content (Art. 16(m))** — product is excluded from the withdrawal right, and a mandatory consent checkbox is shown at the WooCommerce checkout for any cart containing the product.
-* **Service started early (Art. 14(4)(a))** — withdrawal still applies, and an optional consent checkbox is shown at checkout so the trader can charge a pro-rated amount if the customer withdraws after the service has started.
-* **Other Article 16 exception** — product is excluded (perishable, custom-made, hygiene-sealed, sealed audio/video/software media unsealed after delivery, etc.), no checkout consent needed.
-
-When a withdrawal request lands on an order containing excluded items, the plugin flags it in the admin notification email and on the request detail screen. The request is **never auto-rejected**, because a partial withdrawal over the non-excluded items in the same order can still be valid. The admin reviews and decides.
-
-If the **Excluded products notice** is enabled (default: yes), a configurable notice will also appear on the single product page between price and add-to-cart button so the consumer reads it before purchasing.
-
-**Upgrading from earlier versions:** any category that was previously listed in the retired "Excluded categories" picker is migrated automatically to the new per-category dropdown (with status *Other Article 16 exception*) on the next admin request. No configuration is lost.
+A request on an order containing excluded items is flagged for you, never auto-rejected, because a partial withdrawal over the rest of the order can still be valid. If the **Excluded products notice** is on, a configurable notice also appears on the product page between price and add-to-cart.
 
 = The excluded-product notice does not appear with my page builder (Divi, Elementor, Bricks…). What can I do? =
 
@@ -189,18 +186,16 @@ Page builders such as Divi, Elementor, Bricks or ShopLentor render their own sin
 
 = How do the checkout consent checkboxes work (Art. 16(m) and Art. 14(4)(a))? =
 
-The plugin can inject two consent checkboxes at the WooCommerce checkout when the cart contains products flagged for them:
+The plugin injects them when the cart holds products flagged for them:
 
-* **Type A (mandatory, Art. 16(m))**: digital content. The customer must accept it to complete the order; without acceptance recorded, the customer keeps the 14-day withdrawal right even after accessing the content.
-* **Type B (optional, Art. 14(4)(a))**: services started within the 14-day window. If accepted, the trader may charge a pro-rated amount when the customer withdraws after the service has started. Without it, an early withdrawal forces a full refund.
+* **Type A (mandatory, Art. 16(m))**, digital content. The customer must accept it to complete the order; without it recorded, they keep the 14-day right even after accessing the content.
+* **Type B (optional, Art. 14(4)(a))**, services started inside the window. Accepted, it lets you charge a pro-rated amount if they withdraw later. Without it, an early withdrawal means a full refund.
 
-Each flag is set per product (General tab) or per category (Edit Category screen), with full subcategory inheritance — the same hierarchy used by the Article 16 exclusions module. The exact text shown to the customer, plus accepted/declined state, timestamp, IP and user agent, is persisted on the order so the trader has durable proof if the customer later contests the request. The metabox of each withdrawal request also surfaces these consents for the linked order.
-
-The two checkboxes can be enabled/disabled globally from **Withdrawals → Settings → Checkout consent**, and their text is fully editable.
+Each flag is set per product or per category, with subcategory inheritance. The exact text shown, the accepted or declined state, the timestamp, the IP and the user agent are persisted on the order as proof, and surfaced in the metabox of each request. Both can be switched off and their text edited under **EU Compliance → Settings → Checkout consent**.
 
 = I sell to businesses (B2B). Can I exclude them from the right of withdrawal? =
 
-The right of withdrawal protects consumers (natural persons acting outside their trade or profession), not business buyers, but the plugin never decides that for you. Enable **Consumer self-declaration** under **Withdrawals → Settings → Public withdrawal form** and the form shows a required checkbox where the buyer declares they purchased as a consumer; a business that cannot declare it self-excludes, and the declaration is stored with the request as proof. It is off by default. Use the `consumer_check="yes"` shortcode attribute to force it on a specific landing page, or the `ayudawp_euw_show_consumer_check` filter for custom logic (VIES validation, a customer-type field, etc.).
+The right of withdrawal protects consumers (natural persons acting outside their trade or profession), not business buyers, but the plugin never decides that for you. Enable **Consumer self-declaration** under **EU Compliance → Settings → Public withdrawal form** and the form shows a required checkbox where the buyer declares they purchased as a consumer; a business that cannot declare it self-excludes, and the declaration is stored with the request as proof. It is off by default. Use the `consumer_check="yes"` shortcode attribute to force it on a specific landing page, or the `ayudawp_euw_show_consumer_check` filter for custom logic (VIES validation, a customer-type field, etc.).
 
 = Does the plugin include the Annex I.B model withdrawal form required by Directive 2011/83/EU? =
 
@@ -210,13 +205,9 @@ Yes. The plugin renders the Annex I.B model form dynamically from the shop name,
 
 It is a SHA-256 hash computed from the request data (post ID, customer name, email, order reference, scope, order date and submission timestamp). The customer keeps the email as a tamper-evident proof on a durable medium. If a dispute later arises, you can recompute the hash from the stored fields with the `ayudawp_euw_compute_receipt_hash()` helper and confirm the original submission was not altered.
 
-= Where are withdrawal requests stored? =
-
-Each request is saved as a private custom post type entry called `ayudawp_withdrawal`. You can manage them under the top-level **Withdrawals** menu in your admin area. They are not publicly accessible from the frontend.
-
 = Can I choose who can manage withdrawal requests? =
 
-Yes, from **Withdrawals → Settings → Permissions**. Because each request stores personal data (name, email, IP), you pick which user roles, besides the administrator, may view and manage them. The administrator always has access and cannot be unticked. On sites updating from an earlier version, the roles that could already see requests (typically Editor, and Shop manager on WooCommerce) keep their access so nothing breaks; you then untick any you want to remove. New installs start administrator-only.
+Yes, from **EU Compliance → Settings → Permissions**. Because each request stores personal data (name, email, IP), you pick which user roles, besides the administrator, may view and manage them. The administrator always has access and cannot be unticked. On sites updating from an earlier version, the roles that could already see requests (typically Editor, and Shop manager on WooCommerce) keep their access so nothing breaks; you then untick any you want to remove. New installs start administrator-only.
 
 = Does it support HPOS (High-Performance Order Storage)? =
 
@@ -232,15 +223,15 @@ Yes. The form accepts both the internal WooCommerce order ID and the displayed o
 
 = The form says it cannot match the email with the order number. Can I accept those requests anyway? =
 
-By default the form validates the order number and email against your WooCommerce orders and rejects the submission upfront when they do not match. If you prefer not to lose those requests (typos, purchases made outside WooCommerce, a numbering scheme the resolver does not recognise), enable **Accept unmatched requests** under **Withdrawals → Settings → Eligible order statuses**. The request is then registered anyway and flagged as *Unverified*: the consumer sees a notice on the confirmation screen inviting them to double-check the reference (they can still confirm and submit), and the request arrives highlighted in the notification email, in the requests list and in its detail screen, so you verify it manually against your records before deciding. Unverified requests are never linked to an order (no order note, no status or deadline checks) and the acknowledgement of receipt is still sent to the address submitted. Off by default.
+Yes, with **Accept unmatched requests** under **EU Compliance → Settings → Eligible order statuses**. By default the form rejects a submission whose order number and email match no order. With the option on it is registered anyway and flagged as *Unverified*: the customer sees a notice inviting them to check the reference and can still confirm, and the request arrives highlighted in the notification email, in the list and in its detail screen, so you verify it against your records before deciding. Unverified requests are never linked to an order, and the acknowledgement is still sent. Off by default.
 
 = The form says the request is no longer awaiting confirmation, right after the customer submitted it. Why? =
 
-The two-step flow required by Article 11a keeps the validated declaration on the server, in a 15-minute single-use transient, between the form and the review screen. When an object cache does not store transients reliably (a misconfigured Redis or Memcached drop-in, or a cache plugin flushing them aggressively) the declaration is already gone by the time the customer confirms, and the form asks them to start over. To confirm the cause, disable the object cache for a moment and submit again: if the flow completes, that was it. Transients are the standard WordPress mechanism for this, and the alternative (carrying the declaration in the URL or in hidden fields) would break the guarantee that what gets registered is exactly what was validated, so the fix belongs to the cache configuration.
+The two-step flow keeps the validated declaration on the server, in a 15-minute single-use transient, between the form and the review screen. When an object cache does not store transients reliably (a misconfigured Redis or Memcached drop-in, or a cache plugin flushing them aggressively) the declaration is gone by the time the customer confirms. Disable the object cache for a moment and submit again: if the flow completes, that was it. Carrying the declaration in the URL instead would break the guarantee that what gets registered is exactly what was validated, so the fix belongs to the cache configuration.
 
 = Will the notice appear on every WooCommerce email? =
 
-No. By default the notice is only added to the customer-facing emails relevant to the withdrawal window: order processing, completed and customer invoice (the manually triggered one). Admin emails never receive the notice. The notice is also gated by the configured list of eligible order statuses (default: Processing and Completed) so the manual invoice email only carries it when the order is in one of those statuses. You can change the email list with the `ayudawp_euw_email_ids` filter and the status list under **Withdrawals → Settings → Eligible order statuses** or with the `ayudawp_euw_allowed_statuses` filter.
+No. By default the notice is only added to the customer-facing emails relevant to the withdrawal window: order processing, completed and customer invoice (the manually triggered one). Admin emails never receive the notice. The notice is also gated by the configured list of eligible order statuses (default: Processing and Completed) so the manual invoice email only carries it when the order is in one of those statuses. You can change the email list with the `ayudawp_euw_email_ids` filter and the status list under **EU Compliance → Settings → Eligible order statuses** or with the `ayudawp_euw_allowed_statuses` filter.
 
 = Can I make the withdrawal notice in the emails more discreet? =
 
@@ -248,17 +239,15 @@ Yes. Return an empty array from the `ayudawp_euw_email_ids` filter to remove the
 
 `add_filter( 'ayudawp_euw_email_ids', '__return_empty_array' );`
 
-This only affects the emails: the My Account button, the public form and the site footer link keep working, so the withdrawal function stays accessible as Article 11a requires. You can then add your own, more discreet wording with a plain link using WooCommerce's per-email **Additional content** field (**WooCommerce → Settings → Emails**, then open each email such as Processing order or Completed order). Because it is set per email, your link appears only where you add it. Point it to your withdrawal page, and if you want to keep the order number pre-filled, add the `{order_number}` placeholder to the link, for example `.../withdrawal/?order_id={order_number}`. Do keep some reference in the order confirmation email: it is the contract confirmation on a durable medium, so the withdrawal information should stay reachable from it, just not necessarily as a prominent button.
-
-= In which languages is the plugin available? =
-
-All strings are translation-ready. Translations are managed through the official WordPress.org platform at [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/eu-withdrawal-compliance/), so any locale with enough translated strings is delivered automatically to your site when the WordPress site language matches. Contributions to existing or new locales are welcome there.
+The My Account button, the public form and the footer link keep working, so the withdrawal function stays accessible as Article 11a requires. You can then add your own wording with WooCommerce's per-email **Additional content** field (**WooCommerce → Settings → Emails**). Point it at your withdrawal page, and add the `{order_number}` placeholder to keep the order pre-filled, for example `.../withdrawal/?order_id={order_number}`. Do keep some reference in the order confirmation: it is the contract confirmation on a durable medium, so the withdrawal information should stay reachable from it, just not necessarily as a prominent button.
 
 = Does it work on multilingual sites (WPML, Polylang)? =
 
-Yes. The withdrawal status is set once, on the product (or category) in the site original language, and applies to every translation: the excluded-product notice, the checkout consents and the excluded items recorded on the order all resolve back to the original, so nothing has to be flagged twice. An explicit status on a translation still wins, if you need a per-language exception. Links to the withdrawal page follow the visitor language whenever a translation of that page exists. The plugin also ships a `wpml-config.xml` file, read by WPML and Polylang alike, that turns the settings holding customer-facing copy (the excluded-product notice titles and bodies, the form intro, the consent texts, the trader address) into translatable strings under **WPML → String Translation** or **Languages → Translations**. A setting shows up there once you have written your own text in it: left empty, there is nothing to translate, because the text then comes from the language pack of each locale and already follows the language of the visitor. So you have both routes: leave a field empty and let the bundled translation do the work, or write your own text and translate it under String Translation. The texts bundled with the plugin need no configuration.
+Yes. The withdrawal status is set once, on the product or category in the site original language, and applies to every translation: excluded-product notice, checkout consents and excluded items on the order all resolve back to the original. An explicit status on a translation still wins. Links to the withdrawal page follow the visitor language whenever a translation exists, and so does the guarantee notice.
 
-One current limitation worth knowing: the plugin's own emails (acknowledgement of receipt, admin notification and status changes) are composed in the site default language, not in the language the customer was browsing in, because they are generated outside the language routing of both plugins. The withdrawal notice injected into the WooCommerce transactional emails does follow the order language, since WooCommerce Multilingual and Polylang for WooCommerce switch the locale for those. Per-customer language for the plugin's own emails is on the roadmap.
+The bundled `wpml-config.xml` turns the settings that hold customer-facing copy into translatable strings under **WPML → String Translation** or **Languages → Translations**. A setting shows up there once you write your own text in it: left empty, the text comes from the language pack of each locale and already follows the visitor.
+
+One limitation: the plugin's own emails (acknowledgement, admin notification, status changes) are composed in the site default language, because they are generated outside the language routing of both plugins. The notices injected into the WooCommerce order emails, both the withdrawal one and the guarantee one, do follow the order language. Per-customer language for the plugin's own emails is on the roadmap.
 
 = Does the plugin pass GDPR requirements? =
 
@@ -270,34 +259,21 @@ The withdrawal log is independent of the WordPress user table — it lives as a 
 
 = Can I customise the emails? =
 
-Yes. From **Withdrawals → Settings → Withdrawal emails** you can set the sender ("From name" and "From address") for the plugin's emails and edit the body of the accepted, rejected and completed status emails; left empty, each text falls back to the bundled default. The admin notification can be tailored with the `ayudawp_euw_admin_email_lines` filter, and all strings remain translatable through the standard WordPress text-domain. The emails are sent in plain text; HTML templates that inherit the WooCommerce email theme are planned for a later release.
+Yes. From **EU Compliance → Settings → Withdrawal emails** you can set the sender ("From name" and "From address") for the plugin's emails and edit the body of the accepted, rejected and completed status emails; left empty, each text falls back to the bundled default. The admin notification can be tailored with the `ayudawp_euw_admin_email_lines` filter, and all strings remain translatable through the standard WordPress text-domain. The emails are sent in plain text; HTML templates that inherit the WooCommerce email theme are planned for a later release.
 
 = Which hooks does the plugin expose for developers? =
 
-Filters:
+19 filters and 4 actions. The withdrawal side: `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha) and `ayudawp_euw_show_consumer_check`. The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
 
-* `ayudawp_euw_grace_days` — extra days added to the 14-day deadline. The default is the value stored in settings; the filter receives that value, so returning `$days + N` adds on top of it.
-* `ayudawp_euw_skip_deadline_check` — retained for back-compat but no longer has any effect: the deadline is advisory and never gates a submission, so there is nothing to skip.
-* `ayudawp_euw_email_ids` — array of WooCommerce email IDs where the withdrawal notice is injected.
-* `ayudawp_euw_allowed_statuses` — array of order statuses (without the `wc-` prefix) for which the withdrawal button and email notice are offered. Receives the value stored in settings and the current `WC_Order` (when available).
-* `ayudawp_euw_allow_unverified_order` — return `true` to accept submissions whose order number cannot be matched against a real WooCommerce order. Useful for sites that also handle non-WC purchases.
-* `ayudawp_euw_pre_resolve_wc_order` — short-circuit the order resolver. Return a `WC_Order` instance to accept, `false` to reject, or `null` (default) to fall through to the built-in strategies. Useful for plugins that store the displayed order number outside the standard `_order_number` post meta (e.g. YITH Sequential Order Number, custom ERP integrations).
-* `ayudawp_euw_resolve_wc_order` — late filter that receives the resolved `WC_Order` (or `false`) and the raw reference, for auditing or last-chance overrides.
-* `ayudawp_euw_order_number_meta_keys` — the list of order post-meta keys checked when matching a typed order number, in priority order. Add your numbering plugin's meta key.
-* `ayudawp_euw_admin_email_lines` — the array of lines of the admin notification email, just before they are joined, with the request context (post ID, name, email, order, scope, details) as the second argument. Add, remove or reorder lines.
-* `ayudawp_euw_validation_result` — the order/email validation result before the request proceeds. Return `valid => false` with an `error` code to reject a submission, for example from a captcha integration.
-* `ayudawp_euw_show_consumer_check` — whether the optional "bought as a consumer" checkbox is shown, with the current field values, so an integrator can decide per order (VIES validation, a customer-type field, etc.).
+Actions: `ayudawp_euw_after_submission` (CPT ID, submission data), `ayudawp_euw_after_status_change` (CPT ID, new status, comment), `ayudawp_euw_after_form` (inside the form wrapper, after `</form>`) and `ayudawp_euw_form_before_submit` (before the submit button, for a captcha or an extra field).
 
-Actions:
-
-* `ayudawp_euw_after_submission` — fires after a withdrawal request has been processed. Arguments: CPT ID, submission data array.
-* `ayudawp_euw_after_status_change` — fires after a status change (individual or bulk). Arguments: CPT ID, new status, optional admin comment.
-* `ayudawp_euw_after_form` — fires inside the public form wrapper, right after the `</form>` tag, so modules can inject content below the form without coupling. No arguments. Used internally by the Annex I.B model form.
-* `ayudawp_euw_form_before_submit` — fires inside the form, right before the submit button, so an integrator can render a captcha/anti-spam widget or an extra field whose value is posted with the form. Arguments: current pre-fill values, lock flag.
+`ayudawp_euw_skip_deadline_check` is kept for back-compat and has no effect: the deadline is advisory and gates nothing.
 
 = Is this plugin enough to comply with EU Directive 2023/2673? =
 
-The plugin covers the functional requirements that Directive 2023/2673 imposes EU-wide from 19 June 2026: a discoverable digital withdrawal function, eligibility by order status with an advisory deadline flag, Article 16 exclusions with subcategory inheritance, durable-medium proof via the SHA-256 receipt hash, the model form from Annex I.B of Directive 2011/83/EU and the double-consent checkboxes at checkout that enable the Art. 16(m) and Art. 14(4)(a) exceptions. On top of that it adds operational tools that the directive does not mandate but that make handling requests practical: per-status email injection, status lifecycle with bulk actions, native GDPR integration, public notice on excluded products and full traceability. Member States can layer extra national requirements on top of the EU baseline — the two-step confirmation flow with an intermediate review page expected by the strictest member states (Germany, for example) is built in; a future release will adapt to any further requirement in the final Spanish Real Decreto once it is published. **Legal compliance ultimately depends on your business model, catalog and jurisdiction; the plugin provides the technical building blocks, not legal advice — consult a consumer-law specialist for your specific case.**
+It covers the functional requirements the directive imposes EU-wide from 19 June 2026: a discoverable digital withdrawal function, eligibility by order status with an advisory deadline flag, Article 16 exclusions with inheritance, durable proof through the SHA-256 receipt hash, the Annex I.B model form and the two checkout consents. It adds the operational tools the directive does not mandate but that make requests workable, and the harmonised guarantee notice that becomes mandatory in September.
+
+Member States can layer national requirements on top: the two-step confirmation expected by the strictest of them is built in. **Compliance ultimately depends on your business model, catalogue and jurisdiction; the plugin provides the building blocks, not legal advice. Consult a consumer-law specialist for your case.**
 
 = Is this plugin related to the EU Omnibus Directive? =
 
@@ -324,35 +300,26 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
-= 2.2.3 =
-The Edit data button of the review screen works again on themes with smooth scrolling, such as Kadence or Divi. The order button in My Account is shorter, and the settings page warns you when the WooCommerce withdrawal feature is switched on as well.
+= 2.3.0 =
+New module for the EU harmonised legal guarantee notice, mandatory from 27 September 2026: the official notice in 24 languages at the checkout and in your order emails, with the PDF attached. It arrives switched off, with a notice in your dashboard to turn it on.
 
-* Improved: The settings page warns you when the order withdrawal feature that WooCommerce 11.1 introduced is switched on at the same time as this plugin. Both can run at once, and then your customers reach two different forms at two different addresses, each keeping its own record and sending its own acknowledgement, with nothing bringing the two together. The warning links straight to the WooCommerce screen where the feature is turned off, and a new entry in the FAQ explains what each of the two covers.
-* Improved: The withdrawal button on the My Account orders list is now labelled "Withdraw from order", which fits the narrow actions column of most themes; it used to wrap or overflow. The full sentence is still announced to screen readers, and the wording the directive suggests stays untouched where it belongs: the footer link, the transactional emails and the "Confirm withdrawal" button of the form.
-* Fix: The "Edit data" button of the review screen did nothing on themes that add smooth scrolling to links, such as Kadence or Divi. The link kept the address of the page it sits on and ended in a page anchor that exists on that same screen, so those scripts cancelled the click and scrolled the customer to where they already were. It no longer carries that anchor, and the form places the cursor on its first field when the customer goes back to it. Reported in the support forum.
-
-= 2.2.2 =
-* Fix: A site name containing an apostrophe, an ampersand or quotation marks reached customers as HTML code in the plugin emails. A shop called Musee d'Impressionnisme sent its acknowledgement with the apostrophe of its own name replaced by a string of HTML code in the subject line, and signed off the same way; the admin notification and the status emails did the same. WordPress stores the site name already escaped, and these emails are plain text, so no browser is there to turn that code back into an apostrophe. The name is now decoded before it is used, and every plugin email reads the way the shop is actually called. Reported in the support forum. The pages the plugin prints were never affected: there a browser resolved the code, so the name always displayed correctly.
-
-= 2.2.1 =
-* Improved: The acknowledgement email no longer promises to review the request and confirm next steps "within 24 hours". No rule imposes that deadline — Article 11a(4) asks for the acknowledgement on a durable medium without undue delay, which the automatic email already satisfies — so the plugin was putting in the merchant's mouth a commercial promise the shop may not be able to keep, in writing and inside the very email that serves as proof of submission. It now says "as soon as possible", and keeps the sentence inviting the customer to reply if no answer arrives, which is what prevents duplicate requests.
-* Improved: Tested up to WordPress 7.1. Verified against the changes that release brings to the areas this plugin uses: the new row headers of the post list tables, where the withdrawals list is drawn, the section markup of the Settings API and the privacy exporter and eraser. No adjustment was needed in any of them.
-
-= 2.2.0 =
-* New: Customers can follow their withdrawal requests from their account. The "Right of withdrawal" tab of My Account now opens with their own requests, each with the date it was submitted, the order, the scope, its current status, the note you write when you resolve it and the receipt code, and the row of an order that already has a request shows that status where the withdrawal button used to be, instead of leaving the slot empty with no explanation. It lists the requests they sent while signed in, including those registered without a matching order, and the ones linked to their own orders. The acknowledgement and the status emails link to the same screen. On by default, with a setting to turn it off (Withdrawals → Settings → General).
-* New: The Article 14(4)(a) service-start consent can be made mandatory (Withdrawals → Settings → Checkout consent). Off by default, since asking for the service to start early is the customer's choice; useful for shops whose service always starts inside the withdrawal window, such as live sessions or bookings, where placing the order without that request makes no sense.
-* New: Developer filters for the checkout consents. `ayudawp_euw_consent_hook` and `ayudawp_euw_consent_hook_priority` move the checkboxes to another checkout hook (or suppress the render with an empty string), `ayudawp_euw_consent_applies` decides per cart whether each consent is asked for, and `ayudawp_euw_consent_is_required` makes either one mandatory or optional. See the FAQ for the trade-off of moving them into the order-review panel.
-* Improved: The settings page now warns when the configured withdrawal page is missing, in the trash, unpublished or no longer contains the form shortcode, so a page deleted or unpublished by mistake does not leave every withdrawal link pointing nowhere.
-* Improved: The page created on activation no longer carries the "sample template, review before publishing" paragraph in its content, where it was published to customers whenever nobody remembered to delete it. The reminder is now shown in the settings page, and only until you edit the page.
-* Improved: Each help text of the public form is now linked to its field with `aria-describedby`, so screen readers announce it with the field instead of as loose text.
-* Fix: The "Edit data" button of the confirmation screen looked like it did nothing once the review window had passed or the request had already been confirmed. It re-rendered the form with no explanation, empty on the public page and back to the order details, still read-only, in My Account. It now says what happened, and tells an already-submitted request apart from an expired one, so a customer whose request is registered is no longer invited to send it again.
+* New: The EU harmonised notice on the legal guarantee of conformity, which Article 22a of Directive 2011/83/EU (added by Directive (EU) 2024/825) makes mandatory from 27 September 2026, with the design fixed by Implementing Regulation (EU) 2025/1960. The plugin bundles the official file in the 24 EU languages and shows it unedited, as the regulation requires: above the place-order button of both the classic and the block checkout, and in the customer order emails with the official PDF attached, which is what reaches the customer when their mail client blocks remote images. The caption links to the Your Europe guarantees page in their language, the destination of the QR code printed on the notice. It is shown only when the cart or the order holds goods, because the notice does not apply to services or digital content.
+* New: Three display modes for the notice, plus the option of placing it yourself. The whole notice by default, which is the reading nobody disputes; a native disclosure; and a native popover that opens it large over the page, for narrow checkout columns such as the Storefront order review, where a full-width notice comes out too small to read. All three are built with plain HTML, no JavaScript, so they also work inside the block checkout.
+* New: The Spanish three-year note. The official notice says "minimum two years" because that is the EU floor and it cannot be edited, while Spain raised the legal guarantee on new goods to three years from delivery (Art. 120.1 TRLGDCU). The plugin prints that difference next to the notice, never inside it, with a link to your terms and conditions page and, if you want, to the exact section of it. Automatic when your shop base country is Spain, and forceable either way.
+* New: A "Legal guarantee" page of your own, with the [ayudawp_guarantee_notice] shortcode for the notice in full and [ayudawp_guarantee_link] for a permanent link to it from your footer, the same pair the withdrawal page already had. Plus a private order note recording the language and the display mode of the notice each buyer was shown, which is what lets you answer an inspection about an order placed months ago.
+* New: Five developer filters for the notice: the emails that carry it, its markup, the media-library file served instead of the bundled one, the fallback language and the map of languages with no official file. The settings screen also lets you replace the bundled file per language from your media library.
+* Improved: On a site updating from an earlier version the module arrives switched off, and says so in the dashboard with a button that switches it on. It changes what your customers see at the checkout, which is not a decision to take on someone else's behalf while they are not looking. New installs start with it on.
+* Improved: The plugin is now around 5 MB, up from 560 KB, because the official notice ships bundled in 24 languages as an image and as a PDF. Nothing is downloaded at runtime and nothing leaves your server: the regulation does not allow altering the files, so they travel as the Commission publishes them.
+* Improved: The admin menu is now called EU Compliance, with a new icon. It used to say Withdrawals, which named half of what the plugin does now that the legal guarantee notice hangs from the same menu. Inside, everything keeps its name: Withdrawals for the request list, Settings and Export withdrawals.
+* Improved: Plugin renamed as EU Withdrawal and Legal Guarantee Compliance. It covered one directive and now covers two, and the old name said nothing about the half that becomes mandatory in September. Nothing moves: same slug, same folder, same settings and same translations, only the name you see in the plugins list and in the directory.
+* Improved: Tested up to WooCommerce 11.1.
 
 For older changelog entries, please check the [changelog.txt](https://plugins.svn.wordpress.org/eu-withdrawal-compliance/trunk/changelog.txt) file
 
 == Upgrade Notice ==
 
-= 2.2.3 =
-The Edit data button of the review screen works again on themes with smooth scrolling, such as Kadence or Divi. The order button in My Account is shorter, and the settings page warns you when the WooCommerce withdrawal feature is switched on as well.
+= 2.3.0 =
+New module for the EU harmonised legal guarantee notice, mandatory from 27 September 2026: the official notice in 24 languages at the checkout and in your order emails, with the PDF attached. It arrives switched off, with a notice in your dashboard to turn it on.
 
 == Support ==
 

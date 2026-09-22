@@ -477,6 +477,107 @@ function ayudawp_euw_register_settings() {
 		)
 	);
 
+	// Harmonised EU legal guarantee notice (Implementing Regulation (EU) 2025/1960).
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_enabled',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'no',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_display',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_guarantee_display',
+			'default'           => 'full',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_page_id',
+		array(
+			'type'              => 'integer',
+			'sanitize_callback' => 'absint',
+			'default'           => 0,
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_email_ids',
+		array(
+			'type'              => 'array',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_guarantee_email_ids',
+			'default'           => array( 'customer_on_hold_order', 'customer_processing_order' ),
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_pdf_attach',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'yes',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_es_note',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_guarantee_es_note',
+			'default'           => 'auto',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_terms_anchor',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_title',
+			'default'           => '',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_order_note',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'yes',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_fallback_lang',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_guarantee_lang',
+			'default'           => 'en',
+		)
+	);
+
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_guarantee_custom_files',
+		array(
+			'type'              => 'array',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_guarantee_custom_files',
+			'default'           => array(),
+		)
+	);
+
 	// New sections (rendered after the existing General/Eligibility/Deadline/Exclusions sections).
 	add_settings_section(
 		'ayudawp_euw_consent_section',
@@ -577,6 +678,77 @@ function ayudawp_euw_register_settings() {
 		'ayudawp_euw_field_excluded_notice_other_callback',
 		'ayudawp-euw-settings',
 		'ayudawp_euw_excluded_notice_section'
+	);
+
+	add_settings_section(
+		'ayudawp_euw_guarantee_section',
+		__( 'EU legal guarantee notice (GARAN)', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_guarantee_section_callback',
+		'ayudawp-euw-settings'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_enabled',
+		__( 'Show the harmonised notice', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_enabled_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_display',
+		__( 'How it shows at the checkout', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_display_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_page_id',
+		__( 'Legal guarantee page', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_page_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_email_ids',
+		__( 'Emails that carry it', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_emails_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_es_note',
+		__( 'Spanish three-year note', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_es_note_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_order_note',
+		__( 'Record it on the order', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_order_note_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_fallback_lang',
+		__( 'Language used as a fallback', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_fallback_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_guarantee_custom_files',
+		__( 'Replace the bundled files', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_guarantee_custom_files_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_guarantee_section'
 	);
 
 	add_settings_section(
@@ -1702,6 +1874,488 @@ function ayudawp_euw_link_visibility_section_callback() {
 	echo '</li>';
 
 	echo '</ol>';
+}
+
+/**
+ * Sanitize the guarantee-notice display mode.
+ *
+ * @param mixed $value Submitted value.
+ * @return string One of 'full', 'details', 'popover' or 'none'.
+ */
+function ayudawp_euw_sanitize_guarantee_display( $value ) {
+
+	$value = sanitize_key( (string) $value );
+
+	return in_array( $value, array( 'full', 'details', 'popover', 'none' ), true ) ? $value : 'full';
+}
+
+/**
+ * Sanitize the Spanish-note mode.
+ *
+ * @param mixed $value Submitted value.
+ * @return string One of 'auto', 'yes' or 'no'.
+ */
+function ayudawp_euw_sanitize_guarantee_es_note( $value ) {
+
+	$value = sanitize_key( (string) $value );
+
+	return in_array( $value, array( 'auto', 'yes', 'no' ), true ) ? $value : 'auto';
+}
+
+/**
+ * Sanitize a language code against the languages the notice exists in.
+ *
+ * @param mixed $value Submitted value.
+ * @return string Two-letter language code, falling back to English.
+ */
+function ayudawp_euw_sanitize_guarantee_lang( $value ) {
+
+	$value = sanitize_key( (string) $value );
+
+	return in_array( $value, ayudawp_euw_guarantee_languages(), true ) ? $value : 'en';
+}
+
+/**
+ * Sanitize the list of emails that carry the guarantee notice.
+ *
+ * Only customer emails are accepted. The notice is information for the buyer,
+ * and the attachments filter that mails the PDF has no "is this the admin copy"
+ * flag to lean on, so keeping admin IDs out of the stored list is what keeps
+ * the PDF out of the shop's own inbox.
+ *
+ * @param mixed $value Submitted value.
+ * @return array<int, string>
+ */
+function ayudawp_euw_sanitize_guarantee_email_ids( $value ) {
+
+	if ( ! is_array( $value ) ) {
+		return array();
+	}
+
+	$available = array_keys( ayudawp_euw_guarantee_customer_emails() );
+	$valid     = array();
+
+	foreach ( $value as $candidate ) {
+
+		$candidate = sanitize_key( (string) $candidate );
+
+		if ( '' === $candidate ) {
+			continue;
+		}
+
+		if ( ! empty( $available ) && ! in_array( $candidate, $available, true ) ) {
+			continue;
+		}
+
+		$valid[ $candidate ] = $candidate;
+	}
+
+	return array_values( $valid );
+}
+
+/**
+ * Sanitize the per-language media-library overrides.
+ *
+ * @param mixed $value Submitted value.
+ * @return array<string, int> Language code => attachment ID.
+ */
+function ayudawp_euw_sanitize_guarantee_custom_files( $value ) {
+
+	if ( ! is_array( $value ) ) {
+		return array();
+	}
+
+	$languages = ayudawp_euw_guarantee_languages();
+	$clean     = array();
+
+	foreach ( $value as $lang => $attachment_id ) {
+
+		$lang = sanitize_key( (string) $lang );
+		$id   = absint( $attachment_id );
+
+		if ( ! $id || ! in_array( $lang, $languages, true ) ) {
+			continue;
+		}
+
+		if ( ! wp_attachment_is_image( $id ) ) {
+			continue;
+		}
+
+		$clean[ $lang ] = $id;
+	}
+
+	return $clean;
+}
+
+/**
+ * Customer-facing WooCommerce emails, as ID => title.
+ *
+ * Asks WooCommerce rather than hardcoding a list, so emails added by other
+ * plugins (a shipping notification, a subscription renewal) can be ticked too.
+ * Empty when WooCommerce is not active.
+ *
+ * @return array<string, string>
+ */
+function ayudawp_euw_guarantee_customer_emails() {
+
+	if ( ! function_exists( 'WC' ) || ! WC() || ! is_callable( array( WC(), 'mailer' ) ) ) {
+		return array();
+	}
+
+	$emails = WC()->mailer()->get_emails();
+
+	if ( ! is_array( $emails ) ) {
+		return array();
+	}
+
+	$list = array();
+
+	foreach ( $emails as $email ) {
+
+		if ( ! is_object( $email ) || empty( $email->id ) ) {
+			continue;
+		}
+
+		if ( ! is_callable( array( $email, 'is_customer_email' ) ) || ! $email->is_customer_email() ) {
+			continue;
+		}
+
+		$title = is_callable( array( $email, 'get_title' ) ) ? (string) $email->get_title() : (string) $email->id;
+
+		$list[ (string) $email->id ] = $title;
+	}
+
+	return $list;
+}
+
+/**
+ * EU legal guarantee notice section description.
+ */
+function ayudawp_euw_guarantee_section_callback() {
+
+	// Landing point for the link in the announcement notice, which comes from
+	// another admin screen and has to arrive at this section rather than at the
+	// top of a settings page with eleven of them. The <h2> is printed by
+	// do_settings_sections() right above, out of reach, so the anchor goes here
+	// and the stylesheet reserves the space above it.
+	echo '<span id="ayudawp-euw-guarantee" class="ayudawp-euw-anchor" aria-hidden="true"></span>';
+
+	echo '<p>' . wp_kses(
+		__( 'From <strong>27 September 2026</strong>, anyone selling goods to consumers in the EU has to display the harmonised notice on the legal guarantee of conformity: Article 22a of Directive 2011/83/EU, added by Directive (EU) 2024/825, with the design fixed by Implementing Regulation (EU) 2025/1960. The plugin ships the official file in the 24 EU languages and shows it unedited, as the regulation requires. It does not apply to services or digital content, so the notice is only shown when the cart or the order contains at least one physical product.', 'eu-withdrawal-compliance' ),
+		array( 'strong' => array() )
+	) . '</p>';
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		echo '<p class="description">' . wp_kses(
+			__( 'WooCommerce is not active, so there is no checkout or order email to add the notice to. You can still publish it on a page with the <code>[ayudawp_guarantee_notice]</code> shortcode.', 'eu-withdrawal-compliance' ),
+			array( 'code' => array() )
+		) . '</p>';
+	}
+}
+
+/**
+ * Guarantee notice on/off field callback.
+ */
+function ayudawp_euw_field_guarantee_enabled_callback() {
+
+	$enabled = get_option( 'ayudawp_euw_guarantee_enabled', 'no' );
+
+	?>
+	<label>
+		<input type="checkbox" name="ayudawp_euw_guarantee_enabled" value="yes" <?php checked( 'yes', $enabled ); ?>>
+		<?php esc_html_e( 'Show the EU harmonised legal guarantee notice', 'eu-withdrawal-compliance' ); ?>
+	</label>
+	<p class="description">
+		<?php
+		echo wp_kses(
+			__( '<strong>Mandatory if you sell goods to consumers in the EU.</strong> Switches on the whole module: the notice above the place-order button, the notice in the customer order emails, the <code>[ayudawp_guarantee_notice]</code> and <code>[ayudawp_guarantee_link]</code> shortcodes and the record on the order. Each of those has its own setting below.', 'eu-withdrawal-compliance' ),
+			array(
+				'strong' => array(),
+				'code'   => array(),
+			)
+		);
+		?>
+	</p>
+	<?php
+}
+
+/**
+ * Display mode field callback.
+ */
+function ayudawp_euw_field_guarantee_display_callback() {
+
+	$value = ayudawp_euw_guarantee_display_mode();
+
+	$options = array(
+		'full'    => __( 'The whole notice, above the place-order button', 'eu-withdrawal-compliance' ),
+		'details' => __( 'A line that expands into the notice', 'eu-withdrawal-compliance' ),
+		'popover' => __( 'A button that opens the notice large over the page', 'eu-withdrawal-compliance' ),
+		'none'    => __( 'Nothing at the checkout (I place it myself)', 'eu-withdrawal-compliance' ),
+	);
+
+	echo '<select name="ayudawp_euw_guarantee_display" id="ayudawp_euw_guarantee_display">';
+
+	foreach ( $options as $key => $label ) {
+		printf(
+			'<option value="%1$s" %2$s>%3$s</option>',
+			esc_attr( $key ),
+			selected( $value, $key, false ),
+			esc_html( $label )
+		);
+	}
+
+	echo '</select>';
+
+	echo '<p class="description">' . wp_kses(
+		__( '<strong>Recommended: the whole notice.</strong> The Commission guidelines accept showing it behind a first click, but the regulation only describes that nested format for the GARAN label, not for the notice, and the reading is contested. Use one of the collapsed modes when your checkout column is narrow: in Storefront the order review is about 279px wide, where a full-width notice is rendered too small to read, which is a compliance problem of its own. The popover opens it at a readable size on any layout.', 'eu-withdrawal-compliance' ),
+		array( 'strong' => array() )
+	) . '</p>';
+}
+
+/**
+ * Legal guarantee page selector callback.
+ */
+function ayudawp_euw_field_guarantee_page_callback() {
+
+	$selected = (int) get_option( 'ayudawp_euw_guarantee_page_id', 0 );
+
+	echo wp_kses(
+		wp_dropdown_pages(
+			array(
+				'name'              => 'ayudawp_euw_guarantee_page_id',
+				'show_option_none'  => __( '— Select a page —', 'eu-withdrawal-compliance' ),
+				'option_none_value' => '0',
+				'selected'          => $selected,
+				'echo'              => 0,
+			)
+		),
+		array(
+			'select' => array(
+				'name'  => true,
+				'id'    => true,
+				'class' => true,
+			),
+			'option' => array(
+				'class'    => true,
+				'value'    => true,
+				'selected' => true,
+			),
+		)
+	);
+
+	echo '<p class="description">' . wp_kses(
+		__( '<strong>Optional.</strong> Page where you publish the notice in full, with the <code>[ayudawp_guarantee_notice]</code> shortcode. Once it is selected, <code>[ayudawp_guarantee_link]</code> links to it from your footer, the same way the withdrawal link does. Leave it unselected if you do not want a separate page.', 'eu-withdrawal-compliance' ),
+		array(
+			'strong' => array(),
+			'code'   => array(),
+		)
+	) . '</p>';
+}
+
+/**
+ * Emails and PDF attachment field callback.
+ */
+function ayudawp_euw_field_guarantee_emails_callback() {
+
+	$emails = ayudawp_euw_guarantee_customer_emails();
+
+	if ( empty( $emails ) ) {
+		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no order emails to add the notice to.', 'eu-withdrawal-compliance' ) . '</p>';
+		return;
+	}
+
+	$selected = ayudawp_euw_guarantee_email_ids();
+
+	echo '<fieldset>';
+	echo '<legend class="screen-reader-text">' . esc_html__( 'Emails that carry the guarantee notice', 'eu-withdrawal-compliance' ) . '</legend>';
+
+	foreach ( $emails as $id => $title ) {
+		printf(
+			'<label style="display:block; margin-bottom:4px;"><input type="checkbox" name="ayudawp_euw_guarantee_email_ids[]" value="%1$s" %2$s> %3$s (<code>%1$s</code>)</label>',
+			esc_attr( $id ),
+			checked( in_array( $id, $selected, true ), true, false ),
+			esc_html( $title )
+		);
+	}
+
+	echo '</fieldset>';
+
+	echo '<p class="description">' . wp_kses(
+		__( '<strong>Recommended.</strong> The Commission guidelines ask for the notice in the order confirmation as well as on the site. Defaults to the on-hold and processing emails. Only customer emails are listed: the notice never goes to the shop.', 'eu-withdrawal-compliance' ),
+		array( 'strong' => array() )
+	) . '</p>';
+
+	?>
+	<p>
+		<label>
+			<input type="checkbox" name="ayudawp_euw_guarantee_pdf_attach" value="yes" <?php checked( 'yes', get_option( 'ayudawp_euw_guarantee_pdf_attach', 'yes' ) ); ?>>
+			<strong><?php esc_html_e( 'Attach the official PDF to those emails', 'eu-withdrawal-compliance' ); ?></strong>
+		</label>
+	</p>
+	<p class="description">
+		<?php
+		echo wp_kses(
+			__( '<strong>Recommended.</strong> Many mail clients block remote images by default, and then the notice in the email body is an empty frame. The attached PDF is the copy that always arrives, and it is the official file in the customer language, around 100 KB.', 'eu-withdrawal-compliance' ),
+			array( 'strong' => array() )
+		);
+		?>
+	</p>
+	<?php
+}
+
+/**
+ * Spanish three-year note field callback.
+ */
+function ayudawp_euw_field_guarantee_es_note_callback() {
+
+	$value = (string) get_option( 'ayudawp_euw_guarantee_es_note', 'auto' );
+
+	$options = array(
+		'auto' => __( 'Automatic — only when the shop base country is Spain', 'eu-withdrawal-compliance' ),
+		'yes'  => __( 'Always show it', 'eu-withdrawal-compliance' ),
+		'no'   => __( 'Never show it', 'eu-withdrawal-compliance' ),
+	);
+
+	echo '<select name="ayudawp_euw_guarantee_es_note" id="ayudawp_euw_guarantee_es_note">';
+
+	foreach ( $options as $key => $label ) {
+		printf(
+			'<option value="%1$s" %2$s>%3$s</option>',
+			esc_attr( $key ),
+			selected( $value, $key, false ),
+			esc_html( $label )
+		);
+	}
+
+	echo '</select>';
+
+	echo '<p class="description">' . wp_kses(
+		__( '<strong>Recommended: automatic.</strong> The notice says "minimum two years" because that is the EU floor, and it cannot be edited. In Spain the legal guarantee on new goods is three years from delivery (Art. 120.1 TRLGDCU), so a short line is printed next to the notice, never inside it. Second-hand goods may carry a shorter period, never under a year, which the notice already explains.', 'eu-withdrawal-compliance' ),
+		array( 'strong' => array() )
+	) . '</p>';
+
+	$anchor = (string) get_option( 'ayudawp_euw_guarantee_terms_anchor', '' );
+
+	?>
+	<p>
+		<label for="ayudawp_euw_guarantee_terms_anchor"><strong><?php esc_html_e( 'Anchor of the guarantee section in your terms', 'eu-withdrawal-compliance' ); ?></strong></label>
+		<br>
+		<input type="text" name="ayudawp_euw_guarantee_terms_anchor" id="ayudawp_euw_guarantee_terms_anchor" value="<?php echo esc_attr( $anchor ); ?>" class="regular-text" placeholder="legal-guarantee">
+	</p>
+	<p class="description">
+		<?php
+		echo wp_kses(
+			__( '<strong>Optional.</strong> The note links to your terms and conditions page. Write here the <code>id</code> of the heading that covers the legal guarantee there, without the <code>#</code>, and the link lands on that section instead of the top of the page.', 'eu-withdrawal-compliance' ),
+			array(
+				'strong' => array(),
+				'code'   => array(),
+			)
+		);
+		?>
+	</p>
+	<?php
+}
+
+/**
+ * Order-note field callback.
+ */
+function ayudawp_euw_field_guarantee_order_note_callback() {
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no orders to record the notice on.', 'eu-withdrawal-compliance' ) . '</p>';
+		return;
+	}
+
+	?>
+	<label>
+		<input type="checkbox" name="ayudawp_euw_guarantee_order_note" value="yes" <?php checked( 'yes', get_option( 'ayudawp_euw_guarantee_order_note', 'yes' ) ); ?>>
+		<?php esc_html_e( 'Add a private order note with the notice shown at the checkout', 'eu-withdrawal-compliance' ); ?>
+	</label>
+	<p class="description">
+		<?php
+		echo wp_kses(
+			__( '<strong>Recommended.</strong> Records the language and the display mode of the notice each buyer was shown, which is what lets you answer a consumer-protection inspection about an order placed months ago. One note per order, private, never shown to the customer.', 'eu-withdrawal-compliance' ),
+			array( 'strong' => array() )
+		);
+		?>
+	</p>
+	<?php
+}
+
+/**
+ * Fallback-language field callback.
+ */
+function ayudawp_euw_field_guarantee_fallback_callback() {
+
+	$value = (string) get_option( 'ayudawp_euw_guarantee_fallback_lang', 'en' );
+	$names = ayudawp_euw_guarantee_language_names();
+
+	echo '<select name="ayudawp_euw_guarantee_fallback_lang" id="ayudawp_euw_guarantee_fallback_lang">';
+
+	foreach ( $names as $code => $name ) {
+		printf(
+			'<option value="%1$s" %2$s>%3$s (%1$s)</option>',
+			esc_attr( $code ),
+			selected( $value, $code, false ),
+			esc_html( $name )
+		);
+	}
+
+	echo '</select>';
+
+	echo '<p class="description">' . esc_html__( 'The Commission publishes the notice in the 24 official EU languages. A shop in a language that is not one of them gets the official language of its own member state: Catalan, Basque and Galician are served the Spanish notice, Luxembourgish the French one. This setting covers everything else.', 'eu-withdrawal-compliance' ) . '</p>';
+}
+
+/**
+ * Media-library replacement field callback.
+ */
+function ayudawp_euw_field_guarantee_custom_files_callback() {
+
+	$languages = ayudawp_euw_guarantee_site_languages();
+	$names     = ayudawp_euw_guarantee_language_names();
+	$custom    = get_option( 'ayudawp_euw_guarantee_custom_files', array() );
+	$custom    = is_array( $custom ) ? $custom : array();
+
+	// A grid rather than a stack of paragraphs: the language names are of
+	// different widths, so free-flowing rows leave the buttons at a different
+	// distance on every line. Three columns keep language, button and state
+	// lined up however many languages the shop has.
+	echo '<fieldset class="ayudawp-euw-guarantee-files">';
+
+	foreach ( $languages as $lang ) {
+
+		$id       = isset( $custom[ $lang ] ) ? absint( $custom[ $lang ] ) : 0;
+		$filename = '';
+
+		if ( $id ) {
+			$file     = get_attached_file( $id );
+			$filename = $file ? basename( $file ) : '';
+		}
+
+		?>
+		<div class="ayudawp-euw-guarantee-file">
+			<span class="ayudawp-euw-guarantee-file__lang"><?php echo esc_html( isset( $names[ $lang ] ) ? $names[ $lang ] : $lang ); ?></span>
+			<input type="hidden" class="ayudawp-euw-guarantee-file__id" name="ayudawp_euw_guarantee_custom_files[<?php echo esc_attr( $lang ); ?>]" value="<?php echo esc_attr( (string) $id ); ?>">
+			<button type="button" class="button button-small ayudawp-euw-guarantee-file__choose">
+				<?php
+				printf(
+					/* translators: %s: language name, for example Español. */
+					esc_html__( 'Choose image for %s', 'eu-withdrawal-compliance' ),
+					esc_html( isset( $names[ $lang ] ) ? $names[ $lang ] : $lang )
+				);
+				?>
+			</button>
+			<span class="ayudawp-euw-guarantee-file__state">
+				<span class="ayudawp-euw-guarantee-file__name"><?php echo esc_html( '' !== $filename ? $filename : __( 'Bundled official file', 'eu-withdrawal-compliance' ) ); ?></span>
+				<button type="button" class="button-link ayudawp-euw-guarantee-file__clear" <?php echo $id ? '' : 'style="display:none"'; ?>><?php esc_html_e( 'Use the bundled file', 'eu-withdrawal-compliance' ); ?></button>
+			</span>
+		</div>
+		<?php
+	}
+
+	echo '</fieldset>';
+
+	echo '<p class="description">' . esc_html__( 'Optional. The plugin already ships the official file for every language above, so leave this alone unless you have a reason: serving the file from your own CDN, or a revision the Commission publishes before the plugin ships it. Whatever you choose is shown unedited, so it has to be the official notice in that language, in colour and complete.', 'eu-withdrawal-compliance' ) . '</p>';
 }
 
 /**

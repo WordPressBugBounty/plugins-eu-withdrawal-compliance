@@ -176,5 +176,80 @@ function ayudawp_euw_enqueue_admin( $hook ) { // phpcs:ignore Generic.CodeAnalys
 		array(),
 		AYUDAWP_EUW_VERSION
 	);
+
+	// The settings page is the only screen with a media picker: the one that
+	// swaps the bundled guarantee notice of a language for a file of your own.
+	if ( $is_settings_screen ) {
+
+		wp_enqueue_media();
+
+		wp_enqueue_script(
+			'ayudawp-euw-guarantee-admin',
+			AYUDAWP_EUW_URL . 'assets/js/guarantee-admin.js',
+			array( 'jquery' ),
+			AYUDAWP_EUW_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ayudawp-euw-guarantee-admin',
+			'ayudawpEuwGuarantee',
+			array(
+				'chooseTitle'  => __( 'Choose the guarantee notice image', 'eu-withdrawal-compliance' ),
+				'chooseButton' => __( 'Use this image', 'eu-withdrawal-compliance' ),
+				'bundled'      => __( 'Bundled official file', 'eu-withdrawal-compliance' ),
+			)
+		);
+	}
 }
 add_action( 'admin_enqueue_scripts', 'ayudawp_euw_enqueue_admin' );
+
+/**
+ * Enqueue the guarantee-notice stylesheet where the notice can appear.
+ *
+ * Two cases, both decided here at `wp_enqueue_scripts` time: the checkout page
+ * (the same page whether it renders the classic shortcode or the Checkout
+ * block, so one check covers both), and any singular content carrying the
+ * `[ayudawp_guarantee_notice]` shortcode, which is how the shop's own "Legal
+ * guarantee" page shows it.
+ *
+ * The block checkout resolves the notice later, inside `render_block`, which
+ * runs after this hook, so the stylesheet cannot wait for the markup to exist.
+ */
+function ayudawp_euw_enqueue_guarantee_assets() {
+
+	if ( ! function_exists( 'ayudawp_euw_guarantee_is_enabled' ) || ! ayudawp_euw_guarantee_is_enabled() ) {
+		return;
+	}
+
+	$needed = false;
+
+	if ( function_exists( 'is_checkout' ) && is_checkout()
+		&& ! ( function_exists( 'is_order_received_page' ) && is_order_received_page() )
+		&& 'none' !== ayudawp_euw_guarantee_display_mode()
+		&& ayudawp_euw_guarantee_cart_has_goods()
+	) {
+		$needed = true;
+	}
+
+	if ( ! $needed && is_singular() ) {
+
+		$post = get_post();
+
+		if ( $post && has_shortcode( $post->post_content, 'ayudawp_guarantee_notice' ) ) {
+			$needed = true;
+		}
+	}
+
+	if ( ! $needed ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'ayudawp-euw-guarantee',
+		AYUDAWP_EUW_URL . 'assets/css/guarantee.css',
+		array(),
+		AYUDAWP_EUW_VERSION
+	);
+}
+add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_guarantee_assets' );

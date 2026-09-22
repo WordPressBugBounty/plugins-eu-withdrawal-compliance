@@ -40,7 +40,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ayudawp_euw_get_page_id() {
 
-	$page_id = (int) get_option( 'ayudawp_euw_page_id', 0 );
+	return ayudawp_euw_translate_page_id( (int) get_option( 'ayudawp_euw_page_id', 0 ) );
+}
+
+/**
+ * Resolve any page ID forward to its translation in the visitor's language.
+ *
+ * The mechanism `ayudawp_euw_get_page_id()` has always used for the withdrawal
+ * page, split out so the pages added later (the "Legal guarantee" page of the
+ * harmonised notice) follow the visitor's language the same way instead of
+ * copying the two plugin integrations again.
+ *
+ * @param int $page_id Canonical page ID.
+ * @return int Resolved page ID, or 0 when none is given.
+ */
+function ayudawp_euw_translate_page_id( $page_id ) {
+
+	$page_id = absint( $page_id );
 
 	if ( ! $page_id ) {
 		return 0;

@@ -1,4 +1,4 @@
-/* EU Withdrawal Compliance — Annex I.B print trigger */
+/* EU Withdrawal and Legal Guarantee Compliance — Annex I.B print trigger */
 ( function () {
 	'use strict';
 

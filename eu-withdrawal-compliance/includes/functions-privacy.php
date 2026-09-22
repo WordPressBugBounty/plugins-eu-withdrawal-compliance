@@ -36,7 +36,7 @@ function ayudawp_euw_register_privacy_policy_content() {
 	$content .= '<p>' . esc_html__( 'Data is stored locally on this site and is never transmitted to third-party services. You can request access to or erasure of your withdrawal data through Tools → Export Personal Data and Tools → Erase Personal Data.', 'eu-withdrawal-compliance' ) . '</p>';
 
 	wp_add_privacy_policy_content(
-		__( 'EU Withdrawal Compliance', 'eu-withdrawal-compliance' ),
+		__( 'EU Withdrawal and Legal Guarantee Compliance', 'eu-withdrawal-compliance' ),
 		wp_kses_post( $content )
 	);
 }
@@ -51,7 +51,7 @@ add_action( 'admin_init', 'ayudawp_euw_register_privacy_policy_content' );
 function ayudawp_euw_register_exporter( $exporters ) {
 
 	$exporters['ayudawp-euw'] = array(
-		'exporter_friendly_name' => __( 'EU Withdrawal Compliance', 'eu-withdrawal-compliance' ),
+		'exporter_friendly_name' => __( 'EU Withdrawal and Legal Guarantee Compliance', 'eu-withdrawal-compliance' ),
 		'callback'               => 'ayudawp_euw_personal_data_exporter',
 	);
 
@@ -183,7 +183,7 @@ function ayudawp_euw_personal_data_exporter( $email_address, $page = 1 ) {
 function ayudawp_euw_register_eraser( $erasers ) {
 
 	$erasers['ayudawp-euw'] = array(
-		'eraser_friendly_name' => __( 'EU Withdrawal Compliance', 'eu-withdrawal-compliance' ),
+		'eraser_friendly_name' => __( 'EU Withdrawal and Legal Guarantee Compliance', 'eu-withdrawal-compliance' ),
 		'callback'             => 'ayudawp_euw_personal_data_eraser',
 	);
 

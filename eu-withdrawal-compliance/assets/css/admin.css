@@ -285,3 +285,59 @@ a.ayudawp-euw-status:hover {
 	flex: none;
 	color: #dba617;
 }
+
+/* Anchor of the guarantee-notice section: the announcement notice links straight
+   to it from another screen, and without this the heading lands under the admin
+   bar and the section looks like it starts one field lower than it does. */
+.ayudawp-euw-anchor {
+	display: block;
+	height: 0;
+	scroll-margin-top: 80px;
+}
+
+/* Per-language replacement of the bundled guarantee notice.
+   One row per language, three columns, so the buttons line up no matter how
+   long each language name is. On a narrow screen the rows stack on their own. */
+.ayudawp-euw-guarantee-files {
+	display: grid;
+	grid-template-columns: minmax(6rem, max-content) max-content 1fr;
+	gap: 8px 12px;
+	align-items: center;
+	max-width: 46rem;
+}
+
+.ayudawp-euw-guarantee-file {
+	display: contents;
+}
+
+.ayudawp-euw-guarantee-file__lang {
+	font-weight: 600;
+}
+
+.ayudawp-euw-guarantee-file__state {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 10px;
+	color: #50575e;
+}
+
+.ayudawp-euw-guarantee-file__name {
+	word-break: break-all;
+}
+
+@media screen and (max-width: 782px) {
+
+	.ayudawp-euw-guarantee-files {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
+
+	.ayudawp-euw-guarantee-file {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px 10px;
+		padding-bottom: 8px;
+	}
+}

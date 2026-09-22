@@ -20,7 +20,10 @@ function ayudawp_euw_register_cpt() {
 	$labels = array(
 		'name'                  => _x( 'Withdrawals', 'post type general name', 'eu-withdrawal-compliance' ),
 		'singular_name'         => _x( 'Withdrawal', 'post type singular name', 'eu-withdrawal-compliance' ),
-		'menu_name'             => _x( 'Withdrawals', 'admin menu', 'eu-withdrawal-compliance' ),
+		// El menu nombra el plugin entero, no solo su mitad de desistimiento: desde la
+		// 2.3.0 cuelga de aqui tambien el aviso de garantia legal. El resto de labels
+		// siguen hablando de solicitudes, que es lo que guarda este CPT.
+		'menu_name'             => _x( 'EU Compliance', 'admin menu', 'eu-withdrawal-compliance' ),
 		'name_admin_bar'        => _x( 'Withdrawal', 'add new on admin bar', 'eu-withdrawal-compliance' ),
 		'all_items'             => __( 'Withdrawals', 'eu-withdrawal-compliance' ),
 		'edit_item'             => __( 'Edit withdrawal', 'eu-withdrawal-compliance' ),
@@ -52,7 +55,7 @@ function ayudawp_euw_register_cpt() {
 		'has_archive'        => false,
 		'hierarchical'       => false,
 		'menu_position'      => 25,
-		'menu_icon'          => 'dashicons-undo',
+		'menu_icon'          => 'dashicons-media-document',
 		'supports'           => array( 'title' ),
 	);
 

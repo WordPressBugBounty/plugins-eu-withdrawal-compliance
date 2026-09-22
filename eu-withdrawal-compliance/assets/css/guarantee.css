@@ -1,0 +1,88 @@
+/**
+ * EU Withdrawal and Legal Guarantee Compliance — harmonised legal guarantee notice.
+ *
+ * The notice has to stay legible at the default display size, so the image is
+ * capped at a width where its small print still reads and never stretched. In
+ * a narrow column (the Storefront order review is around 279px) even that is
+ * too small, which is what the popover mode is for.
+ */
+
+.ayudawp-euw-guarantee {
+	margin: 1em 0;
+}
+
+.ayudawp-euw-guarantee__notice {
+	margin: 0;
+	max-width: 640px;
+}
+
+.ayudawp-euw-guarantee__notice img {
+	display: block;
+	width: 100%;
+	height: auto;
+	/* The official file is a 1654px-wide page; without this it would be blown up
+	   on wide screens and go blurry. */
+	max-width: 640px;
+}
+
+.ayudawp-euw-guarantee__notice figcaption,
+.ayudawp-euw-guarantee__note {
+	font-size: 0.875em;
+	line-height: 1.5;
+	margin: 0.5em 0 0;
+}
+
+.ayudawp-euw-guarantee__disclosure summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.ayudawp-euw-guarantee__disclosure[open] summary {
+	margin-bottom: 0.75em;
+}
+
+/* Popover mode.
+ *
+ * Without native popover support the `popover` attribute is ignored and the
+ * <div> renders as a plain block, so the notice is still shown in full and the
+ * shop keeps complying: the button is hidden instead, because it would do
+ * nothing. Both controls only appear where the popover actually works. */
+.ayudawp-euw-guarantee__open,
+.ayudawp-euw-guarantee__close {
+	display: none;
+}
+
+@supports selector(:popover-open) {
+
+	.ayudawp-euw-guarantee__open {
+		display: inline-block;
+		cursor: pointer;
+	}
+
+	.ayudawp-euw-guarantee__close {
+		display: block;
+		margin: 0 0 1em auto;
+		cursor: pointer;
+	}
+
+	.ayudawp-euw-guarantee__popover {
+		width: min(92vw, 820px);
+		max-height: 92vh;
+		overflow: auto;
+		padding: 1em;
+		border: 0;
+		border-radius: 4px;
+		background: #fff;
+		color: #2c3338;
+	}
+
+	.ayudawp-euw-guarantee__popover::backdrop {
+		background: rgba(0, 0, 0, 0.6);
+	}
+
+	/* Inside the popover there is room for the notice at its full size. */
+	.ayudawp-euw-guarantee__popover .ayudawp-euw-guarantee__notice,
+	.ayudawp-euw-guarantee__popover .ayudawp-euw-guarantee__notice img {
+		max-width: none;
+	}
+}

@@ -34,6 +34,18 @@ $ayudawp_euw_options = array(
 	'ayudawp_euw_consent_b_enabled',
 	'ayudawp_euw_consent_b_text',
 	'ayudawp_euw_consent_b_required',
+	// Harmonised legal guarantee notice.
+	'ayudawp_euw_guarantee_enabled',
+	'ayudawp_euw_guarantee_display',
+	'ayudawp_euw_guarantee_page_id',
+	'ayudawp_euw_guarantee_email_ids',
+	'ayudawp_euw_guarantee_pdf_attach',
+	'ayudawp_euw_guarantee_es_note',
+	'ayudawp_euw_guarantee_terms_anchor',
+	'ayudawp_euw_guarantee_order_note',
+	'ayudawp_euw_guarantee_fallback_lang',
+	'ayudawp_euw_guarantee_custom_files',
+	'ayudawp_euw_guarantee_announce',
 	// Annex I.B model form.
 	'ayudawp_euw_annex_b_enabled',
 	'ayudawp_euw_trader_address',

@@ -1,0 +1,60 @@
+# Harmonised EU notice on the legal guarantee of conformity
+# Implementing Regulation (EU) 2025/1960. (c) European Union, 2025.
+# Reused under CC BY 4.0 (Commission Decision 2011/833/EU). Source:
+# https://commission.europa.eu/publications/practical-guidelines-and-high-resolution-vector-files-eu-notice-and-label-product-guarantees_en
+#
+# Every PNG and PDF here is the official colour file, byte for byte, renamed only.
+# The single exception is notice-en.png: the official PNG package ships no English
+# version, so it is rendered from the official English PDF at the same 1654x2339
+# the other PNG files use. Nothing is edited, cropped or added. Rebuild it with
+# recursos/herramientas/preparar-avisos-garantia.sh.
+#
+# md5  file  (source file inside the official package)
+e6304c2927c908cfc2d9320cd20a2a16  notice-bg.png  (Legal guarantee_notice_BG.png)
+7f984a591bfe4551aceb9e51cc4b7a42  notice-cs.png  (Legal guarantee_notice_CS.png)
+f9590fb3955f3912ef67d9cf5f7446d9  notice-da.png  (Legal guarantee_notice_DA.png)
+24acbe0a659a16444a36c565a59c84d2  notice-de.png  (Legal guarantee_notice_DE.png)
+816b50f0f6c5d4dd3217caf9ef9cfbba  notice-el.png  (Legal guarantee_notice_EL.png)
+998f33d4371a40e49bfa714d60134339  notice-en.png  (rendered from Legal guarantee_notice ENN.pdf)
+4f0270c70cec9bf7692666bd7341b668  notice-es.png  (Legal guarantee_notice_ES.png)
+dcc42ff25f692cb5f336a1990149ee6d  notice-et.png  (Legal guarantee_notice_ET.png)
+ad4b189de38e71577ac9136dbb20453c  notice-fi.png  (Legal guarantee_notice_FI.png)
+6acdfe8181e45f84413927985a15635a  notice-fr.png  (Legal guarantee_notice_FR.png)
+52b18ea97165e5ea91d7a7fd7a8f9f0a  notice-ga.png  (Legal guarantee_notice_GA.png)
+a82886b8820d4289de8dd819b9823fef  notice-hr.png  (Legal guarantee_notice_HR.png)
+0ba800a4d54ca89a39783809e05c8869  notice-hu.png  (Legal guarantee_notice_HU.png)
+6f7d72e5c382615a046425ff7c464bb0  notice-it.png  (Legal guarantee_notice_IT.png)
+26b58c3112cf608231d33e8f0635297d  notice-lt.png  (Legal guarantee_notice_LT.png)
+b95d9cfd019b4e6b1fbde7ccd7e56555  notice-lv.png  (Legal guarantee_notice_LV.png)
+ce46328a5f9224806858d956abb78945  notice-mt.png  (Legal guarantee_notice_MT.png)
+99771a2bf0623baa5c77e9747f039b9c  notice-nl.png  (Legal guarantee_notice_NL.png)
+9c10e13ccfe92adb438146e09e99a659  notice-pl.png  (Legal guarantee_notice_PL.png)
+9557adbd18e627d37efb41b8b04abaf3  notice-pt.png  (Legal guarantee_notice_PT.png)
+a24d84534c238406f60c8846feefdeef  notice-ro.png  (Legal guarantee_notice_RO.png)
+5a22849100bc167f2b2b9860f997ccb0  notice-sk.png  (Legal guarantee_notice_SK.png)
+04b50a587944af0003d28d066398960b  notice-sl.png  (Legal guarantee_notice_SL.png)
+5936e3ec68b9be9e9748d0e778bd329b  notice-sv.png  (Legal guarantee_notice_SV.png)
+ef15c0dfccdb5cc7cb92f635e54ae093  notice-bg.pdf  (Legal guarantee_notice BGN.pdf)
+ce9581c924b7a83f2510c8887d59497b  notice-cs.pdf  (Legal guarantee_notice CSN.pdf)
+750b0d035f0d23eea0ca46edec2e4147  notice-da.pdf  (Legal guarantee_notice DAN.pdf)
+e918368d9204e298beceb60cf13acf85  notice-de.pdf  (Legal guarantee_notice DEN.pdf)
+66d2f566647781c38c5bd896e16fd965  notice-el.pdf  (Legal guarantee_notice ELN.pdf)
+7e18f34608cdfe6fc3ff8b3a3c87263c  notice-en.pdf  (Legal guarantee_notice ENN.pdf)
+da8485877893590882b9f4e0c6bc4bb0  notice-es.pdf  (Legal guarantee_notice ESN.pdf)
+6fea74f0abfdbb4688830e3ae4a12c41  notice-et.pdf  (Legal guarantee_notice ETN.pdf)
+0abad36c1530b92ffe154392e3b9e346  notice-fi.pdf  (Legal guarantee_notice FIN.pdf)
+0300ed71826c6821706b0bbd6c1d574e  notice-fr.pdf  (Legal guarantee_notice FRN.pdf)
+9d78abc5591272f40429e9ea0c911864  notice-ga.pdf  (Legal guarantee_notice GAN.pdf)
+955ee38cc87e5a54e68b922714b27ea3  notice-hr.pdf  (Legal guarantee_notice HRN.pdf)
+c7eaf36e1aad0881d7affa9119bfe85e  notice-hu.pdf  (Legal guarantee_notice HUN.pdf)
+e140269d5ce0ef30a0d0d36161543554  notice-it.pdf  (Legal guarantee_notice ITN.pdf)
+4480d635b06c70112a1032db685b3efc  notice-lt.pdf  (Legal guarantee_notice LTN.pdf)
+dbbaf34e04d9b23569d54190f079c6bc  notice-lv.pdf  (Legal guarantee_notice LVN.pdf)
+db057e308fe50f095f3eefac8ba1153a  notice-mt.pdf  (Legal guarantee_notice MTN.pdf)
+19c06c13b3c0870b70a2493ebd50db33  notice-nl.pdf  (Legal guarantee_notice NLN.pdf)
+9ad49701c7b8b8b93d3be11ecc7ac277  notice-pl.pdf  (Legal guarantee_notice PLN.pdf)
+7ad3f14d4a466bce15892a7ead5b5838  notice-pt.pdf  (Legal guarantee_notice PTN.pdf)
+258a81223827d69bdfc8607663265893  notice-ro.pdf  (Legal guarantee_notice RON.pdf)
+103ac1de9c4c478682a292ab1d880663  notice-sk.pdf  (Legal guarantee_notice SKN.pdf)
+97996927bb9350535c4aaafd5c923382  notice-sl.pdf  (Legal guarantee_notice SLN.pdf)
+e5929e6d0006a32bea1d1ff0e0d0684b  notice-sv.pdf  (Legal guarantee_notice SVN.pdf)
