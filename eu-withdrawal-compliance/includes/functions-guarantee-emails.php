@@ -126,15 +126,18 @@ function ayudawp_euw_guarantee_render_email( $order, $sent_to_admin, $plain_text
 
 	if ( $plain_text ) {
 
+		// wp_kses() and not esc_html() for the text, so that an apostrophe survives
+		// WooCommerce's plain-text clean-up: the explanation is in
+		// ayudawp_euw_inject_email_notice(), functions-emails-wc.php.
 		echo "\n\n----------\n";
-		echo esc_html( $heading ) . "\n";
-		echo esc_html__( 'Official EU notice:', 'eu-withdrawal-compliance' ) . ' ' . esc_url( $image['url'] ) . "\n";
-		echo esc_html( $link_label ) . ': ' . esc_url( $eu_url ) . "\n";
+		echo wp_kses( $heading, array() ) . "\n";
+		echo wp_kses( __( 'Official EU notice:', 'eu-withdrawal-compliance' ), array() ) . ' ' . esc_url( $image['url'] ) . "\n";
+		echo wp_kses( $link_label, array() ) . ': ' . esc_url( $eu_url ) . "\n";
 
 		$note = ayudawp_euw_guarantee_note( false );
 
 		if ( '' !== $note ) {
-			echo esc_html( $note ) . "\n";
+			echo wp_kses( $note, array() ) . "\n";
 		}
 
 		return;

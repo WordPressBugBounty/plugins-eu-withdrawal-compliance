@@ -272,17 +272,21 @@ a.ayudawp-euw-status:hover {
 /* Warning next to the withdrawal page selector when the page is missing,
    unpublished or no longer renders the form. */
 
+/* The icon hangs in the padding instead of sitting in a flex row: as a flex
+   container the paragraph laid out every run of text and every link inside it
+   as a column of its own, which broke any warning carrying a link in three. */
 .ayudawp-euw-page-warning {
-	display: flex;
-	align-items: flex-start;
-	gap: 4px;
+	position: relative;
 	max-width: 42rem;
 	margin: 6px 0 0;
+	padding-inline-start: 24px;
 	color: #8a6100;
 }
 
 .ayudawp-euw-page-warning .dashicons {
-	flex: none;
+	position: absolute;
+	inset-inline-start: 0;
+	top: 0;
 	color: #dba617;
 }
 

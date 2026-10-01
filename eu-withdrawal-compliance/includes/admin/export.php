@@ -212,7 +212,10 @@ function ayudawp_euw_stream_csv( $posts, $include_pii = false ) {
 		$columns[] = __( 'User agent', 'eu-withdrawal-compliance' );
 	}
 
-	fputcsv( $output, array_map( 'ayudawp_euw_csv_escape', $columns ) );
+	// Delimiter, enclosure and escape passed explicitly: PHP 8.4 deprecates
+	// relying on the default escape, and the notice lands inside the file.
+	// An empty escape is RFC 4180, the format spreadsheets read.
+	fputcsv( $output, array_map( 'ayudawp_euw_csv_escape', $columns ), ',', '"', '' );
 
 	foreach ( $posts as $post ) {
 
@@ -261,7 +264,7 @@ function ayudawp_euw_stream_csv( $posts, $include_pii = false ) {
 			$row[] = get_post_meta( $id, '_ayudawp_euw_user_agent', true );
 		}
 
-		fputcsv( $output, array_map( 'ayudawp_euw_csv_escape', $row ) );
+		fputcsv( $output, array_map( 'ayudawp_euw_csv_escape', $row ), ',', '"', '' );
 	}
 
 	fclose( $output ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose

@@ -6,11 +6,14 @@
  * Directive (EU) 2024/825) makes mandatory, with the design fixed by
  * Implementing Regulation (EU) 2025/1960 and applicable from 27 September 2026.
  * Traders selling goods to consumers in the EU have to display the official
- * notice in colour, in full, unedited, legible at default display size, in a
- * prominent place and with a clickable link to the same destination as its QR
- * code. It does not apply to B2B sales, nor to digital content or services,
- * which is why every entry point here is gated by "the cart or the order holds
- * at least one non-virtual product".
+ * notice unedited and in colour, which is what the regulation fixes, and in a
+ * prominent place, which comes from the directive. Showing it in full, legible
+ * at default display size and with a clickable link to the same destination as
+ * its QR code is what the Commission's practical guidelines of 1 April 2026 ask
+ * for (section 2.3, "Digital display"): they are not binding, and this module
+ * follows them. It does not apply to B2B sales, nor to digital content or
+ * services, which is why every entry point here is gated by "the cart or the
+ * order holds at least one non-virtual product".
  *
  * This file is the core: language resolution, where each official file lives,
  * the markup of the three display modes and the Spanish three-year note. The
@@ -175,7 +178,8 @@ function ayudawp_euw_guarantee_lang( $locale = '' ) {
  * Decoded from the official QR codes: every language points at the guarantees
  * page of Your Europe in that language. The notice also prints the address in
  * text ("europa.eu/youreurope/garantías" in Spanish), which redirects to the
- * same page, and the regulation asks for a clickable link to that destination.
+ * same page. The Commission's practical guidelines (section 2.3) ask for a
+ * clickable link to that destination; the regulation says nothing about links.
  *
  * @param string $lang Two-letter language code.
  * @return string
@@ -460,7 +464,8 @@ function ayudawp_euw_guarantee_allowed_html() {
  * The image links to its own file because at phone width the notice renders
  * around 330px wide, where the small print stops being readable; opening the
  * file is how the consumer enlarges it. The caption carries the clickable link
- * to the same destination as the QR code, which the regulation requires.
+ * to the same destination as the QR code, which the Commission's practical
+ * guidelines ask for (section 2.3), not the regulation.
  *
  * @param string $lang Two-letter language code.
  * @return string Raw HTML, or an empty string when the file is missing.
@@ -644,6 +649,52 @@ function ayudawp_euw_guarantee_order_has_goods( $order ) {
 }
 
 /**
+ * Whether the catalogue holds at least one published physical product.
+ *
+ * Answers "does this shop have anything the notice applies to" for the admin
+ * screens, where there is no cart or order to look at. A shop of courses,
+ * downloads or services has nothing to switch on, and being asked to on every
+ * screen of the dashboard is noise.
+ *
+ * It only silences things: the settings stay where they are, because a
+ * catalogue with no goods today may get a T-shirt tomorrow. The answer is kept
+ * for twelve hours so the dashboard does not run the query on each load, which
+ * is as long as a new product can take to be noticed here. Without WooCommerce
+ * the catalogue cannot be read, so it answers yes and nothing is hidden.
+ *
+ * @return bool
+ */
+function ayudawp_euw_guarantee_shop_sells_goods() {
+
+	if ( ! function_exists( 'wc_get_products' ) ) {
+		return true;
+	}
+
+	$cached = get_transient( 'ayudawp_euw_shop_sells_goods' );
+
+	if ( 'yes' === $cached || 'no' === $cached ) {
+		return 'yes' === $cached;
+	}
+
+	// A variable product counts through its parent, which is never virtual, so a
+	// shop whose only goods are variations is still seen as selling goods.
+	$goods = wc_get_products(
+		array(
+			'status'  => 'publish',
+			'virtual' => false,
+			'limit'   => 1,
+			'return'  => 'ids',
+		)
+	);
+
+	$sells = ! empty( $goods );
+
+	set_transient( 'ayudawp_euw_shop_sells_goods', $sells ? 'yes' : 'no', 12 * HOUR_IN_SECONDS );
+
+	return $sells;
+}
+
+/**
  * Render the `[ayudawp_guarantee_notice]` shortcode.
  *
  * For the shop's own "Legal guarantee" page, where the notice is shown in full
@@ -801,6 +852,13 @@ function ayudawp_euw_guarantee_announce_notice() {
 		return;
 	}
 
+	// The notice is about goods, so a shop with none to sell is not asked to
+	// switch it on. The announcement is kept, not cleared: it comes back by
+	// itself if a physical product is ever published.
+	if ( ! ayudawp_euw_guarantee_shop_sells_goods() ) {
+		return;
+	}
+
 	$settings_url = ayudawp_euw_guarantee_settings_url();
 
 	// The anchor is appended after the nonce so it stays at the end of the URL,
@@ -810,10 +868,13 @@ function ayudawp_euw_guarantee_announce_notice() {
 		'ayudawp_euw_guarantee_action'
 	) . '#ayudawp-euw-guarantee';
 
+	// Built on the screen the notice is on, which is where dismissing it leaves
+	// the user (see the handler below). No URL given: add_query_arg() works on the
+	// address of this request, and esc_url() is applied where it is printed.
 	$dismiss_url = wp_nonce_url(
-		add_query_arg( 'ayudawp_euw_guarantee_action', 'dismiss', ayudawp_euw_get_settings_url() ),
+		add_query_arg( 'ayudawp_euw_guarantee_action', 'dismiss' ),
 		'ayudawp_euw_guarantee_action'
-	) . '#ayudawp-euw-guarantee';
+	);
 
 	?>
 	<div class="notice notice-info">
@@ -845,8 +906,9 @@ add_action( 'admin_notices', 'ayudawp_euw_guarantee_announce_notice' );
  * Handle the two buttons of the announcement notice.
  *
  * Both actions write an option, so both are gated by the capability that owns
- * the settings of this plugin and by a nonce, and both land back on the
- * settings page where the result is visible.
+ * the settings of this plugin and by a nonce. Switching the notice on lands on
+ * the settings page, where the result is visible. Dismissing it has nothing to
+ * show there, so it leaves the user on the screen they were on.
  */
 function ayudawp_euw_guarantee_handle_announce_action() {
 
@@ -862,13 +924,23 @@ function ayudawp_euw_guarantee_handle_announce_action() {
 
 	$action = sanitize_key( wp_unslash( $_GET['ayudawp_euw_guarantee_action'] ) );
 
-	if ( 'enable' === $action ) {
-		update_option( 'ayudawp_euw_guarantee_enabled', 'yes' );
-	}
-
 	update_option( 'ayudawp_euw_guarantee_announce', 'no' );
 
-	wp_safe_redirect( ayudawp_euw_guarantee_settings_url() );
+	if ( 'enable' === $action ) {
+		update_option( 'ayudawp_euw_guarantee_enabled', 'yes' );
+
+		wp_safe_redirect( ayudawp_euw_guarantee_settings_url() );
+		exit;
+	}
+
+	// The same address without the arguments of this action, nor the one-off ones
+	// WordPress adds after saving, so no "settings saved" comes back with it. It
+	// is read from the request being handled, not from the Referer header.
+	$removable   = wp_removable_query_args();
+	$removable[] = 'ayudawp_euw_guarantee_action';
+	$removable[] = '_wpnonce';
+
+	wp_safe_redirect( remove_query_arg( $removable ) );
 	exit;
 }
 add_action( 'admin_init', 'ayudawp_euw_guarantee_handle_announce_action' );

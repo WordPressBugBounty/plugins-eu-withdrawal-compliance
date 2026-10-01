@@ -601,22 +601,69 @@ function ayudawp_euw_is_product_excluded( $product_id ) {
 }
 
 /**
+ * Whether the Article 16 exclusions decide what an order offers.
+ *
+ * Reads the "Orders with excluded products" setting, on by default. With it on,
+ * an order that only holds excluded products shows neither the withdrawal button
+ * nor the notice in its emails, and an order that mixes both names the excluded
+ * ones in that notice. The public form is not affected: it keeps accepting and
+ * flagging a request for any order.
+ *
+ * @return bool
+ */
+function ayudawp_euw_exclusions_apply_to_orders() {
+
+	return 'yes' === get_option( 'ayudawp_euw_exclusions_in_orders', 'yes' );
+}
+
+/**
+ * Whether one line of an order is a product excluded from the right of withdrawal.
+ *
+ * A line counts as excluded when its product is, or when its variation is, since
+ * the status can be set on either. Anything that is not an object with
+ * `get_product_id()` is not an order item, and is not excluded.
+ *
+ * Shared by the list of excluded items stored on a request and by the order-level
+ * checks below, so every one of them reads a line the same way.
+ *
+ * @param mixed $item WC_Order_Item_Product, or anything else.
+ * @return bool
+ */
+function ayudawp_euw_is_order_item_excluded( $item ) {
+
+	if ( ! is_object( $item ) || ! method_exists( $item, 'get_product_id' ) ) {
+		return false;
+	}
+
+	$product_id   = (int) $item->get_product_id();
+	$variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+
+	return ayudawp_euw_is_product_excluded( $product_id )
+		|| ( $variation_id && ayudawp_euw_is_product_excluded( $variation_id ) );
+}
+
+/**
  * Build the list of excluded items contained in a WooCommerce order.
  *
  * Returns an array of associative arrays with `product_id`, `name` and
  * `quantity` so the admin notification and the CPT detail screen can show
  * them without re-loading the order.
  *
- * @param int $wc_order_id WC order ID.
+ * Takes the order itself as well as its ID, for the callers that already hold
+ * the object and would only be loading it again.
+ *
+ * @param int|WC_Order $wc_order_id WC order ID, or the order itself.
  * @return array<int, array<string, mixed>>
  */
 function ayudawp_euw_get_excluded_items_in_order( $wc_order_id ) {
 
-	if ( ! function_exists( 'wc_get_order' ) ) {
+	if ( is_object( $wc_order_id ) && method_exists( $wc_order_id, 'get_items' ) ) {
+		$order = $wc_order_id;
+	} elseif ( function_exists( 'wc_get_order' ) ) {
+		$order = wc_get_order( absint( $wc_order_id ) );
+	} else {
 		return array();
 	}
-
-	$order = wc_get_order( absint( $wc_order_id ) );
 
 	if ( ! $order ) {
 		return array();
@@ -626,28 +673,95 @@ function ayudawp_euw_get_excluded_items_in_order( $wc_order_id ) {
 
 	foreach ( $order->get_items() as $item ) {
 
-		if ( ! is_object( $item ) || ! method_exists( $item, 'get_product_id' ) ) {
-			continue;
-		}
-
-		$product_id   = (int) $item->get_product_id();
-		$variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
-
-		$is_excluded = ayudawp_euw_is_product_excluded( $product_id )
-			|| ( $variation_id && ayudawp_euw_is_product_excluded( $variation_id ) );
-
-		if ( ! $is_excluded ) {
+		if ( ! ayudawp_euw_is_order_item_excluded( $item ) ) {
 			continue;
 		}
 
 		$excluded[] = array(
-			'product_id' => $product_id,
+			'product_id' => (int) $item->get_product_id(),
 			'name'       => $item->get_name(),
 			'quantity'   => method_exists( $item, 'get_quantity' ) ? (int) $item->get_quantity() : 1,
 		);
 	}
 
 	return $excluded;
+}
+
+/**
+ * Whether an order holds nothing but products excluded from the right of withdrawal.
+ *
+ * True only when the order has at least one line and every line is excluded. It
+ * stops at the first line that is not, so the common case, an order of regular
+ * products, costs a single product lookup, which matters on the My Account
+ * orders list where this runs once per row. A line with no product, or with a
+ * product that has since been deleted, counts as not excluded: in doubt the
+ * withdrawal is offered.
+ *
+ * @param object $order WC_Order instance.
+ * @return bool
+ */
+function ayudawp_euw_order_is_fully_excluded( $order ) {
+
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+		return false;
+	}
+
+	$items = $order->get_items();
+
+	if ( empty( $items ) ) {
+		return false;
+	}
+
+	foreach ( $items as $item ) {
+		if ( ! ayudawp_euw_is_order_item_excluded( $item ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Names of the excluded products in an order that mixes excluded and regular ones.
+ *
+ * Used by the email notice to say which items the right of withdrawal does not
+ * apply to. Empty when the "Orders with excluded products" setting is off, when
+ * nothing in the order is excluded and when everything is. A fully excluded
+ * order returns nothing on purpose: if a filter brought the notice back on it,
+ * a line saying the right applies to none of its items would contradict the
+ * notice it sits in.
+ *
+ * @param object $order WC_Order instance.
+ * @return array<int, string> Unique, non-empty product names.
+ */
+function ayudawp_euw_get_mixed_order_excluded_names( $order ) {
+
+	if ( ! ayudawp_euw_exclusions_apply_to_orders()
+		|| ! is_object( $order )
+		|| ! method_exists( $order, 'get_items' )
+	) {
+		return array();
+	}
+
+	$excluded = ayudawp_euw_get_excluded_items_in_order( $order );
+
+	// Mixed: at least one excluded line, and fewer of them than lines in total.
+	if ( empty( $excluded ) || count( $excluded ) >= count( $order->get_items() ) ) {
+		return array();
+	}
+
+	$names = array();
+
+	foreach ( $excluded as $item ) {
+
+		$name = trim( wp_strip_all_tags( (string) $item['name'] ) );
+
+		if ( '' !== $name ) {
+			$names[ $name ] = $name;
+		}
+	}
+
+	return array_values( $names );
 }
 
 

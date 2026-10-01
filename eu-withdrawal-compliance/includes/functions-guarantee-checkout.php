@@ -3,7 +3,7 @@
  * The harmonised guarantee notice at the WooCommerce checkout.
  *
  * Both checkouts land the notice in the same place, right above the button
- * that places the order, which is the "prominent place" the regulation asks
+ * that places the order, which is the "prominent place" the directive asks
  * for at the moment the consumer commits.
  *
  * Classic checkout uses `woocommerce_review_order_before_submit`. WooCommerce

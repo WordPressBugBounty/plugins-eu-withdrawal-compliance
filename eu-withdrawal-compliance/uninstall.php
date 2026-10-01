@@ -23,6 +23,7 @@ $ayudawp_euw_options = array(
 	// Eligibility and deadline.
 	'ayudawp_euw_allowed_statuses',
 	'ayudawp_euw_accept_unmatched',
+	'ayudawp_euw_exclusions_in_orders',
 	'ayudawp_euw_deadline_basis',
 	'ayudawp_euw_deadline_mode',
 	'ayudawp_euw_grace_days',
@@ -75,6 +76,11 @@ $ayudawp_euw_options = array(
 foreach ( $ayudawp_euw_options as $ayudawp_euw_option ) {
 	delete_option( $ayudawp_euw_option );
 }
+
+// The cached answer to "does this catalogue hold physical products". The other
+// transients of the plugin are the tokens of a submission in progress, minutes
+// long and named after the token, so they are left to expire.
+delete_transient( 'ayudawp_euw_shop_sells_goods' );
 
 // Remove the custom capabilities the plugin granted to roles: they live in the
 // wp_user_roles option, so they would otherwise outlive the plugin. On a

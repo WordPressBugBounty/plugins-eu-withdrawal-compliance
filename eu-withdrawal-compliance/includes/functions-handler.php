@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ayudawp_euw_collect_form_data() {
 
-	// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce is verified by the caller before this runs.
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce verified by the only caller, ayudawp_euw_handle_review(), in includes/functions-handler.php:172, before this runs.
 	$data = array(
 		'name'     => isset( $_POST['ayudawp_euw_name'] ) ? sanitize_text_field( wp_unslash( $_POST['ayudawp_euw_name'] ) ) : '',
 		'email'    => isset( $_POST['ayudawp_euw_email'] ) ? sanitize_email( wp_unslash( $_POST['ayudawp_euw_email'] ) ) : '',
@@ -103,6 +103,25 @@ function ayudawp_euw_validate_submission( $data ) {
 }
 
 /**
+ * Whether the public form posts to admin-post.php instead of to its own page.
+ *
+ * Off by default. A way back for the shop where something in front of the
+ * site refuses a POST to a public page: returning true from the filter makes
+ * both forms post to admin-post.php again, as they did up to 2.3.0.
+ *
+ * @return bool
+ */
+function ayudawp_euw_form_uses_admin_post() {
+
+	/**
+	 * Filter whether the withdrawal form posts to admin-post.php.
+	 *
+	 * @param bool $via_admin_post Default false: the form posts to its own page.
+	 */
+	return (bool) apply_filters( 'ayudawp_euw_form_via_admin_post', false );
+}
+
+/**
  * Step 1: validate the declaration and show the confirmation screen.
  *
  * The request is NOT registered here. Article 11a(3) of Directive 2011/83/EU
@@ -113,12 +132,37 @@ function ayudawp_euw_validate_submission( $data ) {
  * data server-side (not in the URL or in editable hidden fields) guarantees
  * that what is registered on confirmation is exactly what was validated here.
  *
- * Hooked to admin-post.php for both logged-in and guest users.
+ * Hooked to wp_loaded, because the form posts to the page that holds it, and
+ * to admin-post.php for pages cached with the old form and for shops that
+ * switch the old address back on. Logged-in and guest users alike.
+ *
+ * wp_loaded is where WooCommerce handles its own front-end forms: the user is
+ * already authenticated and the main query has not run, so nothing hooked to
+ * template_redirect can answer the request first and drop the POST body with a
+ * redirect.
  */
 function ayudawp_euw_handle_review() {
 
+	// wp-admin fires wp_loaded too, and there admin-post.php dispatches the action
+	// itself a moment later: leave that request to it.
+	$on_page = doing_action( 'wp_loaded' );
+
+	if ( $on_page && is_admin() ) {
+		return;
+	}
+
 	// 1. Verify nonce.
 	if ( ! isset( $_POST['ayudawp_euw_nonce'] ) ) {
+
+		// Every front-end request reaches this point, and one that does not carry
+		// the nonce field of this form is simply not ours. Whether the nonce is
+		// valid is decided below, on purpose: stepping aside for an invalid one
+		// would turn a nonce that expired on a cached page into a form that
+		// reloads and says nothing.
+		if ( $on_page ) {
+			return;
+		}
+
 		ayudawp_euw_redirect_with_error( 'nonce' );
 		exit;
 	}
@@ -151,6 +195,7 @@ function ayudawp_euw_handle_review() {
 	wp_safe_redirect( $url . '#ayudawp-euw-form' );
 	exit;
 }
+add_action( 'wp_loaded', 'ayudawp_euw_handle_review', 20 );
 add_action( 'admin_post_ayudawp_euw_review', 'ayudawp_euw_handle_review' );
 add_action( 'admin_post_nopriv_ayudawp_euw_review', 'ayudawp_euw_handle_review' );
 
@@ -162,12 +207,24 @@ add_action( 'admin_post_nopriv_ayudawp_euw_review', 'ayudawp_euw_handle_review' 
  * (the order could have changed status during the confirmation window),
  * registers the request and sends the durable-medium acknowledgement.
  *
- * Hooked to admin-post.php for both logged-in and guest users.
+ * Hooked to wp_loaded and to admin-post.php, like ayudawp_euw_handle_review().
  */
 function ayudawp_euw_handle_confirm() {
 
+	// Same two steps aside as in ayudawp_euw_handle_review().
+	$on_page = doing_action( 'wp_loaded' );
+
+	if ( $on_page && is_admin() ) {
+		return;
+	}
+
 	// 1. Verify the confirmation nonce.
 	if ( ! isset( $_POST['ayudawp_euw_confirm_nonce'] ) ) {
+
+		if ( $on_page ) {
+			return;
+		}
+
 		ayudawp_euw_redirect_with_error( 'nonce' );
 		exit;
 	}
@@ -199,17 +256,27 @@ function ayudawp_euw_handle_confirm() {
 	// 3. Re-validate: the order may have changed status during the window.
 	$wc_validation = ayudawp_euw_validate_submission( $data );
 
-	// 4. Store the withdrawal request as a CPT entry.
-	$post_id = wp_insert_post(
-		array(
-			'post_type'    => 'ayudawp_withdrawal',
-			'post_status'  => 'publish',
-			'post_title'   => sprintf(
+	// 4. Store the withdrawal request as a CPT entry. The title is read by the
+	// shop in its log, so it is written in the language the shop is run in and not
+	// in that of the page the customer happened to be on. The same goes for the
+	// order note and the notification further down; the acknowledgement stays in
+	// the language of the customer.
+	$post_title = ayudawp_euw_in_shop_locale(
+		static function () use ( $data ) {
+			return sprintf(
 				/* translators: 1: order number, 2: customer name. */
 				__( 'Order %1$s — %2$s', 'eu-withdrawal-compliance' ),
 				$data['order'],
 				$data['name']
-			),
+			);
+		}
+	);
+
+	$post_id = wp_insert_post(
+		array(
+			'post_type'    => 'ayudawp_withdrawal',
+			'post_status'  => 'publish',
+			'post_title'   => $post_title,
 			'post_content' => $data['details'],
 		),
 		true
@@ -284,7 +351,12 @@ function ayudawp_euw_handle_confirm() {
 
 	if ( $wc_validation['order_id'] ) {
 		update_post_meta( $post_id, '_ayudawp_euw_wc_order_id', $wc_validation['order_id'] );
-		ayudawp_euw_add_wc_order_note( $wc_validation['order_id'], $post_id, $data['scope'], $data['details'] );
+
+		ayudawp_euw_in_shop_locale(
+			static function () use ( $wc_validation, $post_id, $data ) {
+				ayudawp_euw_add_wc_order_note( $wc_validation['order_id'], $post_id, $data['scope'], $data['details'] );
+			}
+		);
 
 		// Flag any items in the order that fall under Article 16 exceptions
 		// so the admin reviews the request manually. Never auto-rejected.
@@ -317,7 +389,11 @@ function ayudawp_euw_handle_confirm() {
 		update_post_meta( $post_id, '_ayudawp_euw_receipt_sent_at', current_time( 'mysql', true ) );
 	}
 
-	ayudawp_euw_send_admin_email( $post_id, $data['name'], $data['email'], $data['order'], $data['scope'], $data['details'], $excluded_items, $deadline_ts );
+	ayudawp_euw_in_shop_locale(
+		static function () use ( $post_id, $data, $excluded_items, $deadline_ts ) {
+			ayudawp_euw_send_admin_email( $post_id, $data['name'], $data['email'], $data['order'], $data['scope'], $data['details'], $excluded_items, $deadline_ts );
+		}
+	);
 
 	/**
 	 * Fires after a withdrawal request has been processed.
@@ -340,6 +416,7 @@ function ayudawp_euw_handle_confirm() {
 	// 7. Redirect back to the form page with success flag.
 	ayudawp_euw_redirect_with_success();
 }
+add_action( 'wp_loaded', 'ayudawp_euw_handle_confirm', 20 );
 add_action( 'admin_post_ayudawp_euw_confirm', 'ayudawp_euw_handle_confirm' );
 add_action( 'admin_post_nopriv_ayudawp_euw_confirm', 'ayudawp_euw_handle_confirm' );
 
@@ -396,18 +473,35 @@ function ayudawp_euw_token_was_confirmed( $token ) {
 /**
  * Resolve where to send the consumer back to after handling a submission.
  *
- * Normally the referer, which is the page holding the form. When it does not
- * resolve, the configured withdrawal page is used instead of the site home, so
- * the consumer lands back on the form and sees the step that follows rather
- * than on the front page with no explanation. A missing referer is not
- * hypothetical: security plugins that restrict access to /wp-admin/ intercept
- * the POST to admin-post.php before it is dispatched, and privacy setups strip
- * the header. The home URL stays as the last resort for shops that have no
- * withdrawal page configured.
+ * The page holding the form, which is the request itself now that the form
+ * posts to its own page. On admin-post.php, where pages cached with the old form
+ * still post, it is the referer instead. When that does not resolve, the
+ * configured withdrawal page is used rather than the site home, so the consumer
+ * lands back on the form and sees the step that follows instead of the front
+ * page with no explanation. A missing referer is not hypothetical: security
+ * plugins that restrict access to /wp-admin/ intercept the POST to
+ * admin-post.php before it is dispatched, and privacy setups strip the header.
+ * The home URL stays as the last resort for shops that have no withdrawal page
+ * configured.
  *
- * @return string
+ * @return string A URL, or the path and query of one on this site.
  */
 function ayudawp_euw_get_return_url() {
+
+	// The form posts to the page that holds it, so that page is the request
+	// itself. wp_get_referer() cannot be asked here: it answers false whenever the
+	// referer is the address being requested (wp-includes/functions.php:1990),
+	// which is exactly this case, and the customer would be sent to the configured
+	// page, or to the home page, instead of back to the form: without the query
+	// string, and out of My Account when that is where the form was.
+	if ( ! is_admin() && isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ) {
+
+		$self = wp_validate_redirect( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), false );
+
+		if ( $self ) {
+			return $self;
+		}
+	}
 
 	$referer = wp_get_referer();
 

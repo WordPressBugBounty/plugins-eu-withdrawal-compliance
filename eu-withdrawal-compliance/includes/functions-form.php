@@ -291,8 +291,9 @@ function ayudawp_euw_render_form( $atts = array() ) {
 		if ( $error ) :
 
 			// "Already submitted" is an outcome, not a failure: it gets the
-			// neutral notice and a polite live region, not the error styling.
-			$is_done = ( 'done' === $error );
+			// neutral notice and a polite live region, not the error styling. The
+			// same goes for a request the order already has open.
+			$is_done = in_array( $error, array( 'done', 'duplicate' ), true );
 			?>
 			<div class="ayudawp-euw-notice ayudawp-euw-notice--<?php echo esc_attr( $is_done ? 'warning' : 'error' ); ?>" role="<?php echo esc_attr( $is_done ? 'status' : 'alert' ); ?>">
 				<p><?php echo esc_html( ayudawp_euw_get_error_message( $error ) ); ?></p>
@@ -320,9 +321,20 @@ function ayudawp_euw_render_form( $atts = array() ) {
 			<?php echo esc_html( ayudawp_euw_legal_conditions_text() ); ?>
 		</p>
 
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ayudawp-euw-form" novalidate>
-
+		<?php
+		// No action attribute: the form posts to the page it sits on, the way the
+		// WooCommerce login form does, and ayudawp_euw_handle_review() picks it up
+		// on wp_loaded. It used to post to admin-post.php, and anything that keeps
+		// visitors or customers out of /wp-admin/ swallowed the request there: the
+		// customer landed on the front page with nothing registered. The old
+		// address stays available behind a filter.
+		if ( ayudawp_euw_form_uses_admin_post() ) :
+			?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ayudawp-euw-form" novalidate>
 			<input type="hidden" name="action" value="ayudawp_euw_review">
+		<?php else : ?>
+			<form method="post" class="ayudawp-euw-form" novalidate>
+		<?php endif; ?>
 
 			<?php
 			wp_nonce_field( 'ayudawp_euw_review_action', 'ayudawp_euw_nonce' );
@@ -574,9 +586,13 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 			<strong><?php echo esc_html( $data['email'] ); ?></strong>
 		</p>
 
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ayudawp-euw-form ayudawp-euw-confirm-form">
-
+		<?php if ( ayudawp_euw_form_uses_admin_post() ) : ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ayudawp-euw-form ayudawp-euw-confirm-form">
 			<input type="hidden" name="action" value="ayudawp_euw_confirm">
+		<?php else : ?>
+			<form method="post" class="ayudawp-euw-form ayudawp-euw-confirm-form">
+		<?php endif; ?>
+
 			<input type="hidden" name="ayudawp_euw_token" value="<?php echo esc_attr( $token ); ?>">
 			<?php wp_nonce_field( 'ayudawp_euw_confirm_action', 'ayudawp_euw_confirm_nonce' ); ?>
 
@@ -608,16 +624,17 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 function ayudawp_euw_get_error_message( $code ) {
 
 	$messages = array(
-		'nonce'   => __( 'Security check failed. Please refresh the page and try again.', 'eu-withdrawal-compliance' ),
-		'spam'    => __( 'Your request looks like spam and was rejected.', 'eu-withdrawal-compliance' ),
-		'fields'  => __( 'Please complete the fields highlighted below.', 'eu-withdrawal-compliance' ),
-		'email'   => __( 'The email address is not valid.', 'eu-withdrawal-compliance' ),
-		'order'   => __( 'We could not match this email with the order number provided.', 'eu-withdrawal-compliance' ),
-		'status'  => __( 'This order is not eligible for withdrawal because of its current order status. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
-		'expired' => __( 'The withdrawal period for this order has passed. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
-		'session' => __( 'This request is no longer awaiting confirmation. The review screen stays available for 15 minutes and can only be confirmed once, so please fill in the form again.', 'eu-withdrawal-compliance' ),
-		'done'    => __( 'This withdrawal request has already been submitted, so there is nothing left to confirm. We sent the acknowledgement of receipt to your email address. Use the form below only if you want to submit a different request.', 'eu-withdrawal-compliance' ),
-		'general' => __( 'An error occurred. Please try again later.', 'eu-withdrawal-compliance' ),
+		'nonce'     => __( 'Security check failed. Please refresh the page and try again.', 'eu-withdrawal-compliance' ),
+		'spam'      => __( 'Your request looks like spam and was rejected.', 'eu-withdrawal-compliance' ),
+		'fields'    => __( 'Please complete the fields highlighted below.', 'eu-withdrawal-compliance' ),
+		'email'     => __( 'The email address is not valid.', 'eu-withdrawal-compliance' ),
+		'order'     => __( 'We could not match this email with the order number provided.', 'eu-withdrawal-compliance' ),
+		'status'    => __( 'This order is not eligible for withdrawal because of its current order status. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
+		'expired'   => __( 'The withdrawal period for this order has passed. If you believe this is a mistake, please contact us.', 'eu-withdrawal-compliance' ),
+		'session'   => __( 'This request is no longer awaiting confirmation. The review screen stays available for 15 minutes and can only be confirmed once, so please fill in the form again.', 'eu-withdrawal-compliance' ),
+		'done'      => __( 'This withdrawal request has already been submitted, so there is nothing left to confirm. We sent the acknowledgement of receipt to your email address. Use the form below only if you want to submit a different request.', 'eu-withdrawal-compliance' ),
+		'duplicate' => __( 'We already have a withdrawal request for this whole order and it is being handled, so there is nothing to send again. If you want to add or change something, reply to the acknowledgement of receipt we sent you.', 'eu-withdrawal-compliance' ),
+		'general'   => __( 'An error occurred. Please try again later.', 'eu-withdrawal-compliance' ),
 	);
 
 	return isset( $messages[ $code ] ) ? $messages[ $code ] : $messages['general'];

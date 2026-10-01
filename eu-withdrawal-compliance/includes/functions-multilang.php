@@ -194,3 +194,76 @@ function ayudawp_euw_get_source_term_id( $term_id, $taxonomy ) {
 
 	return $term_id;
 }
+
+/**
+ * Locale the shop is run in, whatever language the request is served in.
+ *
+ * The public form posts to the page that holds it, so on a Polylang or WPML
+ * site everything composed while handling a submission follows the language of
+ * the page the customer was on. That is right for the acknowledgement sent to
+ * the customer and wrong for what is written for the shop: the notification to
+ * its staff, the title of the request in the log and the note left on the order
+ * would come out in whichever language each customer happened to browse in.
+ * Those are composed in this locale instead, see ayudawp_euw_in_shop_locale().
+ *
+ * Returns the default language of the multilingual plugin and, with none
+ * active, the site locale. The latter is not always the locale of the request
+ * either: on admin-post.php a logged-in customer brings the language of their
+ * own profile.
+ *
+ * @return string Locale code, for example es_ES.
+ */
+function ayudawp_euw_get_shop_locale() {
+
+	// Polylang.
+	if ( function_exists( 'pll_default_language' ) ) {
+
+		$locale = (string) pll_default_language( 'locale' );
+
+		if ( '' !== $locale ) {
+			return $locale;
+		}
+	}
+
+	// WPML: the code of the default language, mapped to its locale by the list
+	// of languages. When either piece is missing the site locale below answers.
+	if ( has_filter( 'wpml_object_id' ) ) {
+
+		$default   = (string) apply_filters( 'wpml_default_language', null ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Consuming WPML's own documented filter, not a hook defined by this plugin.
+		$languages = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Consuming WPML's own documented filter, not a hook defined by this plugin.
+
+		if ( '' !== $default && is_array( $languages ) && ! empty( $languages[ $default ]['default_locale'] ) ) {
+			return (string) $languages[ $default ]['default_locale'];
+		}
+	}
+
+	return get_locale();
+}
+
+/**
+ * Run a callback with the shop locale in place and put the previous one back.
+ *
+ * A no-op around the callback when the request already runs in that locale,
+ * which is every submission on a single-language shop: switching would reload
+ * the translations for nothing.
+ *
+ * @param callable $callback Composes whatever is meant for the shop.
+ * @return mixed Whatever $callback returns.
+ */
+function ayudawp_euw_in_shop_locale( $callback ) {
+
+	$locale   = ayudawp_euw_get_shop_locale();
+	$switched = ( determine_locale() !== $locale ) && switch_to_locale( $locale );
+
+	// Put the locale back even if the callback throws: what follows it is the
+	// acknowledgement to the customer, in their own language.
+	try {
+		$result = call_user_func( $callback );
+	} finally {
+		if ( $switched ) {
+			restore_previous_locale();
+		}
+	}
+
+	return $result;
+}

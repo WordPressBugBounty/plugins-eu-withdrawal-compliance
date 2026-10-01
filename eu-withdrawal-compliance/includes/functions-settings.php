@@ -105,6 +105,16 @@ function ayudawp_euw_register_settings() {
 		)
 	);
 
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_exclusions_in_orders',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_yes_no',
+			'default'           => 'yes',
+		)
+	);
+
 	add_settings_section(
 		'ayudawp_euw_main_section',
 		__( 'General', 'eu-withdrawal-compliance' ),
@@ -147,6 +157,14 @@ function ayudawp_euw_register_settings() {
 		'ayudawp_euw_allowed_statuses',
 		__( 'Show withdrawal option for', 'eu-withdrawal-compliance' ),
 		'ayudawp_euw_field_allowed_statuses_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_eligibility_section'
+	);
+
+	add_settings_field(
+		'ayudawp_euw_exclusions_in_orders',
+		__( 'Orders with excluded products', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_exclusions_in_orders_callback',
 		'ayudawp-euw-settings',
 		'ayudawp_euw_eligibility_section'
 	);
@@ -851,6 +869,13 @@ function ayudawp_euw_register_settings() {
 	foreach ( array_keys( ayudawp_euw_editable_text_defaults() ) as $editable_option ) {
 		add_filter( "sanitize_option_{$editable_option}", 'ayudawp_euw_discard_default_text', 20, 2 );
 	}
+
+	// The fields of these settings are not printed while WooCommerce is inactive,
+	// so the form sends nothing for them. Keep what is stored instead of reading
+	// that as "switched off".
+	foreach ( ayudawp_euw_woocommerce_only_settings() as $woocommerce_option ) {
+		add_filter( "pre_update_option_{$woocommerce_option}", 'ayudawp_euw_keep_setting_without_woocommerce', 10, 2 );
+	}
 }
 add_action( 'admin_init', 'ayudawp_euw_register_settings' );
 
@@ -863,6 +888,74 @@ add_action( 'admin_init', 'ayudawp_euw_register_settings' );
 function ayudawp_euw_sanitize_yes_no( $value ) {
 
 	return 'yes' === $value ? 'yes' : 'no';
+}
+
+/**
+ * Settings whose field is only printed while WooCommerce is active.
+ *
+ * Their field callbacks print a note and return when WooCommerce is missing, so
+ * the settings form sends nothing for them. The names are spelled out one by one
+ * on purpose, so the list can be searched and compared with the callbacks.
+ * Whoever adds a field that bails out without WooCommerce has to add its option
+ * here, or saving the page with WooCommerce off wipes it.
+ *
+ * @return array<int, string> Option names.
+ */
+function ayudawp_euw_woocommerce_only_settings() {
+
+	return array(
+		'ayudawp_euw_account_status_enabled',
+		'ayudawp_euw_allowed_statuses',
+		'ayudawp_euw_exclusions_in_orders',
+		'ayudawp_euw_accept_unmatched',
+		'ayudawp_euw_consent_a_enabled',
+		'ayudawp_euw_consent_a_text',
+		'ayudawp_euw_consent_b_enabled',
+		'ayudawp_euw_consent_b_required',
+		'ayudawp_euw_consent_b_text',
+		'ayudawp_euw_excluded_notice_enabled',
+		'ayudawp_euw_excluded_notice_title_art16m_digital',
+		'ayudawp_euw_excluded_notice_body_art16m_digital',
+		'ayudawp_euw_excluded_notice_title_art16l_accommodation',
+		'ayudawp_euw_excluded_notice_body_art16l_accommodation',
+		'ayudawp_euw_excluded_notice_title_art16_other',
+		'ayudawp_euw_excluded_notice_body_art16_other',
+		'ayudawp_euw_guarantee_email_ids',
+		'ayudawp_euw_guarantee_pdf_attach',
+		'ayudawp_euw_guarantee_order_note',
+	);
+}
+
+/**
+ * Keep a WooCommerce-only setting as it was when the page is saved without WooCommerce.
+ *
+ * The settings page is one form posted to wp-admin/options.php, which hands null
+ * to update_option() for every option of the group that the form did not send.
+ * A field that was not printed is not a field the trader emptied, but the
+ * sanitizers cannot tell the two apart and turn that null into 'no', an empty
+ * array or an empty string. Returning the previous value here makes
+ * update_option() leave the option alone, because it returns early when nothing
+ * changes.
+ *
+ * It only acts on options.php, so code or WP-CLI changing one of these options
+ * while WooCommerce is off still works. It is hooked on
+ * `pre_update_option_{$option}` because that filter is handed the previous value,
+ * the stored one or the default given to register_setting(), which a sanitize
+ * callback never sees.
+ *
+ * @param mixed $value     New value, already sanitized.
+ * @param mixed $old_value Previous value.
+ * @return mixed The previous value when the settings form is saved without WooCommerce, the new one otherwise.
+ */
+function ayudawp_euw_keep_setting_without_woocommerce( $value, $old_value ) {
+
+	if ( class_exists( 'WooCommerce' ) ) {
+		return $value;
+	}
+
+	global $pagenow;
+
+	return ( 'options.php' === $pagenow ) ? $old_value : $value;
 }
 
 /**
@@ -1318,6 +1411,39 @@ function ayudawp_euw_field_allowed_statuses_callback() {
 	echo '</fieldset>';
 
 	echo '<p class="description">' . wp_kses( __( '<strong>Recommended.</strong> Defaults to Processing and Completed. Plugins that register additional statuses (e.g. shipping plugins) appear here automatically.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+
+	// A sentence of its own, so the one above keeps its translations.
+	echo '<p class="description">' . esc_html__( 'These statuses decide every place the withdrawal is offered: the button in My Account, the form, and the notice in the WooCommerce email sent when an order reaches On hold, Processing, Completed or Refunded.', 'eu-withdrawal-compliance' ) . '</p>';
+}
+
+/**
+ * "Orders with excluded products" checkbox callback.
+ */
+function ayudawp_euw_field_exclusions_in_orders_callback() {
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no orders this option could apply to.', 'eu-withdrawal-compliance' ) . '</p>';
+		return;
+	}
+
+	$enabled = get_option( 'ayudawp_euw_exclusions_in_orders', 'yes' );
+
+	?>
+	<fieldset>
+		<label>
+			<input type="checkbox" name="ayudawp_euw_exclusions_in_orders" value="yes" <?php checked( 'yes', $enabled ); ?>>
+			<?php esc_html_e( 'Leave excluded products out of what an order offers', 'eu-withdrawal-compliance' ); ?>
+		</label>
+		<p class="description">
+			<?php
+			echo wp_kses(
+				__( '<strong>Recommended.</strong> An order that only holds products excluded from the right of withdrawal shows neither the withdrawal button nor the notice in its emails, and an order that mixes both names the excluded ones in that notice. The withdrawal form keeps accepting a request for any order and flags it for your review. Untick it if you grant the withdrawal on excluded products too.', 'eu-withdrawal-compliance' ),
+				array( 'strong' => array() )
+			);
+			?>
+		</p>
+	</fieldset>
+	<?php
 }
 
 /**
@@ -1477,6 +1603,8 @@ function ayudawp_euw_exclusions_section_callback() {
 		__( 'Each product (and product category) now carries its own <strong>Withdrawal status</strong> dropdown that controls both the Article 16 exclusion and the matching checkout consent in one place. Set the status on a category to apply it to every product underneath; override on a specific product when needed.', 'eu-withdrawal-compliance' ),
 		array( 'strong' => array() )
 	) . '</p>';
+
+	echo '<p>' . esc_html__( 'An order that only holds excluded products does not offer the withdrawal at all, and a mixed one names them in its email notice. The “Orders with excluded products” option under “Eligible order statuses” switches this off.', 'eu-withdrawal-compliance' ) . '</p>';
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 
@@ -1928,22 +2056,30 @@ function ayudawp_euw_sanitize_guarantee_lang( $value ) {
  */
 function ayudawp_euw_sanitize_guarantee_email_ids( $value ) {
 
+	$available = array_keys( ayudawp_euw_guarantee_customer_emails() );
+
+	// Without WooCommerce there is no list to check against, and the field is not
+	// even printed, so nothing that arrives here was ticked by anyone. Keep what
+	// is stored. Saving the settings page with WooCommerce switched off used to
+	// empty the list, and a key posted by hand was stored without being checked.
+	if ( empty( $available ) ) {
+
+		$stored = get_option( 'ayudawp_euw_guarantee_email_ids', array( 'customer_on_hold_order', 'customer_processing_order' ) );
+
+		return is_array( $stored ) ? $stored : array();
+	}
+
 	if ( ! is_array( $value ) ) {
 		return array();
 	}
 
-	$available = array_keys( ayudawp_euw_guarantee_customer_emails() );
-	$valid     = array();
+	$valid = array();
 
 	foreach ( $value as $candidate ) {
 
 		$candidate = sanitize_key( (string) $candidate );
 
-		if ( '' === $candidate ) {
-			continue;
-		}
-
-		if ( ! empty( $available ) && ! in_array( $candidate, $available, true ) ) {
+		if ( '' === $candidate || ! in_array( $candidate, $available, true ) ) {
 			continue;
 		}
 
@@ -2050,6 +2186,12 @@ function ayudawp_euw_guarantee_section_callback() {
 			__( 'WooCommerce is not active, so there is no checkout or order email to add the notice to. You can still publish it on a page with the <code>[ayudawp_guarantee_notice]</code> shortcode.', 'eu-withdrawal-compliance' ),
 			array( 'code' => array() )
 		) . '</p>';
+
+	} elseif ( ! ayudawp_euw_guarantee_shop_sells_goods() ) {
+
+		// The module only shows the notice next to goods, so a shop of courses or
+		// downloads that switches it on sees nothing change and takes it for broken.
+		echo '<p class="description">' . esc_html__( 'Your catalogue has no physical products at the moment. The notice only applies to goods, so nothing is shown for now, even with the module switched on, and it will appear by itself once you publish one.', 'eu-withdrawal-compliance' ) . '</p>';
 	}
 }
 

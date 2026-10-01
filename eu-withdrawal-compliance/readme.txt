@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.0
+Stable tag: 2.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -75,7 +75,7 @@ Compliance cannot depend on the language the customer was browsing in, so both a
 
 == Roadmap ==
 
-Planned for upcoming free versions: the GARAN durability label per product; the checkout consents inside the Checkout block; HTML emails inheriting the WooCommerce theme, and plugin emails in the customer's language; a Gutenberg block and a widget for the withdrawal link; a custom "Withdrawal requested" order status; a PDF of the request with its receipt hash; and a dashboard widget.
+Planned for upcoming free versions: the GARAN durability label per product; the checkout consents inside the Checkout block; HTML emails inheriting the WooCommerce theme, and status-change emails in the customer's language; a Gutenberg block and a widget for the withdrawal link; a custom "Withdrawal requested" order status; a PDF of the request with its receipt hash; and a dashboard widget.
 
 == Privacy ==
 
@@ -99,7 +99,7 @@ Add a section to your privacy policy describing this storage. The plugin contrib
 
 It is the official EU notice on the legal guarantee of conformity: the one headed "LEGAL GUARANTEE", with the QR code and the GARAN label. Article 22a of Directive 2011/83/EU, added by Directive (EU) 2024/825, makes it mandatory from **27 September 2026** for everyone selling goods to consumers in the EU, and Implementing Regulation (EU) 2025/1960 fixes its design. It does not cover B2B sales, services or digital content, so the plugin only shows it when the cart or the order holds at least one product that is not virtual.
 
-Online it has to be in colour, in full, unedited, legible at the default display size, in a prominent place and with a clickable link to the same destination as its QR code. The plugin does all of that, in the 24 EU languages, at both checkouts and in your order emails.
+Online the law asks for it in colour, unedited and in a prominent place, and the Commission's guidelines add that it should be shown in full, legible at the default display size and with a clickable link to the same destination as its QR code. The plugin does all of that, in the 24 EU languages, at both checkouts and in your order emails.
 
 It arrives **switched off on sites updating from an earlier version**, with a notice in the dashboard, because it changes what your customers see at the checkout. New installs start with it on. Switch it on under **EU Compliance → Settings → EU legal guarantee notice (GARAN)**.
 
@@ -178,7 +178,7 @@ With a single **Withdrawal status** dropdown, set per category (**Products → C
 * **Dated services (Art. 16(l))** — accommodation, transport, car rental, catering, leisure: excluded, no consent needed.
 * **Other Article 16 exception** — perishable, custom-made, hygiene-sealed, sealed media: excluded, no consent needed.
 
-A request on an order containing excluded items is flagged for you, never auto-rejected, because a partial withdrawal over the rest of the order can still be valid. If the **Excluded products notice** is on, a configurable notice also appears on the product page between price and add-to-cart.
+A request on an order containing excluded items is flagged for you, never auto-rejected, because a partial withdrawal over the rest of the order can still be valid. An order that only holds excluded products shows neither the withdrawal button nor the notice in its emails, and an order that mixes both names the excluded ones in that notice. Untick **Orders with excluded products** under **Eligible order statuses** if you grant the withdrawal on excluded products too. If the **Excluded products notice** is on, a configurable notice also appears on the product page between price and add-to-cart.
 
 = The excluded-product notice does not appear with my page builder (Divi, Elementor, Bricks…). What can I do? =
 
@@ -231,7 +231,7 @@ The two-step flow keeps the validated declaration on the server, in a 15-minute 
 
 = Will the notice appear on every WooCommerce email? =
 
-No. By default the notice is only added to the customer-facing emails relevant to the withdrawal window: order processing, completed and customer invoice (the manually triggered one). Admin emails never receive the notice. The notice is also gated by the configured list of eligible order statuses (default: Processing and Completed) so the manual invoice email only carries it when the order is in one of those statuses. You can change the email list with the `ayudawp_euw_email_ids` filter and the status list under **EU Compliance → Settings → Eligible order statuses** or with the `ayudawp_euw_allowed_statuses` filter.
+No. The notice goes into the customer email WooCommerce sends for each order status ticked under **EU Compliance → Settings → Eligible order statuses**: Processing and Completed by default, plus On hold or Refunded if you tick them. So does the manual invoice email, for orders in those statuses. Admin emails never receive it. Change the email list with the `ayudawp_euw_email_ids` filter and the status list with `ayudawp_euw_allowed_statuses`.
 
 = Can I make the withdrawal notice in the emails more discreet? =
 
@@ -247,7 +247,7 @@ Yes. The withdrawal status is set once, on the product or category in the site o
 
 The bundled `wpml-config.xml` turns the settings that hold customer-facing copy into translatable strings under **WPML → String Translation** or **Languages → Translations**. A setting shows up there once you write your own text in it: left empty, the text comes from the language pack of each locale and already follows the visitor.
 
-One limitation: the plugin's own emails (acknowledgement, admin notification, status changes) are composed in the site default language, because they are generated outside the language routing of both plugins. The notices injected into the WooCommerce order emails, both the withdrawal one and the guarantee one, do follow the order language. Per-customer language for the plugin's own emails is on the roadmap.
+The acknowledgement of receipt follows the language of the page the customer sent the form from, provided the language is part of the URL; the notification to the shop, the request title and the order note stay in the site default language. One limitation: the status-change emails (accepted, rejected, completed) are still composed in the site default language, with per-customer language on the roadmap. The notices injected into the WooCommerce order emails, withdrawal and guarantee alike, follow the order language.
 
 = Does the plugin pass GDPR requirements? =
 
@@ -263,7 +263,7 @@ Yes. From **EU Compliance → Settings → Withdrawal emails** you can set the s
 
 = Which hooks does the plugin expose for developers? =
 
-19 filters and 4 actions. The withdrawal side: `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha) and `ayudawp_euw_show_consumer_check`. The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
+21 filters and 4 actions. The withdrawal side: `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_show_withdrawal` (hide both for specific orders, or bring them back on an order that only holds excluded products), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha), `ayudawp_euw_form_via_admin_post` (send the form through admin-post.php again) and `ayudawp_euw_show_consumer_check`. The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
 
 Actions: `ayudawp_euw_after_submission` (CPT ID, submission data), `ayudawp_euw_after_status_change` (CPT ID, new status, comment), `ayudawp_euw_after_form` (inside the form wrapper, after `</form>`) and `ayudawp_euw_form_before_submit` (before the submit button, for a captcha or an extra field).
 
@@ -300,6 +300,30 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.3.2 =
+Orders that only hold products excluded from the right of withdrawal no longer show the withdrawal button or the notice in their emails, and mixed orders name the excluded ones. Also fixes the withdrawal button that sent guests to the login screen.
+
+* Improved: An order that only holds products excluded from the right of withdrawal (Article 16) no longer shows the withdrawal button in the customer account nor the notice in its WooCommerce emails. Until now both appeared on every eligible order, so a customer who had only bought excluded products was told they had 14 days to withdraw. The withdrawal form keeps accepting a request for any order and flags it for your review, as before. On by default: untick "Orders with excluded products" under "Eligible order statuses" if you grant the withdrawal on excluded products too.
+* Improved: On an order that mixes excluded and regular products, the notice in the WooCommerce emails now names the products the right of withdrawal does not apply to.
+* Improved: The `ayudawp_euw_show_withdrawal` filter can now bring the button and the notice back on an order that only holds excluded products. It still cannot offer them on an order in a status you left out, or past the deadline in strict mode.
+* Fix: On the order received page and on the order tracking page, the "Withdraw from order" button sent a visitor without a session to the My Account login screen, a dead end for anyone who bought as a guest. It now opens the withdrawal form with the order number filled in, the same link the order emails carry. If no withdrawal page is set, the visitor is given the contact email of the shop instead.
+* Fix: In plain-text order emails an apostrophe in the withdrawal notice or in the legal guarantee notice was dropped, so a translation such as "l'ordine" arrived as "lordine".
+* Fix: Saving the settings page while WooCommerce was deactivated switched off or emptied every setting whose field is only shown with WooCommerce active: the eligible order statuses, the status in the customer account, accepting unmatched requests, both checkout consents and their texts, the excluded products notice and its texts, and the order note and PDF attachment of the legal guarantee notice. They now keep their values. Version 2.3.1 had only protected the list of emails that carry the guarantee notice.
+
+= 2.3.1 =
+The withdrawal form now posts to its own page, so plugins that close wp-admin to visitors or customers can no longer swallow it. Also: one open request per whole order, the acknowledgement in the language of the customer, and fixes for the guarantee notice and the CSV export.
+
+* Improved: On multilingual sites (WPML, Polylang) the acknowledgement of receipt is now written in the language of the page the customer sent the form from, as long as the language is part of the URL, which is the usual setup in both. The notification to the shop, the title of the request in the log and the note on the order stay in the default language of the site. Until now all four came out in the default language.
+* Improved: A request is no longer registered again while one for the whole order is pending or accepted. The customer is told it is already being handled and that replying to the acknowledgement of receipt is the way to add to it. A partial request never holds a later one back, so withdrawing from some products now and from others later works as before, and a rejected request can still be contested.
+* Improved: The withdrawal notice in the WooCommerce emails now follows the statuses ticked under "Eligible order statuses". Ticking On hold used to bring the button to My Account but not the notice to the on-hold email, which is the first one a customer paying by bank transfer receives. If you have On hold or Refunded ticked, those emails carry the notice from this version on.
+* Improved: The dashboard notice inviting you to switch the legal guarantee notice on no longer shows on shops with no physical products, which the notice does not apply to. The settings section says so too, instead of leaving you wondering why nothing shows at the checkout.
+* Improved: Two filters for developers. `ayudawp_euw_show_withdrawal` keeps the withdrawal button and the email notice off specific orders, for example a course that starts once the withdrawal period is over. `ayudawp_euw_form_via_admin_post` sends the form through admin-post.php again, in case something in front of a site refuses a POST to a public page.
+* Fix: The withdrawal form did not get past its first step on sites where another plugin keeps visitors or customers out of wp-admin (reported with JetEngine's Profile Builder and with WP Cerber). It was sent to admin-post.php, was intercepted there, and the customer landed on the front page with nothing registered. The form now posts to its own page, out of reach of anything guarding wp-admin. Pages cached with the old form keep working. If a firewall or rate-limit rule of yours targeted admin-post.php for this form, point it at the page that holds the form; code hooked to the admin_post_ayudawp_euw_review or admin_post_ayudawp_euw_confirm actions no longer runs, and `ayudawp_euw_validation_result` is its place.
+* Fix: Dismissing the dashboard notice about the legal guarantee took you to the settings page. It now leaves you on the screen you were on.
+* Fix: The reminder under the withdrawal page selector, the one saying the page still holds the sample text, was laid out in three columns with its link stranded in the middle.
+* Fix: With PHP 8.4 or later and errors displayed on screen, the CSV export of withdrawal requests carried a deprecation notice inside the file. A field with a backslash right before a quote is now also written the way spreadsheets read it.
+* Fix: Saving the settings page while WooCommerce was deactivated emptied the list of order emails that carry the legal guarantee notice.
+
 = 2.3.0 =
 New module for the EU harmonised legal guarantee notice, mandatory from 27 September 2026: the official notice in 24 languages at the checkout and in your order emails, with the PDF attached. It arrives switched off, with a notice in your dashboard to turn it on.
 
@@ -318,8 +342,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.3.0 =
-New module for the EU harmonised legal guarantee notice, mandatory from 27 September 2026: the official notice in 24 languages at the checkout and in your order emails, with the PDF attached. It arrives switched off, with a notice in your dashboard to turn it on.
+= 2.3.2 =
+Orders that only hold products excluded from the right of withdrawal no longer show the withdrawal button or the notice in their emails, and mixed orders name the excluded ones. Also fixes the withdrawal button that sent guests to the login screen.
 
 == Support ==
 

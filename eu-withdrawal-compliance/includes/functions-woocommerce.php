@@ -311,6 +311,18 @@ function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
 		}
 	}
 
+	// A request that already withdraws from the whole order is still open, so
+	// another one, for all of it or for a part, has nothing to add. Checked last,
+	// once the order number and the email are known to belong together, so the
+	// message cannot be used to learn whether somebody else's order has a request.
+	if ( ayudawp_euw_order_has_open_full_request( $order->get_id() ) ) {
+		return array(
+			'valid'    => false,
+			'error'    => 'duplicate',
+			'order_id' => 0,
+		);
+	}
+
 	// In advisory mode (the default) the 14-day window is not a hard gate. For
 	// goods the period runs from physical possession of the order (Art. 9(2)(b)
 	// of Directive 2011/83/EU), a date the shop cannot detect automatically, so
@@ -420,14 +432,17 @@ function ayudawp_euw_get_allowed_statuses( $order = null ) {
  * Decide whether the withdrawal button/notice should be shown for an order.
  *
  * Reused by the My Account action and the email notice injector: the order must
- * be present and its status must be in the configured whitelist. In strict mode
- * the approximate deadline is also enforced, unless $check_deadline is false.
+ * be present and its status must be in the configured whitelist. Two more checks
+ * apply to a brand-new request, unless $check_deadline is false: in strict mode
+ * the approximate deadline, and the order not holding only excluded products.
  *
- * @param object $order         WC_Order instance.
- * @param bool   $check_deadline Whether to apply the strict-mode deadline cut.
- *                               Pass false to gate on order status only, for the
+ * @param object $order          WC_Order instance.
+ * @param bool   $check_deadline Whether to apply the checks reserved for a
+ *                               brand-new request: the strict-mode deadline and
+ *                               the order holding only excluded products. Pass
+ *                               false to gate on order status only, for the
  *                               "Contest the rejection" path on an already open
- *                               request, which strict mode must not hide.
+ *                               request, which neither of them may hide.
  * @return bool
  */
 function ayudawp_euw_should_show_withdrawal( $order, $check_deadline = true ) {
@@ -456,7 +471,52 @@ function ayudawp_euw_should_show_withdrawal( $order, $check_deadline = true ) {
 		}
 	}
 
-	return true;
+	$show = true;
+
+	// An order that only holds excluded products has nothing to offer, and telling
+	// that customer "you have 14 days" contradicts the product page and the
+	// checkout. Like the deadline, this only applies when offering a brand-new
+	// request ($check_deadline true), so "Contest the rejection" on a request that
+	// already exists is never hidden. The public form is untouched: it keeps
+	// accepting such requests and flagging them for review.
+	if ( $check_deadline
+		&& ayudawp_euw_exclusions_apply_to_orders()
+		&& ayudawp_euw_order_is_fully_excluded( $order )
+	) {
+		$show = false;
+	}
+
+	/**
+	 * Filter whether the withdrawal button and notice are offered for an order.
+	 *
+	 * Runs once the order has passed the status and deadline checks above, on every
+	 * entry point the customer sees: the button in My Account and the notice in the
+	 * WooCommerce emails. Return false to keep them off an order, for example a
+	 * course that starts once the withdrawal period is over.
+	 *
+	 * $show arrives false for an order that only holds products excluded from the
+	 * right of withdrawal, while the "Orders with excluded products" setting is on
+	 * and the question is about a brand-new request ($check_deadline true).
+	 * Returning true brings the offer back for that order, for example when the
+	 * shop grants the withdrawal on some of its excluded products. Nothing else
+	 * can be added this way: an order in a status the shop left out, or past the
+	 * deadline in strict mode, still never reaches the filter, because the form
+	 * would turn that request down anyway. A callback with nothing to say must
+	 * return $show, not true, or it brings the offer back on every excluded order.
+	 *
+	 * With $check_deadline false the question comes from an order that already has
+	 * a request, and returning false there also hides "Contest the rejection" from
+	 * My Account. Leave that case alone unless that is what you mean.
+	 *
+	 * @param bool   $show           Whether the order qualifies. False for an order
+	 *                               that only holds excluded products, when
+	 *                               $check_deadline is true and the setting is on.
+	 * @param object $order          WC_Order instance.
+	 * @param bool   $check_deadline Whether the checks reserved for a brand-new
+	 *                               request were applied (the strict-mode deadline
+	 *                               and the order holding only excluded products).
+	 */
+	return (bool) apply_filters( 'ayudawp_euw_show_withdrawal', $show, $order, $check_deadline );
 }
 
 /**
@@ -481,6 +541,63 @@ function ayudawp_euw_order_has_rejected_request( $wc_order_id ) {
 	$status = get_post_meta( $existing, '_ayudawp_euw_status', true );
 
 	return 'rejected' === ( $status ? $status : 'pending' );
+}
+
+/**
+ * Whether a request that withdraws from the whole order is still open.
+ *
+ * Open means pending or accepted: once such a request exists, sending the form
+ * again for the same order only registers a duplicate and mails everyone twice.
+ *
+ * Deliberately narrow, because a form that refuses to go on is the one thing a
+ * withdrawal function must not become:
+ *   - Partial requests never count. A customer may withdraw from some products
+ *     today and from others later, and the public form is the only way to do
+ *     it, since the My Account button hides as soon as a request exists.
+ *   - Rejected ones do not count: submitting again is how a rejection is
+ *     contested.
+ *   - Unverified ones cannot count, as they are never linked to an order.
+ *
+ * @param int $wc_order_id WC order ID.
+ * @return bool
+ */
+function ayudawp_euw_order_has_open_full_request( $wc_order_id ) {
+
+	$wc_order_id = absint( $wc_order_id );
+
+	if ( ! $wc_order_id ) {
+		return false;
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => 'ayudawp_withdrawal',
+			'post_status'            => 'any',
+			'posts_per_page'         => 1,
+			'fields'                 => 'ids',
+			'no_found_rows'          => true,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Single-row lookup that only runs while a submission of the public form is being validated, never on a page view, on meta keys indexed by WordPress (`wp_postmeta.meta_key`).
+			'meta_query'             => array(
+				array(
+					'key'   => '_ayudawp_euw_wc_order_id',
+					'value' => $wc_order_id,
+				),
+				array(
+					'key'   => '_ayudawp_euw_scope',
+					'value' => 'full',
+				),
+				array(
+					'key'     => '_ayudawp_euw_status',
+					'value'   => array( 'pending', 'accepted' ),
+					'compare' => 'IN',
+				),
+			),
+		)
+	);
+
+	return ! empty( $query->posts );
 }
 
 /**
@@ -1003,7 +1120,64 @@ function ayudawp_euw_get_order_prefill( $order_ref ) {
 }
 
 /**
+ * What the withdrawal button has to offer for an order.
+ *
+ * The decision behind the button of the order actions, kept apart from its
+ * markup so that the fallback for visitors without a session asks the very same
+ * question and cannot answer differently.
+ *
+ * @param object      $order           WC_Order instance.
+ * @param string|null $existing_status Status of the request already linked to the
+ *                                     order, or an empty string when there is
+ *                                     none. Null makes this look it up.
+ * @return string Empty for nothing, 'new' for a brand-new request, 'contest' for
+ *                contesting the rejection of the one that exists.
+ */
+function ayudawp_euw_get_order_offer( $order, $existing_status = null ) {
+
+	if ( ! is_object( $order ) || ! method_exists( $order, 'get_id' ) ) {
+		return '';
+	}
+
+	if ( null === $existing_status ) {
+
+		$existing        = ayudawp_euw_get_request_for_order( $order->get_id(), false );
+		$existing_status = '';
+
+		if ( $existing ) {
+			$existing_status = get_post_meta( $existing, '_ayudawp_euw_status', true );
+			$existing_status = $existing_status ? $existing_status : 'pending';
+		}
+	}
+
+	// Order-status eligibility gates every entry point. The strict-mode deadline
+	// and the order holding only excluded products are applied further down, and
+	// only to a brand-new request: a rejected one can still be contested past the
+	// deadline, since strict mode blocks opening new requests, not re-engaging a
+	// process that is already open.
+	if ( ! ayudawp_euw_should_show_withdrawal( $order, false ) ) {
+		return '';
+	}
+
+	if ( '' !== $existing_status ) {
+
+		// A non-rejected request is already open: nothing to offer the customer here.
+		// A rejection is the only decision the customer may legitimately contest,
+		// and re-submitting the form is their only channel, so we keep the button
+		// (relabelled) even past the deadline in strict mode.
+		return ( 'rejected' === $existing_status ) ? 'contest' : '';
+	}
+
+	// No request yet: a brand-new one is also subject to the strict-mode
+	// deadline and to the excluded-products check. Past either, offer nothing.
+	return ayudawp_euw_should_show_withdrawal( $order ) ? 'new' : '';
+}
+
+/**
  * Add a "Withdraw" action button to each order in My Account orders list.
+ *
+ * WooCommerce prints these actions on the order-received page and on the
+ * order-tracking page too, where the visitor may have no session at all.
  *
  * @param array  $actions Order actions.
  * @param object $order   WC_Order.
@@ -1016,13 +1190,13 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 	}
 
 	// Reporting a request that exists is not the same as offering a new one, so
-	// this runs before the order-status gate below: an order that has since
-	// moved to a status which offers nothing (refunded, cancelled) is exactly
-	// when the customer comes looking for what happened to their request. An
-	// open request used to leave this slot empty, so the button simply vanished
-	// from the row and left no trace anywhere in the account. The lookup skips
-	// its fallback query, so rows without a request cost nothing: the mirror it
-	// reads has been written on every linked request since 1.4.0.
+	// this runs before the order-status gate of ayudawp_euw_get_order_offer(): an
+	// order that has since moved to a status which offers nothing (refunded,
+	// cancelled) is exactly when the customer comes looking for what happened to
+	// their request. An open request used to leave this slot empty, so the button
+	// simply vanished from the row and left no trace anywhere in the account. The
+	// lookup skips its fallback query, so rows without a request cost nothing: the
+	// mirror it reads has been written on every linked request since 1.4.0.
 	$existing        = ayudawp_euw_get_request_for_order( $order->get_id(), false );
 	$existing_status = '';
 
@@ -1031,7 +1205,10 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 		$existing_status = get_post_meta( $existing, '_ayudawp_euw_status', true );
 		$existing_status = $existing_status ? $existing_status : 'pending';
 
-		if ( ayudawp_euw_show_account_status() ) {
+		// The chip links to the customer's list in My Account, which a visitor
+		// without a session cannot open (order-received page of a guest checkout,
+		// order-tracking page), so it is not worth printing for one.
+		if ( is_user_logged_in() && ayudawp_euw_show_account_status() ) {
 			$actions['ayudawp_euw_status'] = array(
 				'url'  => ayudawp_euw_get_requests_list_url(),
 				'name' => sprintf(
@@ -1043,33 +1220,17 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 		}
 	}
 
-	// Order-status eligibility gates every entry point. The strict-mode deadline
-	// is applied further down, and only to a brand-new request: a rejected one can
-	// still be contested past the deadline, since strict mode blocks opening new
-	// requests, not re-engaging a process that is already open.
-	if ( ! ayudawp_euw_should_show_withdrawal( $order, false ) ) {
+	$offer = ayudawp_euw_get_order_offer( $order, $existing_status );
+
+	if ( '' === $offer ) {
 		return $actions;
 	}
 
-	if ( $existing ) {
+	if ( 'contest' === $offer ) {
 
-		// A non-rejected request is already open: nothing to offer the customer here.
-		if ( 'rejected' !== $existing_status ) {
-			return $actions;
-		}
-
-		// A rejection is the only decision the customer may legitimately contest,
-		// and re-submitting the form is their only channel, so we keep the button
-		// (relabelled) even past the deadline in strict mode.
 		$button_label = __( 'Contest the rejection', 'eu-withdrawal-compliance' );
 		/* translators: %s: order number. */
 		$aria_template = __( 'Contest the rejection of the withdrawal request for order %s', 'eu-withdrawal-compliance' );
-
-	} elseif ( ! ayudawp_euw_should_show_withdrawal( $order ) ) {
-
-		// No request yet: a brand-new one is also subject to the strict-mode
-		// deadline. Past it, offer nothing.
-		return $actions;
 
 	} else {
 
@@ -1087,8 +1248,20 @@ function ayudawp_euw_add_order_action( $actions, $order ) {
 
 	$order_ref = method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order->get_id();
 
+	// The My Account form needs a session. On the order-received page of a guest
+	// checkout and on the order-tracking page this button used to lead to the
+	// login screen, a dead end for someone with no account, so a visitor gets the
+	// public form instead: the same link the order emails carry.
+	$url = is_user_logged_in()
+		? ayudawp_euw_get_prefill_endpoint_url( $order_ref )
+		: ayudawp_euw_get_public_form_url( $order );
+
+	if ( '' === $url ) {
+		return $actions;
+	}
+
 	$actions['ayudawp_euw'] = array(
-		'url'        => ayudawp_euw_get_prefill_endpoint_url( $order_ref ),
+		'url'        => $url,
 		'name'       => $button_label,
 		// Without this, the WooCommerce template builds the label itself and reads
 		// out "Withdraw from order order number 396" (templates/myaccount/orders.php,
@@ -1122,6 +1295,44 @@ function ayudawp_euw_get_prefill_endpoint_url( $order_ref ) {
 		),
 		wc_get_account_endpoint_url( 'withdrawal' )
 	);
+}
+
+/**
+ * URL of the public withdrawal page, with the order number filled in.
+ *
+ * Translation-aware: on a multilingual site it is the page in the language of
+ * the visitor. With an order given, its displayed number travels as `order_id`
+ * and the form opens with the reference already typed. It needs no session and
+ * no nonce (see ayudawp_euw_prefill_from_query() for why that is safe), which is
+ * what lets it serve the order emails and the order button shown to visitors
+ * without a session alike.
+ *
+ * @param object|null $order Optional WC_Order whose number pre-fills the form.
+ * @return string Page URL, or an empty string when no withdrawal page is configured.
+ */
+function ayudawp_euw_get_public_form_url( $order = null ) {
+
+	$page_id = ayudawp_euw_get_page_id();
+
+	if ( ! $page_id || ! get_post( $page_id ) ) {
+		return '';
+	}
+
+	$url = get_permalink( $page_id );
+
+	if ( ! $url ) {
+		return '';
+	}
+
+	// Append order_id so the form can be pre-filled. Use the displayed order
+	// number when available (Sequential Order Numbers and similar plugins) so
+	// the customer sees in the form the same reference shown in their receipt.
+	if ( is_object( $order ) && method_exists( $order, 'get_id' ) ) {
+		$order_ref = method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order->get_id();
+		$url       = add_query_arg( 'order_id', $order_ref, $url );
+	}
+
+	return $url;
 }
 
 /**
@@ -1173,6 +1384,55 @@ function ayudawp_euw_customer_status_label( $status ) {
 	return isset( $labels[ $status ] ) ? $labels[ $status ] : $labels['pending'];
 }
 add_filter( 'woocommerce_my_account_my_orders_actions', 'ayudawp_euw_add_order_action', 10, 2 );
+
+/**
+ * Tell a visitor without a session how to withdraw when there is no form to open.
+ *
+ * Only for a visitor with no session, on an order that would get the button,
+ * and only when no withdrawal page is configured: the button then has nowhere to
+ * go, and without this line the visitor would be left without a way to withdraw.
+ * The address is the contact address of the Annex I.B model form
+ * (ayudawp_euw_annex_b_get_trader_data()): the trader email, else the first
+ * notification recipient, else the site admin email. It is only ever shown to
+ * someone who already holds the key or the billing email of that order.
+ *
+ * @param object $order WC_Order instance.
+ */
+function ayudawp_euw_render_guest_contact( $order ) {
+
+	if ( is_user_logged_in() || ! is_object( $order ) || ! method_exists( $order, 'get_id' ) ) {
+		return;
+	}
+
+	// The button already takes the visitor to the public form whenever there is one.
+	if ( '' !== ayudawp_euw_get_public_form_url( $order ) ) {
+		return;
+	}
+
+	if ( '' === ayudawp_euw_get_order_offer( $order ) ) {
+		return;
+	}
+
+	$trader = ayudawp_euw_annex_b_get_trader_data();
+	$email  = isset( $trader['email'] ) ? sanitize_email( $trader['email'] ) : '';
+
+	if ( '' === $email || ! is_email( $email ) ) {
+		return;
+	}
+
+	printf(
+		'<p class="ayudawp-euw-guest-contact">%s</p>',
+		wp_kses(
+			sprintf(
+				/* translators: %s: contact email address of the shop, as a link. */
+				__( 'To withdraw from this order, write to us at %s.', 'eu-withdrawal-compliance' ),
+				'<a href="' . esc_url( 'mailto:' . $email ) . '">' . esc_html( $email ) . '</a>'
+			),
+			array( 'a' => array( 'href' => array() ) )
+		)
+	);
+}
+add_action( 'woocommerce_order_details_after_order_table', 'ayudawp_euw_render_guest_contact' );
 
 /**
  * Read and verify the prefill order reference from the current request.

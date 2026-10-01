@@ -77,7 +77,7 @@ function ayudawp_euw_get_guarantee_page_id() {
  * Render the `[ayudawp_guarantee_link]` shortcode.
  *
  * Sibling of the withdrawal link above, for the page where the shop publishes
- * the harmonised notice in full. The regulation asks for the notice in a
+ * the harmonised notice in full. The directive asks for the notice in a
  * prominent place, and a permanent footer link next to the withdrawal one is
  * the standard way of getting there without imposing a layout.
  *
