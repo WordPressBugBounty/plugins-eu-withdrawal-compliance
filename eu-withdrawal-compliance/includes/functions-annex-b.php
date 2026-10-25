@@ -32,6 +32,43 @@ function ayudawp_euw_annex_b_is_enabled() {
 }
 
 /**
+ * Resolve the contact email the customer sees, and where it came from.
+ *
+ * Priority: the dedicated trader email, then the first notification recipient
+ * (the option may hold a comma-separated list), then the site admin email. The
+ * model form carries a single public contact address, not the internal
+ * notification list. A dedicated email that is not valid is skipped without
+ * trying the notification one: it falls straight to the site admin email.
+ *
+ * The source lets Settings name the address customers currently see when the
+ * dedicated field is empty, which is the one case where it is not their choice.
+ *
+ * @return array{email: string, source: string} Email, and its source: 'trader', 'notify' or 'admin'.
+ */
+function ayudawp_euw_annex_b_resolve_trader_email() {
+
+	$source = 'trader';
+	$email  = trim( (string) get_option( 'ayudawp_euw_trader_email', '' ) );
+
+	if ( '' === $email ) {
+		$source = 'notify';
+		$notify = (string) get_option( 'ayudawp_euw_notify_email', '' );
+		$parts  = array_map( 'trim', explode( ',', $notify ) );
+		$email  = isset( $parts[0] ) ? $parts[0] : '';
+	}
+
+	if ( '' === $email || ! is_email( $email ) ) {
+		$source = 'admin';
+		$email  = (string) get_option( 'admin_email' );
+	}
+
+	return array(
+		'email'  => $email,
+		'source' => $source,
+	);
+}
+
+/**
  * Build the trader-side data array used to populate the model.
  *
  * Pulls the trader name from WordPress and the email/phone from the plugin
@@ -45,21 +82,8 @@ function ayudawp_euw_annex_b_get_trader_data() {
 
 	$name = ayudawp_euw_get_site_name();
 
-	// Contact email for the model form. Priority: the dedicated trader email,
-	// then the first notification recipient (the option may hold a comma-separated
-	// list), then the site admin email. The model form carries a single public
-	// contact address, not the internal notification list.
-	$email = trim( (string) get_option( 'ayudawp_euw_trader_email', '' ) );
-
-	if ( '' === $email ) {
-		$notify = (string) get_option( 'ayudawp_euw_notify_email', '' );
-		$parts  = array_map( 'trim', explode( ',', $notify ) );
-		$email  = isset( $parts[0] ) ? $parts[0] : '';
-	}
-
-	if ( '' === $email || ! is_email( $email ) ) {
-		$email = (string) get_option( 'admin_email' );
-	}
+	$resolved = ayudawp_euw_annex_b_resolve_trader_email();
+	$email    = $resolved['email'];
 
 	$phone = (string) get_option( 'ayudawp_euw_trader_phone', '' );
 
@@ -228,19 +252,13 @@ function ayudawp_euw_annex_b_get_inner_html() {
  * Anchors on the configured withdrawal page so the print view shares the
  * site theme (header, footer) and uses one of WordPress' standard routes.
  *
- * @return string Permalink or empty string if no page is configured.
+ * @return string Permalink, or an empty string if no published page is configured.
  */
 function ayudawp_euw_annex_b_get_print_url() {
 
-	$page_id = ayudawp_euw_get_page_id();
+	$base_url = ayudawp_euw_get_page_url();
 
-	if ( ! $page_id || ! get_post( $page_id ) ) {
-		return '';
-	}
-
-	$base_url = get_permalink( $page_id );
-
-	if ( ! $base_url ) {
+	if ( '' === $base_url ) {
 		return '';
 	}
 
@@ -353,7 +371,7 @@ function ayudawp_euw_annex_b_render_standalone() {
 	$site_name      = ayudawp_euw_get_site_name();
 	$site_url       = (string) home_url( '/' );
 	$generated_at   = gmdate( 'Y-m-d H:i:s' );
-	$back_url       = (string) get_permalink( $page_id );
+	$back_url       = ayudawp_euw_get_page_url();
 	$document_title = __( 'Model withdrawal form (Annex I.B)', 'eu-withdrawal-compliance' );
 
 	nocache_headers();

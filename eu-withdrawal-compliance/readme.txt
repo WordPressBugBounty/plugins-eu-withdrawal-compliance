@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,7 +89,7 @@ Add a section to your privacy policy describing this storage. The plugin contrib
 
 1. Upload the plugin folder to `/wp-content/plugins/`.
 2. Activate the plugin from the **Plugins** screen.
-3. The plugin creates a "Right of withdrawal" page automatically with a sample legal template. Review and edit it from **Pages**.
+3. The plugin creates a "Right of withdrawal" page as a draft, with a sample legal template. Review it from **Pages** and publish it: until then customers cannot reach the form.
 4. Go to **EU Compliance → Settings** to configure the notification email address and the page that hosts the form.
 5. Add the URL of the withdrawal page to your footer or to the legal links section so it is visible from any page on your site.
 
@@ -199,7 +199,13 @@ The right of withdrawal protects consumers (natural persons acting outside their
 
 = Does the plugin include the Annex I.B model withdrawal form required by Directive 2011/83/EU? =
 
-Yes. The plugin renders the Annex I.B model form dynamically from the shop name, address (from WooCommerce when available) and notification email, with an optional trader phone configurable from settings. It appears as a collapsible block right below the public withdrawal form, with a printable view available from the same page. Providing this model is a pre-contractual information obligation under Art. 6(1)(h) of Directive 2011/83/EU — the online function added by Directive 2023/2673 complements but does not replace it.
+Yes, built from your shop name, address (from WooCommerce when available), contact email and an optional phone. It appears as a collapsible block below the public form, with a printable view. Providing it is a pre-contractual duty under Art. 6(1)(h) of Directive 2011/83/EU, which the online function does not replace.
+
+= The withdrawal page cites Directive 2011/83/EU. Isn't the new law Directive 2023/2673? =
+
+Both are right. Directive 2023/2673 is titled after financial services, but it also adds Article 11a to Directive 2011/83/EU, and that article obliges every online shop to offer the withdrawal function from 19 June 2026. The right itself, its 14 days and its exceptions still come from 2011/83/EU.
+
+Financial services contracted at a distance follow their own rules, so the sample page gives them a separate section: delete it if you do not offer them. The plugin does not cover the pre-contractual information those contracts require.
 
 = What is the receipt verification code in the customer email? =
 
@@ -207,7 +213,7 @@ It is a SHA-256 hash computed from the request data (post ID, customer name, ema
 
 = Can I choose who can manage withdrawal requests? =
 
-Yes, from **EU Compliance → Settings → Permissions**. Because each request stores personal data (name, email, IP), you pick which user roles, besides the administrator, may view and manage them. The administrator always has access and cannot be unticked. On sites updating from an earlier version, the roles that could already see requests (typically Editor, and Shop manager on WooCommerce) keep their access so nothing breaks; you then untick any you want to remove. New installs start administrator-only.
+Yes, from **EU Compliance → Settings → Permissions**: requests hold personal data, so you pick which roles besides the administrator may manage them. New installs start administrator-only; sites updated from an earlier version keep the roles that already had access until you untick them.
 
 = Does it support HPOS (High-Performance Order Storage)? =
 
@@ -215,7 +221,7 @@ Yes. The plugin declares HPOS compatibility on load.
 
 = Does the plugin work without WooCommerce? =
 
-Yes. The form, shortcode, withdrawal request log, email notifications, SHA-256 receipt hash and native GDPR integration all run as a standalone tool, with their own top-level **Withdrawals** menu in the admin and a **Settings** submenu. The plugin layers extra features on top automatically when WooCommerce is active: order/email validation gated by eligible order statuses (with an advisory deadline flag for the admin), "My Account" withdrawal endpoint, withdrawal notice injected into transactional emails, "Withdrawal" column in the orders screen, private order notes on every status change, and Article 16 exclusions by product/category. Activating WooCommerce later lights those features up; deactivating it leaves the standalone features intact.
+Yes. The form, shortcode, request log, emails, receipt hash, Annex I.B and GDPR tools run on their own, under a **Withdrawals** menu. With WooCommerce active you also get order validation, the My Account endpoint, the notice in order emails, the orders column, order notes and the Article 16 exclusions. Activating or deactivating WooCommerce later leaves the standalone features intact.
 
 = Does it work with plugins that change the WooCommerce order number (Sequential Order Numbers, Custom Order Numbers, etc.)? =
 
@@ -225,9 +231,11 @@ Yes. The form accepts both the internal WooCommerce order ID and the displayed o
 
 Yes, with **Accept unmatched requests** under **EU Compliance → Settings → Eligible order statuses**. By default the form rejects a submission whose order number and email match no order. With the option on it is registered anyway and flagged as *Unverified*: the customer sees a notice inviting them to check the reference and can still confirm, and the request arrives highlighted in the notification email, in the list and in its detail screen, so you verify it against your records before deciding. Unverified requests are never linked to an order, and the acknowledgement is still sent. Off by default.
 
+An order with no billing email, such as a phone order keyed in by hand, gives the form nothing to check against. Its requests are always registered as unverified, even with the option off, and the order is suggested to you only when the order date the customer gives matches it.
+
 = The form says the request is no longer awaiting confirmation, right after the customer submitted it. Why? =
 
-The two-step flow keeps the validated declaration on the server, in a 15-minute single-use transient, between the form and the review screen. When an object cache does not store transients reliably (a misconfigured Redis or Memcached drop-in, or a cache plugin flushing them aggressively) the declaration is gone by the time the customer confirms. Disable the object cache for a moment and submit again: if the flow completes, that was it. Carrying the declaration in the URL instead would break the guarantee that what gets registered is exactly what was validated, so the fix belongs to the cache configuration.
+The declaration waits on the server, in a 15-minute single-use transient, between the form and the review screen. An object cache that drops transients (a misconfigured Redis or Memcached drop-in, or a plugin flushing them) loses it before the customer confirms. Disable the object cache for a moment and submit again: if it works, fix the cache configuration.
 
 = Will the notice appear on every WooCommerce email? =
 
@@ -251,11 +259,11 @@ The acknowledgement of receipt follows the language of the page the customer sen
 
 = Does the plugin pass GDPR requirements? =
 
-The plugin asks for explicit privacy policy acceptance before submission and stores the visitor IP and user agent only for the purpose of legal traceability of the request. See the **Privacy** section above for the full list of stored fields. The plugin also integrates natively with the WordPress GDPR tools: a suggested Privacy Policy snippet appears in **Settings → Privacy → Policy Guide**, and withdrawal data is exposed to **Tools → Export Personal Data** and **Tools → Erase Personal Data** so admins can fulfil access and erasure requests without leaving the WordPress admin.
+It asks for explicit acceptance of your privacy policy, stores the IP and user agent only for the legal traceability of the request, and plugs into the WordPress privacy tools. The **Privacy** section above lists the stored fields and those tools.
 
 = What happens if the customer deletes their WordPress user account? =
 
-The withdrawal log is independent of the WordPress user table — it lives as a private custom post type indexed by the customer email. Deleting the user account does not delete the log automatically; the customer must request erasure through **Tools → Erase Personal Data** (where the plugin registers an eraser that removes every withdrawal request matching the customer email) or you can delete the corresponding `ayudawp_withdrawal` entries manually if your retention policy requires it.
+Nothing: the log is keyed on the customer email, not on the user account. To remove their requests, use **Tools → Erase Personal Data** with that email, or delete the entries by hand if your retention policy requires it.
 
 = Can I customise the emails? =
 
@@ -300,6 +308,21 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.3.3 =
+New installs create the withdrawal page as a draft and hide links to an unpublished page. Requests on orders without a billing email are no longer linked to the order. Also warns about checkout consents that do not match your products.
+
+* Improved: On a new install the withdrawal page is created as a draft, so you can review its sample text before customers see it. A dashboard notice stays until the page is published, and the activation notice and the page warning in the settings say why it is a draft.
+* Improved: While the withdrawal page is not published, the plugin leaves out every link to it (the notice and button in WooCommerce emails, the withdrawal button for guests, the `[ayudawp_withdrawal_link]` shortcode, the link in the excluded-product notice and the printable model form) instead of pointing customers to a page they cannot open. A guest is given the shop contact email instead. This also applies to sites whose withdrawal page was already unpublished. On multilingual sites, a translation that is not published falls back to the published original.
+* Improved: The sample withdrawal page now cites Directive 2011/83/EU and its Article 11a as the source of the right, instead of Directive 2023/2673 alone, and has a separate section for financial services contracted at a distance. Existing pages are not changed.
+* Improved: The checkout consent settings warn when a consent is switched off while some products or categories still use the withdrawal status that needs it, and note when a consent that is on is used by none.
+* Improved: When the Annex I.B contact email field is empty, the settings name the address customers are being shown instead (the first notification address, or the site admin email) so you can decide whether to fill it in.
+* Improved: After sending a request the customer sees what happens next: the acknowledgement to keep, the emails that will follow, the link to follow it in their account when they have one, and the shop contact email.
+* Improved: Tested up to WooCommerce 11.2.
+* Fix: A request on an order with no billing email, such as a phone order keyed in by hand, was linked to that order just by typing its number, and the form could tell whoever typed it whether that order already had a request open. It is now registered as unverified and not linked, even with "Accept unmatched requests" off, and the order is suggested to you only when the order date the customer gives matches it, give or take a day. Such a request no longer shows in the Withdrawal column of the order nor holds back a second one: you resolve it from its detail screen.
+* Fix: An order number containing "#" or "&" broke the pre-filled links to the withdrawal form, in the customer account and in the order emails.
+* Fix: On sites in a right-to-left language (Arabic, Hebrew, Persian) the page with the withdrawal form could be scrolled sideways for about 10,000 pixels, pushed by the hidden anti-spam field, and the buttons and notice borders sat on the wrong side. The front-end styles now use logical properties.
+* Fix: The checkout consent settings described an older way of choosing the products each consent applies to, and named a past version of the plugin.
+
 = 2.3.2 =
 Orders that only hold products excluded from the right of withdrawal no longer show the withdrawal button or the notice in their emails, and mixed orders name the excluded ones. Also fixes the withdrawal button that sent guests to the login screen.
 
@@ -342,8 +365,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.3.2 =
-Orders that only hold products excluded from the right of withdrawal no longer show the withdrawal button or the notice in their emails, and mixed orders name the excluded ones. Also fixes the withdrawal button that sent guests to the login screen.
+= 2.3.3 =
+New installs create the withdrawal page as a draft and hide links to an unpublished page. Requests on orders without a billing email are no longer linked to the order. Also warns about checkout consents that do not match your products.
 
 == Support ==
 

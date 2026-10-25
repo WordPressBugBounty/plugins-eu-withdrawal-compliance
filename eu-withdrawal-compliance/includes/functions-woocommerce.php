@@ -164,7 +164,7 @@ function ayudawp_euw_accepts_unmatched() {
  * Shared by the CSV export and any listing that prints the flag. Returns an
  * empty string for a matched request (no meta stored).
  *
- * @param string $reason Stored reason ('order_not_found'|'email_mismatch'), or ''.
+ * @param string $reason Stored reason ('order_not_found'|'email_mismatch'|'order_without_email'), or ''.
  * @return string Translated label, or empty string.
  */
 function ayudawp_euw_unverified_reason_label( $reason ) {
@@ -174,8 +174,9 @@ function ayudawp_euw_unverified_reason_label( $reason ) {
 	}
 
 	$labels = array(
-		'order_not_found' => __( 'Order not found', 'eu-withdrawal-compliance' ),
-		'email_mismatch'  => __( 'Email mismatch', 'eu-withdrawal-compliance' ),
+		'order_not_found'     => __( 'Order not found', 'eu-withdrawal-compliance' ),
+		'email_mismatch'      => __( 'Email mismatch', 'eu-withdrawal-compliance' ),
+		'order_without_email' => __( 'Order without email', 'eu-withdrawal-compliance' ),
 	);
 
 	return isset( $labels[ $reason ] ) ? $labels[ $reason ] : __( 'Unverified', 'eu-withdrawal-compliance' );
@@ -195,20 +196,23 @@ function ayudawp_euw_unverified_reason_label( $reason ) {
  * (accept as plain valid, no flag) for sites that treat non-WC purchases as
  * normal business.
  *
- * @param string $order_ref Order number or ID provided by the user.
- * @param string $email     Customer email.
+ * @param string $order_ref     Order number or ID provided by the user.
+ * @param string $email         Customer email.
+ * @param string $declared_date Optional. Order date typed by the customer (Y-m-d). Only compared for orders without a billing email.
  * @return array {
  *     @type bool   $valid           Whether the request may proceed.
  *     @type string $error           Error code if invalid.
  *     @type int    $order_id        WooCommerce order ID if matched.
  *     @type string $unverified      Optional. Reason the request was accepted
- *                                   without a matched order ('order_not_found'
- *                                   or 'email_mismatch').
+ *                                   without a matched order ('order_not_found',
+ *                                   'email_mismatch' or 'order_without_email').
  *     @type int    $unverified_hint Optional. Order ID whose billing email did
- *                                   not match, stored as an admin-only hint.
+ *                                   not match, stored as an admin-only hint. Also
+ *                                   the order without a billing email whose date
+ *                                   matched the one the customer gave.
  * }
  */
-function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
+function ayudawp_euw_validate_wc_order( $order_ref, $email, $declared_date = '' ) {
 
 	$default = array(
 		'valid'    => true,
@@ -249,13 +253,39 @@ function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
 		);
 	}
 
+	$order_email = method_exists( $order, 'get_billing_email' ) ? $order->get_billing_email() : '';
+
+	// An order with no billing email (a phone order keyed in by hand) has nothing
+	// to check the customer's email against, so it is never linked: typing an
+	// order number is no proof of ownership. The request is registered unlinked
+	// for manual review, and the order ID travels as an admin-only hint only when
+	// the order date the customer typed matches the order's (give or take a day;
+	// the date never links, one in thirty orders would pass it by chance).
+	// This is the one case that ignores the "Accept unmatched requests" setting:
+	// the missing email was left out by the shop, not the customer, and Article
+	// 11a asks for the function to be available to every consumer. Returning here
+	// also keeps this path clear of the duplicate notice further down, which would
+	// reveal whether that order already has an open request.
+	if ( '' === trim( (string) $order_email ) ) {
+		$result = array(
+			'valid'      => true,
+			'error'      => '',
+			'order_id'   => 0,
+			'unverified' => 'order_without_email',
+		);
+
+		if ( ayudawp_euw_order_date_matches( $order, $declared_date ) ) {
+			$result['unverified_hint'] = $order->get_id();
+		}
+
+		return $result;
+	}
+
 	// If we have a WC order, verify the email matches. On mismatch, the
 	// unmatched-requests setting also applies: the request is registered
 	// unlinked (typing an order number is no proof of ownership), with the
 	// order ID stored separately as an admin-only hint for the manual check.
-	$order_email = method_exists( $order, 'get_billing_email' ) ? $order->get_billing_email() : '';
-
-	if ( ! empty( $order_email ) && strtolower( trim( $order_email ) ) !== strtolower( trim( $email ) ) ) {
+	if ( strtolower( trim( $order_email ) ) !== strtolower( trim( $email ) ) ) {
 		if ( ayudawp_euw_accepts_unmatched() ) {
 			return array(
 				'valid'           => true,
@@ -336,6 +366,56 @@ function ayudawp_euw_validate_wc_order( $order_ref, $email ) {
 		'error'    => '',
 		'order_id' => $order->get_id(),
 	);
+}
+
+/**
+ * Whether the order date the customer typed matches the order's, give or take a day.
+ *
+ * Used only for orders without a billing email, where it decides whether the
+ * order is offered to the shop as a hint. It never links a request to an order:
+ * a date is guessable, so one in thirty orders would pass by chance.
+ *
+ * Both sides are calendar dates, not instants. The customer read the date on a
+ * receipt printed in the site's time zone (wc_format_datetime()), and
+ * WC_DateTime::date() formats the order's timestamp with the site's offset
+ * (includes/class-wc-datetime.php:92-94 in WooCommerce 11.2.1), so the two are
+ * compared as written. They are rebuilt as midnight in UTC only so that the
+ * difference in days is not thrown off by a clock change.
+ *
+ * @param object $order         WC_Order instance.
+ * @param string $declared_date Date typed by the customer (Y-m-d), or empty.
+ * @return bool False when either date is missing or the typed one is not a strict Y-m-d.
+ */
+function ayudawp_euw_order_date_matches( $order, $declared_date ) {
+
+	$declared_date = trim( (string) $declared_date );
+
+	if ( '' === $declared_date || ! method_exists( $order, 'get_date_created' ) ) {
+		return false;
+	}
+
+	$created = $order->get_date_created();
+
+	if ( ! $created ) {
+		return false;
+	}
+
+	$utc      = new DateTimeZone( 'UTC' );
+	$declared = DateTime::createFromFormat( '!Y-m-d', $declared_date, $utc );
+
+	// createFromFormat() accepts 2026-02-31 and rolls it over, so the round trip
+	// is what proves the string was a real date written the strict way.
+	if ( ! $declared || $declared->format( 'Y-m-d' ) !== $declared_date ) {
+		return false;
+	}
+
+	$ordered = DateTime::createFromFormat( '!Y-m-d', $created->date( 'Y-m-d' ), $utc );
+
+	if ( ! $ordered ) {
+		return false;
+	}
+
+	return $declared->diff( $ordered )->days <= 1;
 }
 
 /**
@@ -1288,9 +1368,13 @@ function ayudawp_euw_get_prefill_endpoint_url( $order_ref ) {
 		return '';
 	}
 
+	// add_query_arg() does not encode its values. Left raw, a "&" in the order
+	// number split the parameter and the nonce no longer matched it, and a "#"
+	// cut the URL short. The nonce is still created on the raw reference: PHP
+	// decodes the value before ayudawp_euw_get_prefill_order_id() verifies it.
 	return add_query_arg(
 		array(
-			'order_id' => $order_ref,
+			'order_id' => rawurlencode( (string) $order_ref ),
 			'_wpnonce' => wp_create_nonce( 'ayudawp_euw_prefill_' . $order_ref ),
 		),
 		wc_get_account_endpoint_url( 'withdrawal' )
@@ -1308,28 +1392,24 @@ function ayudawp_euw_get_prefill_endpoint_url( $order_ref ) {
  * without a session alike.
  *
  * @param object|null $order Optional WC_Order whose number pre-fills the form.
- * @return string Page URL, or an empty string when no withdrawal page is configured.
+ * @return string Page URL, or an empty string when no withdrawal page is configured
+ *                or the page is not published yet.
  */
 function ayudawp_euw_get_public_form_url( $order = null ) {
 
-	$page_id = ayudawp_euw_get_page_id();
+	$url = ayudawp_euw_get_page_url();
 
-	if ( ! $page_id || ! get_post( $page_id ) ) {
-		return '';
-	}
-
-	$url = get_permalink( $page_id );
-
-	if ( ! $url ) {
+	if ( '' === $url ) {
 		return '';
 	}
 
 	// Append order_id so the form can be pre-filled. Use the displayed order
 	// number when available (Sequential Order Numbers and similar plugins) so
 	// the customer sees in the form the same reference shown in their receipt.
+	// Encoded by hand: add_query_arg() leaves a "#" or "&" in the number raw.
 	if ( is_object( $order ) && method_exists( $order, 'get_id' ) ) {
 		$order_ref = method_exists( $order, 'get_order_number' ) ? $order->get_order_number() : $order->get_id();
-		$url       = add_query_arg( 'order_id', $order_ref, $url );
+		$url       = add_query_arg( 'order_id', rawurlencode( (string) $order_ref ), $url );
 	}
 
 	return $url;
@@ -1389,8 +1469,9 @@ add_filter( 'woocommerce_my_account_my_orders_actions', 'ayudawp_euw_add_order_a
  * Tell a visitor without a session how to withdraw when there is no form to open.
  *
  * Only for a visitor with no session, on an order that would get the button,
- * and only when no withdrawal page is configured: the button then has nowhere to
- * go, and without this line the visitor would be left without a way to withdraw.
+ * and only when there is no withdrawal page to send them to, because none is
+ * configured or it is not published yet: the button then has nowhere to go, and
+ * without this line the visitor would be left without a way to withdraw.
  * The address is the contact address of the Annex I.B model form
  * (ayudawp_euw_annex_b_get_trader_data()): the trader email, else the first
  * notification recipient, else the site admin email. It is only ever shown to

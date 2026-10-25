@@ -61,7 +61,8 @@
 
 	.ayudawp-euw-guarantee__close {
 		display: block;
-		margin: 0 0 1em auto;
+		margin-block: 0 1em;
+		margin-inline: auto 0;
 		cursor: pointer;
 	}
 

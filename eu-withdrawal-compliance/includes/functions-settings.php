@@ -1177,6 +1177,10 @@ function ayudawp_euw_field_page_callback() {
 
 	$selected = (int) get_option( 'ayudawp_euw_page_id', 0 );
 
+	// get_pages() lists published pages only unless told otherwise
+	// (wp-includes/post.php:6559 in 7.1.3). A new install creates the page as a
+	// draft, so without the other statuses the selector would not offer it and
+	// the first save of this screen would store 0 in its place.
 	echo wp_kses(
 		wp_dropdown_pages(
 			array(
@@ -1184,6 +1188,7 @@ function ayudawp_euw_field_page_callback() {
 				'show_option_none'  => __( '— Select a page —', 'eu-withdrawal-compliance' ),
 				'option_none_value' => '0',
 				'selected'          => $selected,
+				'post_status'       => array( 'publish', 'draft', 'pending', 'future', 'private' ),
 				'echo'              => 0,
 			)
 		),
@@ -1226,8 +1231,8 @@ function ayudawp_euw_field_page_callback() {
  *
  * The sample text used to carry its own "review before publishing" paragraph in
  * the page content, which meant it was published to customers whenever nobody
- * deleted it. The reminder lives here instead, and disappears on its own the
- * first time the page is saved.
+ * deleted it. The reminder lives here instead, and disappears on its own once
+ * the text is changed.
  *
  * @param int $page_id Configured page ID.
  * @return bool
@@ -1246,9 +1251,19 @@ function ayudawp_euw_page_is_untouched_template( $page_id ) {
 		return false;
 	}
 
+	// Pages created from 2.3.3 on keep a hash of the content as it was written,
+	// and that is what "untouched" means. The dates cannot tell for a draft: it
+	// has no GMT date (wp-includes/post.php:4779-4783 in 7.1.3) and every save
+	// of a draft moves its date along with the modified one (:5356-5372).
+	$created_hash = (string) get_option( 'ayudawp_euw_page_created_hash', '' );
+
+	if ( '' !== $created_hash ) {
+		return hash_equals( $created_hash, md5( (string) $page->post_content ) );
+	}
+
+	// Pages created earlier were published straight away, and there
 	// wp_insert_post() stamps both dates alike, so any later save moves the
-	// modified one. Cheaper and more reliable than diffing the content against
-	// a template that is translated per locale.
+	// modified one.
 	return $page->post_modified_gmt === $page->post_date_gmt;
 }
 
@@ -1256,10 +1271,11 @@ function ayudawp_euw_page_is_untouched_template( $page_id ) {
  * Describe what is wrong with the configured withdrawal page, if anything.
  *
  * A page that was trashed, unpublished or emptied of the shortcode fails
- * silently: every link the plugin prints keeps pointing at it and the customer
- * lands somewhere without a form, which is the one thing Article 11a asks the
- * trader to make easy to find. Reported next to the selector, without blocking
- * the save: the shop may be mid-rebuild.
+ * silently: the customer cannot reach a form, which is the one thing Article 11a
+ * asks the trader to make easy to find (while the page is not published the
+ * plugin hides the links to it, but the function is not available either).
+ * Reported next to the selector, without blocking the save: the shop may be
+ * mid-rebuild.
  *
  * @param int $page_id Configured page ID.
  * @return string Human-readable problem, or an empty string when all is well.
@@ -1279,11 +1295,18 @@ function ayudawp_euw_get_page_problem( $page_id ) {
 	}
 
 	if ( 'trash' === $page->post_status ) {
-		return __( 'The selected page is in the trash, so customers following a withdrawal link reach a page not found.', 'eu-withdrawal-compliance' );
+		return __( 'The selected page is in the trash, so customers cannot reach the form and the plugin hides the links that would point to it.', 'eu-withdrawal-compliance' );
 	}
 
 	if ( 'publish' !== $page->post_status ) {
-		return __( 'The selected page is not published, so only logged-in editors can see the form.', 'eu-withdrawal-compliance' );
+
+		// The plugin writes a new install's page as a draft on purpose, so it
+		// gets its own wording: nothing is broken, the page just awaits review.
+		if ( 'draft' === $page->post_status && $page_id === absint( get_option( 'ayudawp_euw_page_created_id', 0 ) ) ) {
+			return __( 'The plugin created this page as a draft on purpose, so you can review its sample text before customers see it. Until you publish it, the withdrawal function is not available to them and the links to the form stay hidden.', 'eu-withdrawal-compliance' );
+		}
+
+		return __( 'The selected page is not published, so only logged-in editors can see the form and the plugin hides the links that would point to it.', 'eu-withdrawal-compliance' );
 	}
 
 	// Page builders keep their layout elsewhere and leave post_content empty or
@@ -1295,6 +1318,61 @@ function ayudawp_euw_get_page_problem( $page_id ) {
 
 	return '';
 }
+
+/**
+ * Warn, on every dashboard screen, that the withdrawal page is not published.
+ *
+ * A new install creates the page as a draft, and until somebody publishes it
+ * customers cannot reach the form and every link to it stays hidden, which is
+ * the one thing the plugin exists to provide. Not dismissible on purpose: it
+ * goes away by itself when the page is published, so it cannot be hidden while
+ * the problem remains. Reads the raw option, not the translated page, because
+ * the trader manages the single canonical page. A trashed or missing page is
+ * left to the notice next to the page selector.
+ */
+function ayudawp_euw_render_unpublished_page_notice() {
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	// Right after activation the welcome notice says the same thing, a moment
+	// later on this very screen (it runs after this one and clears the flag).
+	if ( get_transient( 'ayudawp_euw_just_activated' ) ) {
+		return;
+	}
+
+	$page_id = (int) get_option( 'ayudawp_euw_page_id', 0 );
+
+	if ( ! $page_id ) {
+		return;
+	}
+
+	$page = get_post( $page_id );
+
+	if ( ! $page || 'page' !== $page->post_type || ! in_array( $page->post_status, array( 'draft', 'pending', 'future', 'private' ), true ) ) {
+		return;
+	}
+
+	$edit_link = get_edit_post_link( $page_id );
+
+	?>
+	<div class="notice notice-warning">
+		<p>
+			<strong><?php esc_html_e( 'EU Withdrawal and Legal Guarantee Compliance:', 'eu-withdrawal-compliance' ); ?></strong>
+			<?php esc_html_e( 'your withdrawal page is not published yet. Until it is, customers cannot reach the withdrawal form, and the links to it in your emails, product pages and footer stay hidden.', 'eu-withdrawal-compliance' ); ?>
+		</p>
+		<?php if ( $edit_link ) : ?>
+			<p>
+				<a href="<?php echo esc_url( $edit_link ); ?>" class="button button-primary">
+					<?php esc_html_e( 'Review and publish it', 'eu-withdrawal-compliance' ); ?>
+				</a>
+			</p>
+		<?php endif; ?>
+	</div>
+	<?php
+}
+add_action( 'admin_notices', 'ayudawp_euw_render_unpublished_page_notice' );
 
 /**
  * "Status in the customer account" field callback.
@@ -1475,6 +1553,9 @@ function ayudawp_euw_field_accept_unmatched_callback() {
 			);
 			?>
 		</p>
+		<p class="description">
+			<?php esc_html_e( 'Requests on an order with no billing email (a phone order keyed in by hand) are always registered this way, even with this option off: the customer cannot be asked for an address the order does not have.', 'eu-withdrawal-compliance' ); ?>
+		</p>
 	</fieldset>
 	<?php
 }
@@ -1639,12 +1720,12 @@ function ayudawp_euw_consent_section_callback() {
 
 	echo '<p>' . esc_html__( 'These two checkboxes can be injected at the WooCommerce checkout for products (or product categories) that you flag in the product editor. They cover the two checkout-time consents the EU consumer-rights regime expects when you want to apply specific exceptions to the right of withdrawal.', 'eu-withdrawal-compliance' ) . '</p>';
 
-	echo '<p>' . esc_html__( 'The fields are independent from the Article 16 exclusion flag — tick the corresponding consent type in the product or category edit screen for every item where you want the checkbox to appear at checkout.', 'eu-withdrawal-compliance' ) . '</p>';
+	echo '<p>' . esc_html__( 'Each checkbox shows at checkout only when the cart holds a product whose withdrawal status asks for it, set on the product or inherited from its category: “Digital content (Art. 16(m))” for the first, “Service started early (Art. 14(4)(a))” for the second.', 'eu-withdrawal-compliance' ) . '</p>';
 
 	if ( class_exists( 'WooCommerce' ) && ayudawp_euw_checkout_uses_block() ) {
 
 		echo '<p><strong>' . esc_html__( 'Heads up:', 'eu-withdrawal-compliance' ) . '</strong> ';
-		echo esc_html__( 'your checkout page uses the WooCommerce Checkout block. This version of the plugin injects the consents only into the classic shortcode checkout. To use them in v1.5.0, replace the Checkout block with the [woocommerce_checkout] shortcode in the checkout page. Block-based checkout support is planned for a future release.', 'eu-withdrawal-compliance' );
+		echo esc_html__( 'your checkout page uses the WooCommerce Checkout block. The consents are injected only into the classic shortcode checkout, so replace the Checkout block with the [woocommerce_checkout] shortcode to use them. Block-based checkout support is planned for a future release.', 'eu-withdrawal-compliance' );
 		echo '</p>';
 	}
 }
@@ -1676,6 +1757,68 @@ function ayudawp_euw_checkout_uses_block() {
 }
 
 /**
+ * Count the products and categories that carry a given withdrawal status.
+ *
+ * Direct settings only: a product that merely inherits the status from its
+ * category is not counted on its own, since the category already is. Cached per
+ * request, and meant for the two consent callbacks below, so it only ever runs
+ * on the settings screen.
+ *
+ * @param string $status Withdrawal status, e.g. 'art16m_digital'.
+ * @return array{products: int, categories: int}
+ */
+function ayudawp_euw_count_status_usage( $status ) {
+
+	static $cache = array();
+
+	$status = (string) $status;
+
+	if ( isset( $cache[ $status ] ) ) {
+		return $cache[ $status ];
+	}
+
+	$meta_key   = '_ayudawp_euw_withdrawal_status';
+	$categories = 0;
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => array( 'product', 'product_variation' ),
+			'post_status'            => 'any',
+			'meta_key'               => $meta_key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only on the settings screen, one row fetched, the count comes from found_posts.
+			'meta_value'             => $status, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only on the settings screen, one row fetched, the count comes from found_posts.
+			'fields'                 => 'ids',
+			'posts_per_page'         => 1,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+		)
+	);
+
+	$products = (int) $query->found_posts;
+
+	if ( taxonomy_exists( 'product_cat' ) ) {
+
+		$found = get_terms(
+			array(
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+				'fields'     => 'count',
+				'meta_key'   => $meta_key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only on the settings screen, a count of the few categories that carry the status.
+				'meta_value' => $status, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only on the settings screen, a count of the few categories that carry the status.
+			)
+		);
+
+		$categories = is_wp_error( $found ) ? 0 : (int) $found;
+	}
+
+	$cache[ $status ] = array(
+		'products'   => $products,
+		'categories' => $categories,
+	);
+
+	return $cache[ $status ];
+}
+
+/**
  * Type A consent field callback (mandatory, digital content).
  */
 function ayudawp_euw_field_consent_a_callback() {
@@ -1688,6 +1831,7 @@ function ayudawp_euw_field_consent_a_callback() {
 	$enabled = get_option( 'ayudawp_euw_consent_a_enabled', 'yes' );
 	$text    = (string) get_option( 'ayudawp_euw_consent_a_text', '' );
 	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_consent_a_text' );
+	$usage   = ayudawp_euw_count_status_usage( 'art16m_digital' );
 
 	?>
 	<fieldset>
@@ -1710,6 +1854,26 @@ function ayudawp_euw_field_consent_a_callback() {
 		<p class="description">
 			<?php esc_html_e( 'Leave it empty to use the bundled text shown in the field, which follows the language of each customer. Your own text is shown exactly as written, in every language. Basic HTML allowed: links, strong, em.', 'eu-withdrawal-compliance' ); ?>
 		</p>
+		<?php if ( 'yes' !== $enabled && ( $usage['products'] || $usage['categories'] ) ) : ?>
+			<div class="notice notice-warning inline">
+				<p>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: number of products, 2: number of product categories. */
+							__( 'This consent is off, but some products or categories are set to “Digital content (Art. 16(m))” (products: %1$d, categories: %2$d). Without the consent the Article 16(m) exception does not apply, so buyers of those products keep their 14-day right of withdrawal. Switch it on, or change their status.', 'eu-withdrawal-compliance' ),
+							$usage['products'],
+							$usage['categories']
+						)
+					);
+					?>
+				</p>
+			</div>
+		<?php elseif ( 'yes' === $enabled && ! $usage['products'] && ! $usage['categories'] ) : ?>
+			<p class="description">
+				<?php esc_html_e( 'No product or category is set to “Digital content (Art. 16(m))” yet, so this checkbox does not show at checkout.', 'eu-withdrawal-compliance' ); ?>
+			</p>
+		<?php endif; ?>
 	</fieldset>
 	<?php
 }
@@ -1727,6 +1891,7 @@ function ayudawp_euw_field_consent_b_callback() {
 	$enabled = get_option( 'ayudawp_euw_consent_b_enabled', 'yes' );
 	$text    = (string) get_option( 'ayudawp_euw_consent_b_text', '' );
 	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_consent_b_text' );
+	$usage   = ayudawp_euw_count_status_usage( 'art14_4a_service' );
 
 	?>
 	<fieldset>
@@ -1763,6 +1928,26 @@ function ayudawp_euw_field_consent_b_callback() {
 			);
 			?>
 		</p>
+		<?php if ( 'yes' !== $enabled && ( $usage['products'] || $usage['categories'] ) ) : ?>
+			<div class="notice notice-warning inline">
+				<p>
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: number of products, 2: number of product categories. */
+							__( 'This consent is off, but some products or categories are set to “Service started early (Art. 14(4)(a))” (products: %1$d, categories: %2$d). Without the customer\'s express request at checkout you cannot charge for the part of the service already provided if they withdraw. Switch it on, or change their status.', 'eu-withdrawal-compliance' ),
+							$usage['products'],
+							$usage['categories']
+						)
+					);
+					?>
+				</p>
+			</div>
+		<?php elseif ( 'yes' === $enabled && ! $usage['products'] && ! $usage['categories'] ) : ?>
+			<p class="description">
+				<?php esc_html_e( 'No product or category is set to “Service started early (Art. 14(4)(a))” yet, so this checkbox does not show at checkout.', 'eu-withdrawal-compliance' ); ?>
+			</p>
+		<?php endif; ?>
 	</fieldset>
 	<?php
 }
@@ -1843,9 +2028,11 @@ function ayudawp_euw_field_trader_phone_callback() {
 /**
  * Trader contact email field callback.
  *
- * Dedicated contact address shown in the Annex I.B model form. Read with
- * priority over the (possibly multi-recipient) notification email, so the
- * public model form can point consumers to a clean contact mailbox.
+ * Dedicated contact address shown in the Annex I.B model form and after a
+ * customer sends a request. Read with priority over the (possibly
+ * multi-recipient) notification email, so customers can be pointed to a clean
+ * contact mailbox. While it is empty, a warning names the fallback address they
+ * currently see, which is not necessarily one the trader chose for that.
  */
 function ayudawp_euw_field_trader_email_callback() {
 
@@ -1856,7 +2043,33 @@ function ayudawp_euw_field_trader_email_callback() {
 		esc_attr( $value )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Contact email shown in the Annex I.B model form. Leave empty to use the first notification address above, falling back to the site admin email.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Contact email shown to customers in the Annex I.B model form and after they send a request. Leave empty to use the first notification address above, falling back to the site admin email.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+
+	if ( '' !== trim( $value ) ) {
+		return;
+	}
+
+	$resolved = ayudawp_euw_annex_b_resolve_trader_email();
+	$email    = '<strong>' . esc_html( $resolved['email'] ) . '</strong>';
+	$notice   = '';
+
+	if ( 'notify' === $resolved['source'] ) {
+		$notice = sprintf(
+			/* translators: %s: email address. */
+			__( 'Customers currently see %s as your contact address. It is the first notification address above: fill in this field if they should write to a different one.', 'eu-withdrawal-compliance' ),
+			$email
+		);
+	} elseif ( 'admin' === $resolved['source'] ) {
+		$notice = sprintf(
+			/* translators: %s: email address. */
+			__( 'Customers currently see %s as your contact address. It is the site administration email, which is often the owner\'s or the hosting account\'s: fill in this field with the address customers should write to.', 'eu-withdrawal-compliance' ),
+			$email
+		);
+	}
+
+	if ( '' !== $notice ) {
+		echo '<div class="notice notice-warning inline"><p>' . wp_kses( $notice, array( 'strong' => array() ) ) . '</p></div>';
+	}
 }
 
 /**
@@ -2809,10 +3022,10 @@ function ayudawp_euw_settings_page_html() {
 		<?php
 		ayudawp_euw_render_native_feature_notice();
 		
-		$page_id = (int) get_option( 'ayudawp_euw_page_id', 0 );
+		// Only a live page has a public URL: a draft would answer "not found" here.
+		$page_url = ayudawp_euw_get_page_url();
 
-		if ( $page_id && get_post( $page_id ) ) {
-			$page_url = get_permalink( $page_id );
+		if ( '' !== $page_url ) {
 			printf(
 				'<p>%1$s <a href="%2$s" target="_blank" rel="noopener nofollow">%3$s</a></p>',
 				esc_html__( 'Withdrawal form public URL:', 'eu-withdrawal-compliance' ),

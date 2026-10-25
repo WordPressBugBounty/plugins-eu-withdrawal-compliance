@@ -69,6 +69,7 @@ $ayudawp_euw_options = array(
 	// Internal flags and legacy migrations.
 	'ayudawp_euw_version',
 	'ayudawp_euw_page_created_id',
+	'ayudawp_euw_page_created_hash',
 	'ayudawp_euw_excluded_categories',
 	'ayudawp_euw_excluded_categories_migrated',
 );

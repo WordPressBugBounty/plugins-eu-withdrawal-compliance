@@ -143,7 +143,8 @@ function ayudawp_euw_metabox_content( $post ) {
  *
  * Shown at the top of the details metabox so the admin sees, before anything
  * else, that this request must be verified manually against the shop records
- * (the "Accept unmatched requests" setting registered it as unverified).
+ * (the "Accept unmatched requests" setting registered it as unverified, or the
+ * order it names has no billing email to check against).
  *
  * @param int $post_id Withdrawal CPT ID.
  */
@@ -161,17 +162,7 @@ function ayudawp_euw_render_metabox_unverified_notice( $post_id ) {
 	if ( 'email_mismatch' === $reason ) {
 
 		$hint     = absint( get_post_meta( $post_id, '_ayudawp_euw_unverified_order_hint', true ) );
-		$edit_url = '';
-
-		if ( $hint && function_exists( 'wc_get_order' ) ) {
-			$hint_order = wc_get_order( $hint );
-
-			if ( $hint_order ) {
-				$edit_url = method_exists( $hint_order, 'get_edit_order_url' )
-					? $hint_order->get_edit_order_url()
-					: admin_url( 'post.php?post=' . $hint . '&action=edit' );
-			}
-		}
+		$edit_url = ayudawp_euw_get_hint_order_edit_url( $hint );
 
 		if ( '' !== $edit_url ) {
 			printf(
@@ -186,12 +177,63 @@ function ayudawp_euw_render_metabox_unverified_notice( $post_id ) {
 		} else {
 			esc_html_e( 'The reference matches an existing order, but its billing email differs from the address submitted.', 'eu-withdrawal-compliance' );
 		}
+	} elseif ( 'order_without_email' === $reason ) {
+
+		// The hint is stored only when the order date the customer typed matched the
+		// order's, so without one the date tells the admin why no order is suggested.
+		$hint     = absint( get_post_meta( $post_id, '_ayudawp_euw_unverified_order_hint', true ) );
+		$edit_url = ayudawp_euw_get_hint_order_edit_url( $hint );
+		$has_date = '' !== trim( (string) get_post_meta( $post_id, '_ayudawp_euw_order_date', true ) );
+
+		if ( '' !== $edit_url ) {
+			printf(
+				wp_kses(
+					/* translators: 1: order edit URL, 2: WooCommerce order ID. */
+					__( 'The reference matches <a href="%1$s">order #%2$d</a>, which has no billing email to check against. The order date the customer gave matches it, give or take a day.', 'eu-withdrawal-compliance' ),
+					array( 'a' => array( 'href' => array() ) )
+				),
+				esc_url( $edit_url ),
+				absint( $hint )
+			);
+		} elseif ( $hint ) {
+			esc_html_e( 'The reference matches an order with no billing email to check against, and the order date the customer gave matches it, give or take a day.', 'eu-withdrawal-compliance' );
+		} elseif ( $has_date ) {
+			esc_html_e( 'The reference matches an order with no billing email to check against. The order date the customer gave does not match it, so no order is suggested.', 'eu-withdrawal-compliance' );
+		} else {
+			esc_html_e( 'The reference matches an order with no billing email to check against. The customer gave no order date, so no order is suggested.', 'eu-withdrawal-compliance' );
+		}
 	} else {
 		esc_html_e( 'No order was found for the reference provided. It may be a typo or a purchase made outside WooCommerce.', 'eu-withdrawal-compliance' );
 	}
 
 	echo ' ' . esc_html__( 'Verify it manually against your records before accepting or rejecting.', 'eu-withdrawal-compliance' );
 	echo '</p></div>';
+}
+
+/**
+ * Edit URL of the order stored as the admin-only hint of an unverified request.
+ *
+ * @param int $order_id WooCommerce order ID kept as the hint, or 0.
+ * @return string Edit URL, or an empty string when there is no hint, WooCommerce
+ *                is not active or the order no longer exists.
+ */
+function ayudawp_euw_get_hint_order_edit_url( $order_id ) {
+
+	$order_id = absint( $order_id );
+
+	if ( ! $order_id || ! function_exists( 'wc_get_order' ) ) {
+		return '';
+	}
+
+	$hint_order = wc_get_order( $order_id );
+
+	if ( ! $hint_order ) {
+		return '';
+	}
+
+	return method_exists( $hint_order, 'get_edit_order_url' )
+		? (string) $hint_order->get_edit_order_url()
+		: admin_url( 'post.php?post=' . $order_id . '&action=edit' );
 }
 
 /**

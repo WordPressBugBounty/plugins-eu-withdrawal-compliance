@@ -44,6 +44,40 @@ function ayudawp_euw_get_page_id() {
 }
 
 /**
+ * Resolve the public URL of the withdrawal page, or nothing while it is not live.
+ *
+ * Every link the plugin prints for customers goes through here: the emails, the
+ * guest button, the excluded-product notice, the footer shortcode and the
+ * printable model form. A page that is not published answers "not found" to
+ * visitors, and a new install creates it as a draft on purpose, so until it is
+ * published those links are left out instead of pointing at nothing.
+ *
+ * Returns the translated page when it is published, then the canonical one when
+ * only that is, and an empty string otherwise. It is not for the form's own
+ * return trip (`ayudawp_euw_get_return_url()`): an editor testing the page as a
+ * draft has to come back to it.
+ *
+ * @return string Permalink, or an empty string when no published page exists.
+ */
+function ayudawp_euw_get_page_url() {
+
+	$page_id = ayudawp_euw_get_page_id();
+
+	if ( ! $page_id || 'publish' !== get_post_status( $page_id ) ) {
+
+		$page_id = (int) get_option( 'ayudawp_euw_page_id', 0 );
+
+		if ( ! $page_id || 'publish' !== get_post_status( $page_id ) ) {
+			return '';
+		}
+	}
+
+	$url = get_permalink( $page_id );
+
+	return $url ? (string) $url : '';
+}
+
+/**
  * Resolve any page ID forward to its translation in the visitor's language.
  *
  * The mechanism `ayudawp_euw_get_page_id()` has always used for the withdrawal

@@ -893,13 +893,13 @@ function ayudawp_euw_render_excluded_notice_for_product( $product_id ) {
 
 	if ( false !== strpos( $body, '{withdrawal_page_link}' ) ) {
 
-		$page_id   = ayudawp_euw_get_page_id();
+		$page_url  = ayudawp_euw_get_page_url();
 		$page_link = '';
 
-		if ( $page_id && get_post( $page_id ) ) {
+		if ( '' !== $page_url ) {
 			$page_link = sprintf(
 				'<a href="%1$s" rel="noopener nofollow">%2$s</a>',
-				esc_url( get_permalink( $page_id ) ),
+				esc_url( $page_url ),
 				esc_html__( 'See the full withdrawal policy', 'eu-withdrawal-compliance' )
 			);
 		}

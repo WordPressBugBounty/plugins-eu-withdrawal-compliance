@@ -74,7 +74,7 @@ function ayudawp_euw_validate_submission( $data ) {
 		ayudawp_euw_redirect_with_error( 'email', $data, array( 'email' ) );
 	}
 
-	$wc_validation = ayudawp_euw_validate_wc_order( $data['order'], $data['email'] );
+	$wc_validation = ayudawp_euw_validate_wc_order( $data['order'], $data['email'], $data['date'] );
 
 	/**
 	 * Filter the validation result before it decides whether to proceed.
@@ -86,7 +86,8 @@ function ayudawp_euw_validate_submission( $data ) {
 	 *
 	 * @param array $wc_validation Result: array( 'valid', 'error', 'order_id' ),
 	 *                             plus 'unverified' (and 'unverified_hint') when
-	 *                             the unmatched-requests setting accepted it.
+	 *                             the unmatched-requests setting accepted it, or
+	 *                             when the order has no billing email to check.
 	 * @param array $data          Sanitized submission data.
 	 */
 	$wc_validation = apply_filters( 'ayudawp_euw_validation_result', $wc_validation, $data );
@@ -334,10 +335,12 @@ function ayudawp_euw_handle_confirm() {
 		update_post_meta( $post_id, '_ayudawp_euw_consumer_at', $submitted_at );
 	}
 
-	// Unmatched request accepted for manual verification (opt-in setting):
-	// store the reason and, when the reference matched an order whose billing
-	// email differs, an admin-only hint that speeds up the manual check. Never
-	// linked to the order itself: no proof of ownership, so no order note either.
+	// Unmatched request accepted for manual verification (opt-in setting, or an
+	// order without a billing email, which is always accepted this way): store
+	// the reason and, when the reference matched an order whose billing email
+	// differs or is missing, an admin-only hint that speeds up the manual check.
+	// Never linked to the order itself: no proof of ownership, so no order note
+	// either.
 	if ( ! empty( $wc_validation['unverified'] ) ) {
 		update_post_meta( $post_id, '_ayudawp_euw_unverified', sanitize_key( $wc_validation['unverified'] ) );
 
@@ -513,6 +516,8 @@ function ayudawp_euw_get_return_url() {
 
 	if ( $page_id ) {
 
+		// Not ayudawp_euw_get_page_url(): that one hides an unpublished page, and
+		// an editor testing the page as a draft has to come back to it.
 		$permalink = get_permalink( $page_id );
 
 		if ( $permalink ) {

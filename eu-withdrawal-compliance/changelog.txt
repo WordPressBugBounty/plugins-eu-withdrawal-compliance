@@ -3,6 +3,19 @@ EU Withdrawal and Legal Guarantee Compliance — Full changelog
 For each release, see the entries below. The latest version is always at the top.
 The current release notes also live in readme.txt under "== Changelog ==".
 
+= 2.3.3 =
+* Improved: On a new install the withdrawal page is created as a draft, so you can review its sample text before customers see it. A dashboard notice stays until the page is published, and the activation notice and the page warning in the settings say why it is a draft.
+* Improved: While the withdrawal page is not published, the plugin leaves out every link to it (the notice and button in WooCommerce emails, the withdrawal button for guests, the `[ayudawp_withdrawal_link]` shortcode, the link in the excluded-product notice and the printable model form) instead of pointing customers to a page they cannot open. A guest is given the shop contact email instead. This also applies to sites whose withdrawal page was already unpublished. On multilingual sites, a translation that is not published falls back to the published original.
+* Improved: The sample withdrawal page now cites Directive 2011/83/EU and its Article 11a as the source of the right, instead of Directive 2023/2673 alone, and has a separate section for financial services contracted at a distance. Existing pages are not changed.
+* Improved: The checkout consent settings warn when a consent is switched off while some products or categories still use the withdrawal status that needs it, and note when a consent that is on is used by none.
+* Improved: When the Annex I.B contact email field is empty, the settings name the address customers are being shown instead (the first notification address, or the site admin email) so you can decide whether to fill it in.
+* Improved: After sending a request the customer sees what happens next: the acknowledgement to keep, the emails that will follow, the link to follow it in their account when they have one, and the shop contact email.
+* Improved: Tested up to WooCommerce 11.2.
+* Fix: A request on an order with no billing email, such as a phone order keyed in by hand, was linked to that order just by typing its number, and the form could tell whoever typed it whether that order already had a request open. It is now registered as unverified and not linked, even with "Accept unmatched requests" off, and the order is suggested to you only when the order date the customer gives matches it, give or take a day. Such a request no longer shows in the Withdrawal column of the order nor holds back a second one: you resolve it from its detail screen.
+* Fix: An order number containing "#" or "&" broke the pre-filled links to the withdrawal form, in the customer account and in the order emails.
+* Fix: On sites in a right-to-left language (Arabic, Hebrew, Persian) the page with the withdrawal form could be scrolled sideways for about 10,000 pixels, pushed by the hidden anti-spam field, and the buttons and notice borders sat on the wrong side. The front-end styles now use logical properties.
+* Fix: The checkout consent settings described an older way of choosing the products each consent applies to, and named a past version of the plugin.
+
 = 2.3.2 =
 * Improved: An order that only holds products excluded from the right of withdrawal (Article 16) no longer shows the withdrawal button in the customer account nor the notice in its WooCommerce emails. Until now both appeared on every eligible order, so a customer who had only bought excluded products was told they had 14 days to withdraw. The withdrawal form keeps accepting a request for any order and flags it for your review, as before. On by default: untick "Orders with excluded products" under "Eligible order statuses" if you grant the withdrawal on excluded products too.
 * Improved: On an order that mixes excluded and regular products, the notice in the WooCommerce emails now names the products the right of withdrawal does not apply to.

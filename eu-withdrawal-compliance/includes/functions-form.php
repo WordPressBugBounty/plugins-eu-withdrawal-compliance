@@ -196,10 +196,59 @@ function ayudawp_euw_render_form( $atts = array() ) {
 	}
 
 	if ( $success ) {
+
+		// What the customer can do next. Each line shows only when it is true for this
+		// shop: the account link needs a session and the status view switched on, and
+		// the contact line needs a valid address (the one the Annex I.B model form
+		// shows, so both pages name the same mailbox).
+		$account_url = ( is_user_logged_in() && ayudawp_euw_show_account_status() )
+			? ayudawp_euw_get_requests_list_url()
+			: '';
+
+		$contact       = ayudawp_euw_annex_b_resolve_trader_email();
+		$contact_email = ( is_array( $contact ) && isset( $contact['email'] ) ) ? sanitize_email( $contact['email'] ) : '';
+
+		if ( ! is_email( $contact_email ) ) {
+			$contact_email = '';
+		}
+
 		?>
 		<div class="ayudawp-euw-wrapper ayudawp-euw-wrapper--feedback" id="ayudawp-euw-form">
-			<div class="ayudawp-euw-notice ayudawp-euw-notice--success" role="status">
+			<div class="ayudawp-euw-notice ayudawp-euw-notice--success ayudawp-euw-next-steps" role="status">
 				<p><?php esc_html_e( 'We have received your withdrawal request and sent a confirmation email. Your request will be reviewed against the legal deadlines and conditions before it is accepted.', 'eu-withdrawal-compliance' ); ?></p>
+				<p class="ayudawp-euw-next-steps__title"><?php esc_html_e( 'What happens next', 'eu-withdrawal-compliance' ); ?></p>
+				<ul>
+					<li><?php esc_html_e( 'Keep the confirmation email: it is your acknowledgement of receipt, with the date and time of your request and a code to verify it. If it has not arrived in a few minutes, check your spam folder.', 'eu-withdrawal-compliance' ); ?></li>
+					<li><?php esc_html_e( 'The shop will review your request and email you whenever its status changes.', 'eu-withdrawal-compliance' ); ?></li>
+					<?php if ( '' !== $account_url ) : ?>
+						<li>
+							<?php
+							echo wp_kses(
+								sprintf(
+									/* translators: %s: URL of the customer's withdrawal requests in My Account. */
+									__( 'You can follow it at any time in <a href="%s">your account</a>.', 'eu-withdrawal-compliance' ),
+									esc_url( $account_url )
+								),
+								array( 'a' => array( 'href' => array() ) )
+							);
+							?>
+						</li>
+					<?php endif; ?>
+					<?php if ( '' !== $contact_email ) : ?>
+						<li>
+							<?php
+							echo wp_kses(
+								sprintf(
+									/* translators: %s: contact email address of the shop, as a link. */
+									__( 'For any question about it, write to %s quoting your order number.', 'eu-withdrawal-compliance' ),
+									'<a href="' . esc_url( 'mailto:' . $contact_email ) . '">' . esc_html( $contact_email ) . '</a>'
+								),
+								array( 'a' => array( 'href' => array() ) )
+							);
+							?>
+						</li>
+					<?php endif; ?>
+				</ul>
 			</div>
 		</div>
 		<?php
@@ -528,7 +577,13 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 	if ( function_exists( 'wc_get_order' ) && ayudawp_euw_accepts_unmatched() ) {
 		$check = ayudawp_euw_validate_wc_order( $data['order'], $data['email'] );
 
-		if ( ! empty( $check['unverified'] ) ) {
+		// Only the two reasons the customer can fix by editing what they typed. An
+		// order without a billing email gets no warning, because "Edit data" cannot
+		// help, so this screen looks like the one for an order that matches. That
+		// still tells a visitor the order exists, as up to 2.3.2, when such an order
+		// was simply treated as matching, and as the form does with this setting
+		// off, where it lets the request through instead of returning an error.
+		if ( ! empty( $check['unverified'] ) && in_array( $check['unverified'], array( 'order_not_found', 'email_mismatch' ), true ) ) {
 			$unverified = (string) $check['unverified'];
 		}
 	}

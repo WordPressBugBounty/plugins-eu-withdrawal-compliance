@@ -192,7 +192,7 @@
 .ayudawp-euw-wrapper .ayudawp-euw-form .ayudawp-euw-submit {
 	margin: 1.5rem 0 0;
 	padding: 0;
-	text-align: right;
+	text-align: end;
 }
 
 .ayudawp-euw-wrapper .ayudawp-euw-form .ayudawp-euw-button {
@@ -239,7 +239,7 @@
 }
 
 /* Confirmation screen: lay the "Edit data" and "Confirm withdrawal" buttons
-   side by side, right-aligned like the single-button submit row. */
+   side by side, aligned to the end like the single-button submit row. */
 .ayudawp-euw-wrapper .ayudawp-euw-form .ayudawp-euw-confirm-actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -253,7 +253,7 @@
 .ayudawp-euw-wrapper .ayudawp-euw-notice {
 	margin: 0 0 1.5rem;
 	padding: 1rem 1.25rem;
-	border-left: 4px solid;
+	border-inline-start: 4px solid;
 	border-radius: 4px;
 }
 
@@ -279,11 +279,34 @@
 	color: #6c5700;
 }
 
+/* "What happens next" list inside the success notice, shown once a request is
+   sent. The notice zeroes the margin of its paragraphs, so the title and the
+   list get their own small spacing here. */
+.ayudawp-euw-wrapper .ayudawp-euw-next-steps .ayudawp-euw-next-steps__title {
+	margin: 1rem 0 0.35rem;
+	font-weight: 600;
+}
+
+.ayudawp-euw-wrapper .ayudawp-euw-next-steps ul {
+	margin: 0;
+	padding-block: 0;
+	padding-inline-start: 1.25rem;
+	list-style: disc;
+}
+
+.ayudawp-euw-wrapper .ayudawp-euw-next-steps li {
+	margin: 0 0 0.35rem;
+}
+
+.ayudawp-euw-wrapper .ayudawp-euw-next-steps li:last-child {
+	margin-bottom: 0;
+}
+
 /* --- Honeypot (hidden visually but accessible to bots) ------------------- */
 
 .ayudawp-euw-wrapper .ayudawp-euw-hp {
 	position: absolute;
-	left: -9999px;
+	inset-inline-start: -9999px;
 	width: 1px;
 	height: 1px;
 	overflow: hidden;
@@ -398,8 +421,9 @@
 
 .ayudawp-euw-requests-table th,
 .ayudawp-euw-requests-table td {
-	padding: 0.75rem 0.75rem 0.75rem 0;
-	text-align: left;
+	padding-block: 0.75rem;
+	padding-inline: 0 0.75rem;
+	text-align: start;
 	vertical-align: top;
 	border-bottom: 1px solid #e1e1e1;
 }

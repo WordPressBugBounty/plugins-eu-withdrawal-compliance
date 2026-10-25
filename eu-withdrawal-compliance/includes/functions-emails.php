@@ -276,11 +276,30 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
 			} else {
 				$lines[] = __( 'The reference matches an existing order, but its billing email differs from the address submitted.', 'eu-withdrawal-compliance' );
 			}
+		} elseif ( 'order_without_email' === $unverified ) {
+
+			$hint = absint( get_post_meta( $post_id, '_ayudawp_euw_unverified_order_hint', true ) );
+
+			if ( $hint ) {
+				$lines[] = sprintf(
+					/* translators: %d: WooCommerce order ID. */
+					__( 'The reference matches order #%d, which has no billing email to check against. The order date the customer gave matches it, give or take a day.', 'eu-withdrawal-compliance' ),
+					$hint
+				);
+			} else {
+				$lines[] = __( 'The reference matches an order with no billing email to check against. The order date the customer gave does not match it or was left empty, so no order is suggested.', 'eu-withdrawal-compliance' );
+			}
 		} else {
 			$lines[] = __( 'No order was found for the reference provided. It may be a typo or a purchase made outside WooCommerce.', 'eu-withdrawal-compliance' );
 		}
 
-		$lines[] = __( 'It was registered because “Accept unmatched requests” is enabled. Verify it manually against your records before deciding.', 'eu-withdrawal-compliance' );
+		// An order without a billing email is registered whatever the setting says,
+		// so the usual reason would be false here.
+		if ( 'order_without_email' === $unverified ) {
+			$lines[] = __( 'Requests on orders without a billing email are always registered, whatever the “Accept unmatched requests” setting says. Verify it manually against your records before deciding.', 'eu-withdrawal-compliance' );
+		} else {
+			$lines[] = __( 'It was registered because “Accept unmatched requests” is enabled. Verify it manually against your records before deciding.', 'eu-withdrawal-compliance' );
+		}
 	}
 
 	if ( ! empty( $excluded_items ) ) {

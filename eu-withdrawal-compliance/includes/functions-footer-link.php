@@ -19,8 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Render the `[ayudawp_withdrawal_link]` shortcode.
  *
- * Returns an empty string if no withdrawal page is configured, so the
- * shortcode never breaks a layout when used speculatively.
+ * Returns an empty string if no withdrawal page is configured or the page is
+ * not published yet, so the shortcode never breaks a layout when used
+ * speculatively and never links visitors to a page they cannot open.
  *
  * @param array $atts Shortcode attributes.
  * @return string
@@ -36,15 +37,9 @@ function ayudawp_euw_withdrawal_link_shortcode( $atts ) {
 		'ayudawp_withdrawal_link'
 	);
 
-	$page_id = ayudawp_euw_get_page_id();
+	$url = ayudawp_euw_get_page_url();
 
-	if ( ! $page_id || ! get_post( $page_id ) ) {
-		return '';
-	}
-
-	$url = get_permalink( $page_id );
-
-	if ( ! $url ) {
+	if ( '' === $url ) {
 		return '';
 	}
 

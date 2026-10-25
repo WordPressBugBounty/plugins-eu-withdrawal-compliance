@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal and Legal Guarantee Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free EU consumer-rights toolkit: withdrawal function (Directive 2023/2673) and the harmonised legal guarantee notice (Directive 2024/825), checkout consents, Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration.
- * Version:           2.3.2
+ * Version:           2.3.3
  * Requires at least: 6.0
  * Tested up to:      7.1
  * Requires PHP:      7.4
@@ -13,7 +13,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       eu-withdrawal-compliance
  * WC requires at least: 7.0
- * WC tested up to:   11.1
+ * WC tested up to:   11.2
  *
  * @package AyudaWP_EU_Withdrawal
  */
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.3.2' );
+define( 'AYUDAWP_EUW_VERSION', '2.3.3' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
@@ -57,13 +57,17 @@ require_once AYUDAWP_EUW_DIR . 'includes/class-ayudawp-euw-promo-banner.php';
  */
 function ayudawp_euw_activate() {
 
+	// Read before anything below stores the version: a brand-new install is the
+	// one without it.
+	$is_new_install = ! get_option( 'ayudawp_euw_version' );
+
 	// A brand-new install starts with the harmonised guarantee notice already
 	// switched on: it is mandatory from 27 September 2026 for anyone selling
 	// goods in the EU, and nobody installing a compliance plugin today wants it
 	// off. Sites updating from an earlier version get it off plus a notice
 	// instead (see the upgrade routine below), because switching it on for them
 	// would change their checkout without anyone asking for it.
-	if ( ! get_option( 'ayudawp_euw_version' ) ) {
+	if ( $is_new_install ) {
 		update_option( 'ayudawp_euw_guarantee_enabled', 'yes' );
 	}
 
@@ -95,7 +99,7 @@ function ayudawp_euw_activate() {
 	if ( ! $page_id || ! get_post( $page_id ) ) {
 
 		$h2_right = __( 'Your 14-day right of withdrawal', 'eu-withdrawal-compliance' );
-		$p_right  = __( 'You have a 14-day withdrawal period from the moment you receive your order to cancel your purchase, without giving any reason and without penalty, as established by EU Directive 2023/2673 and the consumer protection laws applicable in your country.', 'eu-withdrawal-compliance' );
+		$p_right  = __( 'You have 14 days from the moment you receive your order to withdraw from your purchase, without giving any reason and without penalty. This right comes from Directive 2011/83/EU on consumer rights and from the law that transposes it in your country. Its Article 11a, added by Directive (EU) 2023/2673, is what requires shops to offer this online withdrawal function.', 'eu-withdrawal-compliance' );
 
 		$h2_how = __( 'How to exercise it', 'eu-withdrawal-compliance' );
 		$p_how  = __( 'Fill in the form below. You will receive an automatic confirmation by email once your request is registered. The refund will be processed within the legal deadline that applies to your purchase.', 'eu-withdrawal-compliance' );
@@ -115,11 +119,15 @@ function ayudawp_euw_activate() {
 		$h3_dated = __( 'Dated accommodation, rentals, catering or leisure services', 'eu-withdrawal-compliance' );
 		$p_dated  = __( 'Services tied to a specific date or period of performance — accommodation other than for residential purpose (hotels, vacation rentals), vehicle rental, transport of goods, catering and leisure services such as event tickets — are excluded from the right of withdrawal — Art. 16(l) of Directive 2011/83/EU.', 'eu-withdrawal-compliance' );
 
-		// The page is created ready to publish, so it carries no "sample
-		// template, review before publishing" paragraph: that warning used to
-		// travel as the first block of the content and went live, in front of
-		// the shop's customers, whenever nobody remembered to delete it. It is
-		// now shown in the dashboard instead, next to the page selector in
+		$h2_fin = __( 'Financial services contracts concluded at a distance', 'eu-withdrawal-compliance' );
+		$p_fin  = __( 'Credit, insurance, payment and investment services contracted at a distance follow their own withdrawal rules, set out in Chapter IIIa of Directive 2011/83/EU, also added by Directive (EU) 2023/2673. Their withdrawal period is 14 calendar days, or 30 for life insurance and personal pension contracts, counted from the day the contract is concluded or from the day you receive its terms and conditions, if that is later.', 'eu-withdrawal-compliance' );
+
+		// A new install gets the page as a draft, so the sample text can be
+		// reviewed before customers see it, and the dashboard notice stays until
+		// the page is published. The content itself carries no "sample template,
+		// review before publishing" paragraph: that warning used to travel as the
+		// first block and went live whenever nobody remembered to delete it. It
+		// is shown in the dashboard instead, next to the page selector in
 		// Settings, for as long as the page stays untouched.
 		$blocks = array(
 			sprintf( "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">%s</h2>\n<!-- /wp:heading -->", esc_html( $h2_right ) ),
@@ -136,6 +144,8 @@ function ayudawp_euw_activate() {
 			sprintf( "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->", esc_html( $p_goods ) ),
 			sprintf( "<!-- wp:heading {\"level\":3} -->\n<h3 class=\"wp-block-heading\">%s</h3>\n<!-- /wp:heading -->", esc_html( $h3_dated ) ),
 			sprintf( "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->", esc_html( $p_dated ) ),
+			sprintf( "<!-- wp:heading -->\n<h2 class=\"wp-block-heading\">%s</h2>\n<!-- /wp:heading -->", esc_html( $h2_fin ) ),
+			sprintf( "<!-- wp:paragraph -->\n<p>%s</p>\n<!-- /wp:paragraph -->", esc_html( $p_fin ) ),
 			'<!-- wp:shortcode -->[ayudawp_withdrawal_form]<!-- /wp:shortcode -->',
 		);
 
@@ -145,7 +155,7 @@ function ayudawp_euw_activate() {
 			array(
 				'post_title'   => __( 'Right of withdrawal', 'eu-withdrawal-compliance' ),
 				'post_content' => $content,
-				'post_status'  => 'publish',
+				'post_status'  => $is_new_install ? 'draft' : 'publish',
 				'post_type'    => 'page',
 				'post_author'  => get_current_user_id(),
 			),
@@ -156,8 +166,11 @@ function ayudawp_euw_activate() {
 			update_option( 'ayudawp_euw_page_id', $new_page_id );
 
 			// Remember which page the plugin wrote, so Settings can tell the
-			// bundled template apart from a page the trader has written.
+			// bundled template apart from a page the trader has written. The
+			// hash is of the content as stored, after any filter on the way in,
+			// and is only read on the settings screen.
 			update_option( 'ayudawp_euw_page_created_id', $new_page_id );
+			update_option( 'ayudawp_euw_page_created_hash', md5( (string) get_post_field( 'post_content', $new_page_id ) ), false );
 		}
 	}
 }
@@ -285,7 +298,15 @@ function ayudawp_euw_activation_notice() {
 	delete_transient( 'ayudawp_euw_just_activated' );
 
 	$page_id   = (int) get_option( 'ayudawp_euw_page_id', 0 );
-	$page_edit = ( $page_id && get_post( $page_id ) ) ? get_edit_post_link( $page_id ) : '';
+	$page      = $page_id ? get_post( $page_id ) : null;
+	$page_edit = $page ? get_edit_post_link( $page_id ) : '';
+
+	// A new install creates the page as a draft, so the notice has to say that
+	// customers cannot reach the form yet. Only for the draft the plugin wrote:
+	// a reactivation finding some other unpublished page did not create it.
+	$page_unpublished = $page
+		&& 'draft' === $page->post_status
+		&& $page_id === absint( get_option( 'ayudawp_euw_page_created_id', 0 ) );
 	?>
 	<div class="notice notice-success is-dismissible">
 		<p>
@@ -293,7 +314,11 @@ function ayudawp_euw_activation_notice() {
 		</p>
 		<p>
 			<?php
-			esc_html_e( 'A "Right of withdrawal" page with a sample legal template was created automatically. Review the text, link the page from your footer and configure the notification email.', 'eu-withdrawal-compliance' );
+			if ( $page_unpublished ) {
+				esc_html_e( 'A "Right of withdrawal" page with a sample legal template was created as a draft. Review the text with your legal advisor and publish it: until then customers cannot reach the withdrawal form, and the links to it stay hidden. Then link the page from your footer and configure the notification email.', 'eu-withdrawal-compliance' );
+			} else {
+				esc_html_e( 'A "Right of withdrawal" page with a sample legal template was created automatically. Review the text, link the page from your footer and configure the notification email.', 'eu-withdrawal-compliance' );
+			}
 			?>
 		</p>
 		<p>
@@ -302,7 +327,13 @@ function ayudawp_euw_activation_notice() {
 			</a>
 			<?php if ( $page_edit ) : ?>
 				<a href="<?php echo esc_url( $page_edit ); ?>" class="button">
-					<?php esc_html_e( 'Edit withdrawal page', 'eu-withdrawal-compliance' ); ?>
+					<?php
+					if ( $page_unpublished ) {
+						esc_html_e( 'Review and publish the page', 'eu-withdrawal-compliance' );
+					} else {
+						esc_html_e( 'Edit withdrawal page', 'eu-withdrawal-compliance' );
+					}
+					?>
 				</a>
 			<?php endif; ?>
 		</p>
