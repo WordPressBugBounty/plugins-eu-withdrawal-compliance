@@ -10,18 +10,49 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Canonical reminder that a withdrawal request is subject to the statutory
+ * Default legal note: a withdrawal request is subject to the statutory
  * deadlines and conditions and is not accepted merely by being submitted.
  *
- * Reused across the public form, the confirmation screen and the customer
- * acknowledgement email so the message stays consistent everywhere. Returned
- * as a plain translatable string; callers escape it for their own context.
+ * For goods the 14 days run from delivery, and for services and digital content
+ * from the conclusion of the contract (Directive 2011/83/EU, Article 9(2);
+ * TRLGDCU, Article 104). Starting a download is what can end the right for
+ * digital content, under Article 16(m), not what starts the period.
+ *
+ * @return string
+ */
+function ayudawp_euw_legal_conditions_default() {
+
+	return __( 'Your withdrawal is subject to the legal deadlines and conditions: the 14-day period (for goods, counted from delivery; for services and digital content, from the day the contract was concluded) and the statutory exceptions to the right of withdrawal, such as digital content you started to download or stream after agreeing to lose that right. We verify these before confirming, so submitting a request does not by itself guarantee its acceptance.', 'eu-withdrawal-compliance' );
+}
+
+/**
+ * Legal note shown on the public form, the confirmation screen and the customer
+ * acknowledgement email.
+ *
+ * One source for the three places, so the note reads the same everywhere,
+ * whether it is the bundled text or the trader's own. Returned as plain text;
+ * callers escape it for their own context, and leave it out when it is empty.
  *
  * @return string
  */
 function ayudawp_euw_legal_conditions_text() {
 
-	return __( 'Your withdrawal is subject to the legal deadlines and conditions: the 14-day period (for goods, counted from delivery; for digital content, from the start of the download) and the statutory exceptions to the right of withdrawal. We verify these before confirming, so submitting a request does not by itself guarantee its acceptance.', 'eu-withdrawal-compliance' );
+	$text = (string) get_option( 'ayudawp_euw_legal_note_text', '' );
+
+	if ( '' === trim( $text ) ) {
+		$text = ayudawp_euw_legal_conditions_default();
+	}
+
+	/**
+	 * Filter the legal note shown on the form, the confirmation screen and the
+	 * acknowledgement email.
+	 *
+	 * Plain text: it is escaped on the page and the email is sent as plain text.
+	 * Return an empty string to leave the note out in all three places.
+	 *
+	 * @param string $text Legal note: the trader's text from Settings, or the bundled one.
+	 */
+	return trim( (string) apply_filters( 'ayudawp_euw_legal_conditions_text', $text ) );
 }
 
 /**
@@ -353,7 +384,7 @@ function ayudawp_euw_render_form( $atts = array() ) {
 		// Intro paragraph: editable in Settings and hideable via its toggle. Empty
 		// text falls back to the bundled default; unticking the toggle hides the
 		// paragraph entirely (e.g. when the page already explains the withdrawal
-		// above the shortcode). The legal note below stays fixed.
+		// above the shortcode). The legal note below has its own setting.
 		$intro_enabled = 'yes' === get_option( 'ayudawp_euw_form_intro_enabled', 'yes' );
 		$intro_text    = (string) get_option( 'ayudawp_euw_form_intro_text', '' );
 
@@ -366,9 +397,13 @@ function ayudawp_euw_render_form( $atts = array() ) {
 			<p class="ayudawp-euw-intro"><?php echo esc_html( $intro_text ); ?></p>
 		<?php endif; ?>
 
-		<p class="ayudawp-euw-legal-note">
-			<?php echo esc_html( ayudawp_euw_legal_conditions_text() ); ?>
-		</p>
+		<?php
+		$legal_note = ayudawp_euw_legal_conditions_text();
+
+		if ( '' !== $legal_note ) :
+			?>
+			<p class="ayudawp-euw-legal-note"><?php echo esc_html( $legal_note ); ?></p>
+		<?php endif; ?>
 
 		<?php
 		// No action attribute: the form posts to the page it sits on, the way the
@@ -597,9 +632,13 @@ function ayudawp_euw_render_confirmation( $token, $data ) {
 			<?php esc_html_e( 'Please review the details below. Your withdrawal will only be submitted when you press the “Confirm withdrawal” button.', 'eu-withdrawal-compliance' ); ?>
 		</p>
 
-		<p class="ayudawp-euw-legal-note">
-			<?php echo esc_html( ayudawp_euw_legal_conditions_text() ); ?>
-		</p>
+		<?php
+		$legal_note = ayudawp_euw_legal_conditions_text();
+
+		if ( '' !== $legal_note ) :
+			?>
+			<p class="ayudawp-euw-legal-note"><?php echo esc_html( $legal_note ); ?></p>
+		<?php endif; ?>
 
 		<?php if ( '' !== $unverified ) : ?>
 			<div class="ayudawp-euw-notice ayudawp-euw-notice--warning" role="alert">

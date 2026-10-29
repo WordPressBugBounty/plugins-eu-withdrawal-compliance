@@ -55,6 +55,7 @@ $ayudawp_euw_options = array(
 	// Public form.
 	'ayudawp_euw_form_intro_enabled',
 	'ayudawp_euw_form_intro_text',
+	'ayudawp_euw_legal_note_text',
 	'ayudawp_euw_consumer_check_enabled',
 	'ayudawp_euw_consumer_check_text',
 	// Emails.

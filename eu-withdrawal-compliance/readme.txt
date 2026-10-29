@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.3.3
+Stable tag: 2.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,7 +40,7 @@ The official notice ships bundled in the 24 EU languages and is shown unedited, 
 * **My Account → Right of withdrawal**, with a per-order "Withdraw" button while the order is in an eligible status, deep-linked to the form with the order pre-filled.
 * **Request tracking for the customer**: the same screen lists their requests with date, order, scope, status, your resolution note and the receipt code, and the order row shows an open request instead of an empty slot.
 * **Withdrawal notice in the transactional emails**, with a direct link to the form. Eligible statuses configurable; admin emails never receive it.
-* **Automatic verification of the order and email pair**, gated by the configured statuses. The 14-day deadline is an advisory flag for you, not an automatic rejection, because the period runs from delivery. Basis and grace days configurable, with an optional strict mode.
+* **Automatic verification of the order and email pair**, gated by the configured statuses. The 14-day deadline is an advisory flag for you, not an automatic rejection, because for goods the period runs from delivery. Basis and grace days configurable, with an optional strict mode.
 * **Optional "Accept unmatched requests"** mode: register what does not match an order as *Unverified* for manual review instead of rejecting it. Off by default.
 * **Order-number compatibility** with Sequential Order Numbers and Custom Order Numbers (Tyche and WPFactory), plus a filter for any other scheme.
 * **"Withdrawal" column** on the orders screen, private order notes at every step, and HPOS compatibility declared.
@@ -164,7 +164,7 @@ Returning an empty string suppresses the render entirely. `ayudawp_euw_consent_a
 
 = Will the form check the 14-day deadline? =
 
-It does not auto-reject on it. The period legally runs from delivery (or, for digital content, from the start of the download), a date the shop cannot detect, so rejecting on the order date would turn away customers still inside their real window. Requests that look late are **flagged** in the admin notification instead, and you check the real delivery date and decide.
+It does not auto-reject on it. For goods the period legally runs from delivery, a date the shop cannot detect, so rejecting on the order date would turn away customers still inside their real window. Requests that look late are **flagged** in the admin notification instead, and you check the real delivery date and decide.
 
 You can tune the calculation under **EU Compliance → Settings**: order date or completion date as the basis, plus grace days. If your start date is reliable (services, digital content, shop pickup), switch **Deadline enforcement** from *Advisory* to *Strict* and late requests are blocked outright. Advisory is the default and the safe choice for goods.
 
@@ -265,13 +265,22 @@ It asks for explicit acceptance of your privacy policy, stores the IP and user a
 
 Nothing: the log is keyed on the customer email, not on the user account. To remove their requests, use **Tools → Erase Personal Data** with that email, or delete the entries by hand if your retention policy requires it.
 
+= Can I change the texts on the withdrawal form? =
+
+Yes, under **EU Compliance → Settings → Public withdrawal form**:
+
+* **Intro text**: the paragraph above the form. You can also hide it.
+* **Withdrawal conditions note**: the reminder of deadlines and exceptions. It shows on the form, on the confirmation screen and in the acknowledgement email, the same in all three.
+
+Left empty, each one uses the bundled text, translated for each visitor. The conditions note is your responsibility: it can offer better terms, such as a longer period, but it cannot reduce the customer's statutory rights.
+
 = Can I customise the emails? =
 
 Yes. From **EU Compliance → Settings → Withdrawal emails** you can set the sender ("From name" and "From address") for the plugin's emails and edit the body of the accepted, rejected and completed status emails; left empty, each text falls back to the bundled default. The admin notification can be tailored with the `ayudawp_euw_admin_email_lines` filter, and all strings remain translatable through the standard WordPress text-domain. The emails are sent in plain text; HTML templates that inherit the WooCommerce email theme are planned for a later release.
 
 = Which hooks does the plugin expose for developers? =
 
-21 filters and 4 actions. The withdrawal side: `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_show_withdrawal` (hide both for specific orders, or bring them back on an order that only holds excluded products), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha), `ayudawp_euw_form_via_admin_post` (send the form through admin-post.php again) and `ayudawp_euw_show_consumer_check`. The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
+22 filters and 4 actions. The withdrawal side: `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_show_withdrawal` (hide both for specific orders, or bring them back on an order that only holds excluded products), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha), `ayudawp_euw_form_via_admin_post` (send the form through admin-post.php again), `ayudawp_euw_show_consumer_check` and `ayudawp_euw_legal_conditions_text` (the conditions note on the form, the confirmation screen and the acknowledgement email; an empty string hides it). The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
 
 Actions: `ayudawp_euw_after_submission` (CPT ID, submission data), `ayudawp_euw_after_status_change` (CPT ID, new status, comment), `ayudawp_euw_after_form` (inside the form wrapper, after `</form>`) and `ayudawp_euw_form_before_submit` (before the submit button, for a captcha or an extra field).
 
@@ -307,6 +316,16 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 14. Export withdrawals page: filtered CSV export of the request log by status and date range for accounting and consumer-protection audits.
 
 == Changelog ==
+
+= 2.3.4 =
+You can now edit the withdrawal conditions note shown on the form, the confirmation and the acknowledgement email. The note and the notice in order emails now say the 14 days run from the contract for services and digital content.
+
+* Improved: The withdrawal conditions note can be edited under **EU Compliance → Settings → Public withdrawal form**. It shows on the form, on the confirmation screen and in the acknowledgement email, the same in all three, and left empty it keeps the bundled text, translated for each visitor. Developers can change it or hide it with the new `ayudawp_euw_legal_conditions_text` filter.
+* Improved: On a new install the settings show one notice under the withdrawal page selector instead of two that said the same thing: review the sample text with your legal advisor, delete what does not apply and publish the page.
+* Improved: In the shop notification of an unverified request, the heading no longer says the details could not be matched with an order right above a line that names the matching order.
+* Fix: The bundled conditions note said that, for digital content, the 14 days run from the start of the download. For services and digital content they run from the day the contract was concluded; starting a download is what can end the right, when the customer agreed to it beforehand. The withdrawal notice in WooCommerce order emails, the sample withdrawal page created on new installs, the late-request warning in the shop notification, the deadline settings and the readme now say the same, where until now they only counted from delivery. If you changed the old sentence of the note with Loco Translate or a gettext filter, that change no longer applies: write your text in the new setting instead.
+* Fix: Typing the ID of a WooCommerce refund in the form matched that refund as if it were an order, and the request was registered as one on an order without a billing email. It is now treated as an order that does not exist. The `ayudawp_euw_resolve_wc_order` filter only accepts a `WC_Order` from now on: anything else counts as no match.
+* Fix: If another plugin filtered page content, the record of the sample page written on activation could be taken from the filtered content, and then the settings never said that the page still held the sample text.
 
 = 2.3.3 =
 New installs create the withdrawal page as a draft and hide links to an unpublished page. Requests on orders without a billing email are no longer linked to the order. Also warns about checkout consents that do not match your products.
@@ -365,8 +384,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.3.3 =
-New installs create the withdrawal page as a draft and hide links to an unpublished page. Requests on orders without a billing email are no longer linked to the order. Also warns about checkout consents that do not match your products.
+= 2.3.4 =
+You can now edit the withdrawal conditions note shown on the form, the confirmation and the acknowledgement email. The note and the notice in order emails now say the 14 days run from the contract for services and digital content.
 
 == Support ==
 

@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal and Legal Guarantee Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free EU consumer-rights toolkit: withdrawal function (Directive 2023/2673) and the harmonised legal guarantee notice (Directive 2024/825), checkout consents, Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration.
- * Version:           2.3.3
+ * Version:           2.3.4
  * Requires at least: 6.0
  * Tested up to:      7.1
  * Requires PHP:      7.4
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.3.3' );
+define( 'AYUDAWP_EUW_VERSION', '2.3.4' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
@@ -99,7 +99,7 @@ function ayudawp_euw_activate() {
 	if ( ! $page_id || ! get_post( $page_id ) ) {
 
 		$h2_right = __( 'Your 14-day right of withdrawal', 'eu-withdrawal-compliance' );
-		$p_right  = __( 'You have 14 days from the moment you receive your order to withdraw from your purchase, without giving any reason and without penalty. This right comes from Directive 2011/83/EU on consumer rights and from the law that transposes it in your country. Its Article 11a, added by Directive (EU) 2023/2673, is what requires shops to offer this online withdrawal function.', 'eu-withdrawal-compliance' );
+		$p_right  = __( 'You have 14 days to withdraw from your purchase, without giving any reason and without penalty: for goods, from the day you receive them; for services and digital content, from the day the contract was concluded. This right comes from Directive 2011/83/EU on consumer rights and from the law that transposes it in your country. Its Article 11a, added by Directive (EU) 2023/2673, is what requires shops to offer this online withdrawal function.', 'eu-withdrawal-compliance' );
 
 		$h2_how = __( 'How to exercise it', 'eu-withdrawal-compliance' );
 		$p_how  = __( 'Fill in the form below. You will receive an automatic confirmation by email once your request is registered. The refund will be processed within the legal deadline that applies to your purchase.', 'eu-withdrawal-compliance' );
@@ -168,9 +168,12 @@ function ayudawp_euw_activate() {
 			// Remember which page the plugin wrote, so Settings can tell the
 			// bundled template apart from a page the trader has written. The
 			// hash is of the content as stored, after any filter on the way in,
-			// and is only read on the settings screen.
+			// and is only read on the settings screen. Read raw, as get_post()
+			// gives it there: the default display context runs the content
+			// through the "post_content" filter, and a third-party callback on
+			// it would leave a hash that never matches.
 			update_option( 'ayudawp_euw_page_created_id', $new_page_id );
-			update_option( 'ayudawp_euw_page_created_hash', md5( (string) get_post_field( 'post_content', $new_page_id ) ), false );
+			update_option( 'ayudawp_euw_page_created_hash', md5( (string) get_post_field( 'post_content', $new_page_id, 'raw' ) ), false );
 		}
 	}
 }

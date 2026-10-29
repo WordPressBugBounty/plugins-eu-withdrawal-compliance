@@ -442,7 +442,7 @@ function ayudawp_euw_register_settings() {
 		)
 	);
 
-	// Public-form intro text: toggle plus editable copy (the legal note stays fixed).
+	// Public-form intro text: toggle plus editable copy.
 	register_setting(
 		'ayudawp_euw_settings_group',
 		'ayudawp_euw_form_intro_enabled',
@@ -456,6 +456,18 @@ function ayudawp_euw_register_settings() {
 	register_setting(
 		'ayudawp_euw_settings_group',
 		'ayudawp_euw_form_intro_text',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_textarea_field',
+			'default'           => '',
+		)
+	);
+
+	// Legal note shared by the form, the confirmation screen and the
+	// acknowledgement email. Empty means the bundled text.
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_legal_note_text',
 		array(
 			'type'              => 'string',
 			'sanitize_callback' => 'sanitize_textarea_field',
@@ -832,6 +844,14 @@ function ayudawp_euw_register_settings() {
 	);
 
 	add_settings_field(
+		'ayudawp_euw_legal_note_text',
+		__( 'Withdrawal conditions note', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_legal_note_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_form_section'
+	);
+
+	add_settings_field(
 		'ayudawp_euw_consumer_check_enabled',
 		__( 'Consumer self-declaration', 'eu-withdrawal-compliance' ),
 		'ayudawp_euw_field_consumer_check_callback',
@@ -978,6 +998,10 @@ function ayudawp_euw_editable_text_defaults() {
 
 	if ( function_exists( 'ayudawp_euw_form_intro_default' ) ) {
 		$defaults['ayudawp_euw_form_intro_text'] = ayudawp_euw_form_intro_default();
+	}
+
+	if ( function_exists( 'ayudawp_euw_legal_conditions_default' ) ) {
+		$defaults['ayudawp_euw_legal_note_text'] = ayudawp_euw_legal_conditions_default();
 	}
 
 	if ( function_exists( 'ayudawp_euw_consumer_check_default_text' ) ) {
@@ -1208,13 +1232,29 @@ function ayudawp_euw_field_page_callback() {
 
 	echo '<p class="description">' . wp_kses( __( '<strong>Mandatory.</strong> Page where the withdrawal form is published. Make sure it includes the <code>[ayudawp_withdrawal_form]</code> shortcode. The plugin creates one automatically on activation.', 'eu-withdrawal-compliance' ), array( 'strong' => array(), 'code' => array() ) ) . '</p>';
 
-	$problem = ayudawp_euw_get_page_problem( $selected );
+	$problem   = ayudawp_euw_get_page_problem( $selected );
+	$untouched = ayudawp_euw_page_is_untouched_template( $selected );
+
+	// The draft the plugin wrote, still with its sample text: the draft warning
+	// and the sample note said the same thing twice, so one notice gives the
+	// steps in order. Untouched already means it is the page the plugin created.
+	if ( $untouched && 'draft' === get_post_status( $selected ) ) {
+
+		$notice = sprintf(
+			/* translators: %s: URL of the page editor. */
+			__( 'The plugin created this page as a draft with sample text. <a href="%s">Review it with your legal advisor</a>, delete the sections that do not apply to your shop and publish it. Until then, the withdrawal function is not available to customers and the links to the form stay hidden.', 'eu-withdrawal-compliance' ),
+			esc_url( (string) get_edit_post_link( $selected ) )
+		);
+
+		echo '<p class="ayudawp-euw-page-warning"><span class="dashicons dashicons-warning" aria-hidden="true"></span> ' . wp_kses( $notice, array( 'a' => array( 'href' => array() ) ) ) . '</p>';
+		return;
+	}
 
 	if ( '' !== $problem ) {
 		echo '<p class="ayudawp-euw-page-warning"><span class="dashicons dashicons-warning" aria-hidden="true"></span> ' . esc_html( $problem ) . '</p>';
 	}
 
-	if ( ayudawp_euw_page_is_untouched_template( $selected ) ) {
+	if ( $untouched ) {
 
 		$notice = sprintf(
 			/* translators: %s: URL of the page editor. */
@@ -1565,7 +1605,7 @@ function ayudawp_euw_field_accept_unmatched_callback() {
  */
 function ayudawp_euw_deadline_section_callback() {
 
-	echo '<p>' . esc_html__( 'EU Directive 2011/83 sets a 14-day withdrawal period. The plugin no longer auto-rejects requests based on this date: because the period legally runs from delivery (which the shop cannot detect automatically), requests that look past the window are flagged in the admin notification for manual review instead of being blocked. These settings tune that advisory calculation.', 'eu-withdrawal-compliance' ) . '</p>';
+	echo '<p>' . esc_html__( 'EU Directive 2011/83 sets a 14-day withdrawal period. The plugin no longer auto-rejects requests based on this date: because for goods the period legally runs from delivery, which the shop cannot detect automatically, requests that look past the window are flagged in the admin notification for manual review instead of being blocked. These settings tune that advisory calculation.', 'eu-withdrawal-compliance' ) . '</p>';
 }
 
 /**
@@ -1658,7 +1698,7 @@ function ayudawp_euw_field_deadline_mode_callback() {
 	}
 	echo '</select>';
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Recommended: Advisory.</strong> Because the legal 14-day period runs from delivery (which the shop cannot detect automatically), strict mode can turn away consumers still within their real window. Use it only when your catalogue and process make the order or completion date a reliable proxy.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( __( '<strong>Recommended: Advisory.</strong> Because for goods the legal 14-day period runs from delivery, which the shop cannot detect automatically, strict mode can turn away consumers still within their real window. Use it only when your catalogue and process make the order or completion date a reliable proxy.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -2812,7 +2852,7 @@ function ayudawp_euw_field_status_email_completed_callback() {
  */
 function ayudawp_euw_form_section_callback() {
 
-	echo '<p>' . esc_html__( 'Fine-tune the public withdrawal form. The fixed legal note shown below the intro cannot be edited because it must stay identical across the form, the confirmation screen and the acknowledgement email.', 'eu-withdrawal-compliance' ) . '</p>';
+	echo '<p>' . esc_html__( 'Fine-tune the public withdrawal form.', 'eu-withdrawal-compliance' ) . '</p>';
 }
 
 /**
@@ -2835,9 +2875,31 @@ function ayudawp_euw_field_form_intro_callback() {
 			<textarea name="ayudawp_euw_form_intro_text" id="ayudawp_euw_form_intro_text" rows="3" class="large-text" placeholder="<?php echo esc_attr( $default ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
 		</p>
 		<p class="description">
-			<?php esc_html_e( 'Untick the box to hide the intro entirely. Leave the text empty to use the bundled text shown in the field, which follows the language of each visitor; your own text is shown exactly as written, in every language. Plain text only; the fixed legal note is always shown below it.', 'eu-withdrawal-compliance' ); ?>
+			<?php esc_html_e( 'Untick the box to hide the intro entirely. Leave the text empty to use the bundled text shown in the field, which follows the language of each visitor; your own text is shown exactly as written, in every language. Plain text only.', 'eu-withdrawal-compliance' ); ?>
 		</p>
 	</fieldset>
+	<?php
+}
+
+/**
+ * Withdrawal conditions note field callback.
+ *
+ * Same editor as the intro: the bundled text is the placeholder, never the
+ * value, so leaving the field empty keeps it translated for each visitor.
+ */
+function ayudawp_euw_field_legal_note_callback() {
+
+	$text    = (string) get_option( 'ayudawp_euw_legal_note_text', '' );
+	$default = ayudawp_euw_editable_text_default( 'ayudawp_euw_legal_note_text' );
+
+	?>
+	<textarea name="ayudawp_euw_legal_note_text" id="ayudawp_euw_legal_note_text" rows="4" class="large-text" placeholder="<?php echo esc_attr( $default ); ?>" aria-describedby="ayudawp_euw_legal_note_text_help"><?php echo esc_textarea( $text ); ?></textarea>
+	<p class="description" id="ayudawp_euw_legal_note_text_help">
+		<?php esc_html_e( 'Shown below the intro, on the confirmation screen and in the acknowledgement email to the customer, the same in all three. Leave it empty to use the bundled text shown in the field, which follows the language of each visitor; your own text is shown exactly as written, in every language. Plain text only.', 'eu-withdrawal-compliance' ); ?>
+	</p>
+	<p class="description">
+		<?php esc_html_e( 'You are responsible for this text. It can describe conditions that are better for the customer, such as a longer period, but it cannot reduce the statutory rights: a clause that does is void.', 'eu-withdrawal-compliance' ); ?>
+	</p>
 	<?php
 }
 

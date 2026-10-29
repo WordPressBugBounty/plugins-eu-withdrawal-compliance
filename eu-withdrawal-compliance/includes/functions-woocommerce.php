@@ -120,11 +120,13 @@ function ayudawp_euw_resolve_wc_order( $order_ref ) {
 		}
 	}
 
-	// Strategy 2 — literal ID with strict displayed-number cross-check.
+	// Strategy 2 — literal ID with strict displayed-number cross-check. Only a
+	// real order counts: wc_get_order() also returns a refund by its ID, and a
+	// refund carries no billing details to check the request against.
 	if ( ! $order && ctype_digit( $order_ref ) ) {
 		$candidate = wc_get_order( absint( $order_ref ) );
 
-		if ( $candidate ) {
+		if ( $candidate instanceof WC_Order ) {
 			$displayed = method_exists( $candidate, 'get_order_number' )
 				? (string) $candidate->get_order_number()
 				: (string) $candidate->get_id();
@@ -138,10 +140,14 @@ function ayudawp_euw_resolve_wc_order( $order_ref ) {
 	/**
 	 * Filter the final resolution result.
 	 *
+	 * Anything other than a WC_Order (a refund, for instance) is read as no match.
+	 *
 	 * @param WC_Order|false $order     Resolved order or false.
 	 * @param string         $order_ref Raw order reference typed by the customer.
 	 */
-	return apply_filters( 'ayudawp_euw_resolve_wc_order', $order, $order_ref );
+	$order = apply_filters( 'ayudawp_euw_resolve_wc_order', $order, $order_ref );
+
+	return ( $order instanceof WC_Order ) ? $order : false;
 }
 
 /**

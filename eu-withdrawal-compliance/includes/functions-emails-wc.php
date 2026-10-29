@@ -107,7 +107,7 @@ function ayudawp_euw_inject_email_notice( $order, $sent_to_admin, $plain_text, $
 		// strips markup and leaves quotes alone.
 		echo "\n\n----------\n";
 		echo wp_kses( __( 'Right of withdrawal', 'eu-withdrawal-compliance' ), array() ) . "\n";
-		echo wp_kses( __( 'You have 14 days from receipt to exercise your withdrawal right without giving any reason. To do so, use our online withdrawal function:', 'eu-withdrawal-compliance' ), array() ) . "\n";
+		echo wp_kses( __( 'You have 14 days to exercise your withdrawal right without giving any reason (for goods, counted from delivery; for services and digital content, from the day the contract was concluded). To do so, use our online withdrawal function:', 'eu-withdrawal-compliance' ), array() ) . "\n";
 		echo esc_url( $page_url ) . "\n";
 
 		if ( ! empty( $excluded_names ) ) {
@@ -126,7 +126,7 @@ function ayudawp_euw_inject_email_notice( $order, $sent_to_admin, $plain_text, $
 
 	?>
 	<h3><?php esc_html_e( 'Right of withdrawal', 'eu-withdrawal-compliance' ); ?></h3>
-	<p><?php esc_html_e( 'You have 14 days from receipt to exercise your withdrawal right without giving any reason.', 'eu-withdrawal-compliance' ); ?></p>
+	<p><?php esc_html_e( 'You have 14 days to exercise your withdrawal right without giving any reason (for goods, counted from delivery; for services and digital content, from the day the contract was concluded).', 'eu-withdrawal-compliance' ); ?></p>
 	<?php if ( ! empty( $excluded_names ) ) : ?>
 		<p>
 			<?php

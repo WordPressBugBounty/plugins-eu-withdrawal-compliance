@@ -145,8 +145,13 @@ function ayudawp_euw_send_customer_email( $email, $name, $order, $scope, $receip
 		$lines[] = $receipt_hash;
 	}
 
-	$lines[] = '';
-	$lines[] = ayudawp_euw_legal_conditions_text();
+	$legal_note = ayudawp_euw_legal_conditions_text();
+
+	if ( '' !== $legal_note ) {
+		$lines[] = '';
+		$lines[] = $legal_note;
+	}
+
 	$lines[] = '';
 	$lines[] = __( 'We will review the request and confirm next steps as soon as possible. If you do not hear from us, please reply to this email.', 'eu-withdrawal-compliance' );
 
@@ -261,7 +266,7 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
 
 	if ( '' !== $unverified ) {
 		$lines[] = '';
-		$lines[] = __( '⚠ UNVERIFIED REQUEST: these details could not be matched with an order.', 'eu-withdrawal-compliance' );
+		$lines[] = __( '⚠ UNVERIFIED REQUEST: these details could not be verified against an order.', 'eu-withdrawal-compliance' );
 
 		if ( 'email_mismatch' === $unverified ) {
 
@@ -314,7 +319,7 @@ function ayudawp_euw_send_admin_email( $post_id, $name, $email, $order, $scope, 
 	if ( $deadline_ts && time() > $deadline_ts ) {
 		$lines[] = '';
 		$lines[] = __( '⚠ This request may be outside the 14-day window based on the order date.', 'eu-withdrawal-compliance' );
-		$lines[] = __( 'The legal period runs from the delivery date (or, for digital content, from the start of the download), which the plugin cannot detect automatically. Check the actual delivery date (e.g. the carrier tracking) before deciding. Never auto-rejected.', 'eu-withdrawal-compliance' );
+		$lines[] = __( 'For goods the legal period runs from delivery, a date the plugin cannot detect automatically, so check the actual delivery date (e.g. the carrier tracking) before deciding. For services and digital content it runs from the day the contract was concluded. Never auto-rejected.', 'eu-withdrawal-compliance' );
 	}
 
 	$lines[] = '';
