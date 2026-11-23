@@ -191,6 +191,23 @@ function ayudawp_euw_enqueue_admin( $hook ) { // phpcs:ignore Generic.CodeAnalys
 			true
 		);
 
+		// Tabs, folded help and badges of the settings page.
+		wp_enqueue_script(
+			'ayudawp-euw-settings-tabs',
+			AYUDAWP_EUW_URL . 'assets/js/settings-tabs.js',
+			array(),
+			AYUDAWP_EUW_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ayudawp-euw-settings-tabs',
+			'ayudawpEuwSettings',
+			array(
+				'moreInfo' => __( 'More information', 'eu-withdrawal-compliance' ),
+			)
+		);
+
 		wp_localize_script(
 			'ayudawp-euw-guarantee-admin',
 			'ayudawpEuwGuarantee',
@@ -253,3 +270,37 @@ function ayudawp_euw_enqueue_guarantee_assets() {
 	);
 }
 add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_guarantee_assets' );
+
+/**
+ * Enqueue the script that keeps the checkout consent checkboxes ticked.
+ *
+ * Loaded only on the checkout form (not on the order received or order pay
+ * screens, which have no order review refresh) and only when at least one
+ * consent applies, because WooCommerce re-renders the order review by AJAX and
+ * the script puts back what the customer had ticked.
+ */
+function ayudawp_euw_enqueue_checkout_consent_assets() {
+
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
+
+	if ( ( function_exists( 'is_order_received_page' ) && is_order_received_page() )
+		|| ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-pay' ) ) ) {
+		return;
+	}
+
+	if ( ! function_exists( 'ayudawp_euw_consent_applies' )
+		|| ( ! ayudawp_euw_consent_applies( 'a' ) && ! ayudawp_euw_consent_applies( 'b' ) ) ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'ayudawp-euw-checkout-consent',
+		AYUDAWP_EUW_URL . 'assets/js/checkout-consent.js',
+		array( 'jquery' ),
+		AYUDAWP_EUW_VERSION,
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_checkout_consent_assets' );

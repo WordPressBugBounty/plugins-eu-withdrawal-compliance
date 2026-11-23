@@ -231,22 +231,42 @@ function ayudawp_euw_consent_error_message( $type ) {
 }
 
 /**
+ * Where the consent checkboxes go at the checkout, as chosen in the settings.
+ *
+ * @return string 'button' (next to the Place order button, the default) or 'order_notes'.
+ */
+function ayudawp_euw_consent_location() {
+
+	return 'order_notes' === get_option( 'ayudawp_euw_consent_location', 'button' ) ? 'order_notes' : 'button';
+}
+
+/**
+ * Checkout hook that matches the location chosen in the settings.
+ *
+ * @return string Hook name.
+ */
+function ayudawp_euw_consent_location_hook() {
+
+	return 'order_notes' === ayudawp_euw_consent_location() ? 'woocommerce_after_order_notes' : 'woocommerce_review_order_before_submit';
+}
+
+/**
  * Render the consent checkboxes inside the checkout form.
  *
- * Hooked to `woocommerce_after_order_notes`, in the customer-details column.
- * This is deliberately NOT the order-review panel
- * (`woocommerce_review_order_before_submit` /
- * `woocommerce_checkout_after_terms_and_conditions`): WooCommerce re-renders
- * that panel on every `update_order_review` AJAX call, which (a) duplicated
- * the checkbox, because the AJAX render runs in a separate request where the
- * static guard below cannot see the page-load render, and (b) reset the
- * required checkbox whenever the customer changed address, shipping or
- * payment. The customer-details column is rendered once on page load and is
- * left untouched by that AJAX refresh, so the consent stays put and keeps its
- * checked state.
+ * The location is chosen in the settings (see `ayudawp_euw_register_consent_render()`).
+ * By default it is the order review panel, next to the Place order button, which
+ * every checkout renders. Page builders that split the checkout into modules
+ * (Divi) render each module from the full checkout and hide what is not theirs
+ * by CSS, and Divi's Shipping module hides `.woocommerce-additional-fields`,
+ * which is where `woocommerce_after_order_notes` lands.
  *
- * The static guard remains as a cheap safety net against a theme firing the
- * hook more than once in the same request.
+ * WooCommerce renders the panel again on every `update_order_review` and the
+ * fragment brings the checkbox once (a single hook, so it is not duplicated;
+ * it was when the checkbox was attached to several hooks at once), and
+ * `assets/js/checkout-consent.js` gives the tick back after `updated_checkout`.
+ *
+ * The static guard remains as a safety net against a hook that fires more than
+ * once in the same request, which is what Divi does.
  */
 function ayudawp_euw_checkout_render_consent_fields() {
 
@@ -311,47 +331,65 @@ function ayudawp_euw_checkout_render_consent_fields() {
 }
 
 /**
- * Hook the consent render at the configurable checkout location.
+ * Hook the consent render at the checkout location.
  *
- * Registered on `wp_loaded` rather than at file load so a theme's functions.php
- * (which loads after every plugin) can still filter the location.
- *
- * The default is `woocommerce_after_order_notes`, in the customer-details
- * column, and it is not an arbitrary choice: see the note on the render above.
- * Moving the checkboxes into the order-review panel
- * (`woocommerce_review_order_before_submit`,
- * `woocommerce_checkout_after_terms_and_conditions`) puts them where
- * WooCommerce re-renders on every `update_order_review` AJAX call, which
- * duplicates the checkbox and clears what the customer already ticked whenever
- * they change address, shipping or payment method. Grouping the consents next
- * to the terms acceptance reads better, so the choice is available, but it is a
- * trade-off and not a free improvement. Returning an empty string suppresses
- * the render entirely, for shops that place the checkboxes with their own code.
+ * Registered on `wp_loaded` so a theme's functions.php (which loads after every
+ * plugin) can still filter the location. Without a filter, both possible hooks
+ * are attached and the setting is read only when one of them fires, that is,
+ * only at the checkout: reading it on `wp_loaded` would cost a query on every
+ * request of a site that never saved the settings and has no persistent object
+ * cache. With the filter, the filter wins and receives the hook of the setting;
+ * returning an empty string renders nothing.
  */
 function ayudawp_euw_register_consent_render() {
 
-	/**
-	 * Filters the checkout hook where the consent checkboxes are rendered.
-	 *
-	 * @param string $hook Hook name. Empty string to render nothing.
-	 */
-	$hook = (string) apply_filters( 'ayudawp_euw_consent_hook', 'woocommerce_after_order_notes' );
+	if ( has_filter( 'ayudawp_euw_consent_hook' ) ) {
 
-	if ( '' === $hook ) {
+		/**
+		 * Filters the checkout hook where the consent checkboxes are rendered.
+		 *
+		 * @param string $hook Hook name. Receives the hook of the location chosen in the
+		 *                     settings (`woocommerce_review_order_before_submit` or
+		 *                     `woocommerce_after_order_notes`). Empty string to render nothing.
+		 */
+		$hook = (string) apply_filters( 'ayudawp_euw_consent_hook', ayudawp_euw_consent_location_hook() );
+
+		if ( '' === $hook ) {
+			return;
+		}
+
+		/**
+		 * Filters the priority of the consent render on its checkout hook.
+		 *
+		 * @param int    $priority Hook priority.
+		 * @param string $hook     Hook the render is attached to.
+		 */
+		$priority = (int) apply_filters( 'ayudawp_euw_consent_hook_priority', 10, $hook );
+
+		add_action( $hook, 'ayudawp_euw_checkout_render_consent_fields', $priority );
+
 		return;
 	}
 
-	/**
-	 * Filters the priority of the consent render on its checkout hook.
-	 *
-	 * @param int    $priority Hook priority.
-	 * @param string $hook     Hook the render is attached to.
-	 */
-	$priority = (int) apply_filters( 'ayudawp_euw_consent_hook_priority', 10, $hook );
+	foreach ( array( 'woocommerce_review_order_before_submit', 'woocommerce_after_order_notes' ) as $hook ) {
 
-	add_action( $hook, 'ayudawp_euw_checkout_render_consent_fields', $priority );
+		/** This filter is documented above. */
+		$priority = (int) apply_filters( 'ayudawp_euw_consent_hook_priority', 10, $hook );
+
+		add_action( $hook, 'ayudawp_euw_render_consent_at_location', $priority );
+	}
 }
 add_action( 'wp_loaded', 'ayudawp_euw_register_consent_render' );
+
+/**
+ * Render the consent checkboxes only on the hook chosen in the settings.
+ */
+function ayudawp_euw_render_consent_at_location() {
+
+	if ( current_action() === ayudawp_euw_consent_location_hook() ) {
+		ayudawp_euw_checkout_render_consent_fields();
+	}
+}
 
 /**
  * Reject the checkout submission when the mandatory Type A consent is missing.

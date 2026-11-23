@@ -345,3 +345,165 @@ a.ayudawp-euw-status:hover {
 		padding-bottom: 8px;
 	}
 }
+
+/* Settings page: tabs of cards.
+   Before the script has run, show only the first panel and hide the long
+   explanations, so the page does not flash its full length and then fold.
+   WordPress swaps no-js for js on the admin <body> as soon as it opens. */
+.js .ayudawp-euw-settings:not(.ayudawp-euw-ready) .ayudawp-euw-tabpanel + .ayudawp-euw-tabpanel {
+	display: none;
+}
+
+.js .ayudawp-euw-settings:not(.ayudawp-euw-ready) .ayudawp-euw-field p.description:not(.ayudawp-euw-status) {
+	display: none;
+}
+
+/* A display set by class beats the hidden attribute, so say it again here. */
+.ayudawp-euw-tabpanel[hidden] {
+	display: none !important;
+}
+
+/* Cards: one column, two from 1280px. The wide ones take both. */
+.ayudawp-euw-cards {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 20px;
+	margin-top: 20px;
+	align-items: start;
+}
+
+@media (min-width: 1280px) {
+
+	.ayudawp-euw-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+.ayudawp-euw-card--wide {
+	grid-column: 1 / -1;
+}
+
+.ayudawp-euw-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	padding: 16px 24px 24px;
+	box-sizing: border-box;
+	min-width: 0;
+}
+
+.ayudawp-euw-card h2 {
+	margin: 0 0 8px;
+}
+
+.ayudawp-euw-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	margin-top: 16px;
+}
+
+@media (min-width: 1280px) {
+
+	.ayudawp-euw-card--wide .ayudawp-euw-fields {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 24px 32px;
+	}
+}
+
+.ayudawp-euw-field--wide {
+	grid-column: 1 / -1;
+}
+
+/* A wide card whose fields stack in two independent columns (see
+   ayudawp_euw_settings_card_columns()): a tall field, such as the list of
+   emails of the guarantee notice, no longer stretches a row of the other
+   column and leaves a hole beside it. */
+.ayudawp-euw-split,
+.ayudawp-euw-split__col {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	min-width: 0;
+}
+
+.ayudawp-euw-split {
+	margin-top: 16px;
+}
+
+.ayudawp-euw-split + .ayudawp-euw-fields {
+	margin-top: 24px;
+}
+
+@media (min-width: 1280px) {
+
+	.ayudawp-euw-split {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 24px 32px;
+		align-items: start;
+	}
+}
+
+.ayudawp-euw-field__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+.ayudawp-euw-field__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* Badges: Recommended, Optional, Required. */
+.ayudawp-euw-badge {
+	display: inline-block;
+	font-size: 12px;
+	line-height: 1.6;
+	padding: 0 8px;
+	border-radius: 10px;
+	font-weight: 400;
+	vertical-align: middle;
+	margin-left: 4px;
+}
+
+.ayudawp-euw-badge--recommended {
+	background: #e7f1fa;
+	color: #0a4b78;
+}
+
+.ayudawp-euw-badge--optional {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.ayudawp-euw-badge--required {
+	background: #fcf0f1;
+	color: #8a2424;
+}
+
+/* Folded explanations. */
+.ayudawp-euw-help {
+	margin-top: 6px;
+}
+
+.ayudawp-euw-help summary {
+	cursor: pointer;
+	color: #2271b1;
+}
+
+.ayudawp-euw-help p.description {
+	margin-top: 6px;
+}
+
+.ayudawp-euw-card .regular-text {
+	max-width: 100%;
+}
+
+.ayudawp-euw-tab-intro {
+	margin: 16px 0 0;
+}

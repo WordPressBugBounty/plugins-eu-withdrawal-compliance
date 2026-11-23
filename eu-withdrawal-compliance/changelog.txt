@@ -3,6 +3,12 @@ EU Withdrawal and Legal Guarantee Compliance — Full changelog
 For each release, see the entries below. The latest version is always at the top.
 The current release notes also live in readme.txt under "== Changelog ==".
 
+= 2.4.0 =
+* New: You can choose where the checkout consent checkboxes go under **EU Compliance → Settings → Exceptions (Art. 16) → Checkbox location**: next to the Place order button, now the default, or below the order notes, where they were until now. Code that moves them with the `ayudawp_euw_consent_hook` filter still decides, and the setting says so when it finds that filter.
+* Improved: The settings page is organised in six tabs (General, Form and emails, Orders and deadline, Exceptions (Art. 16), Legal guarantee and Help), with the sections side by side on wide screens. Longer explanations fold under "More information", labels such as Recommended, Optional or Required show as tags next to each setting, and help that repeated itself in several fields shows once. All tabs are saved together, and saving brings you back to the tab you were on.
+* Improved: The consent checkboxes keep their tick when WooCommerce refreshes the order review after the customer changes address, shipping or payment method.
+* Fix: With page builders that split the checkout into separate modules, such as Divi, the consent checkboxes ended up inside a section the builder hides, so the digital content consent (Art. 16(m)) could not be ticked and orders with digital content could not be placed. They now sit next to the Place order button by default, a spot every checkout layout keeps.
+
 = 2.3.4 =
 * Improved: The withdrawal conditions note can be edited under **EU Compliance → Settings → Public withdrawal form**. It shows on the form, on the confirmation screen and in the acknowledgement email, the same in all three, and left empty it keeps the bundled text, translated for each visitor. Developers can change it or hide it with the new `ayudawp_euw_legal_conditions_text` filter.
 * Improved: On a new install the settings show one notice under the withdrawal page selector instead of two that said the same thing: review the sample text with your legal advisor, delete what does not apply and publish the page.

@@ -35,6 +35,7 @@ $ayudawp_euw_options = array(
 	'ayudawp_euw_consent_b_enabled',
 	'ayudawp_euw_consent_b_text',
 	'ayudawp_euw_consent_b_required',
+	'ayudawp_euw_consent_location',
 	// Harmonised legal guarantee notice.
 	'ayudawp_euw_guarantee_enabled',
 	'ayudawp_euw_guarantee_display',

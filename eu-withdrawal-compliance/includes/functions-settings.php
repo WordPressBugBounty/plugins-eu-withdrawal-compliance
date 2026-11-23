@@ -266,6 +266,16 @@ function ayudawp_euw_register_settings() {
 		)
 	);
 
+	register_setting(
+		'ayudawp_euw_settings_group',
+		'ayudawp_euw_consent_location',
+		array(
+			'type'              => 'string',
+			'sanitize_callback' => 'ayudawp_euw_sanitize_consent_location',
+			'default'           => 'button',
+		)
+	);
+
 	// Annex I.B settings.
 	register_setting(
 		'ayudawp_euw_settings_group',
@@ -632,6 +642,14 @@ function ayudawp_euw_register_settings() {
 		'ayudawp_euw_consent_section'
 	);
 
+	add_settings_field(
+		'ayudawp_euw_consent_location',
+		__( 'Checkbox location', 'eu-withdrawal-compliance' ),
+		'ayudawp_euw_field_consent_location_callback',
+		'ayudawp-euw-settings',
+		'ayudawp_euw_consent_section'
+	);
+
 	add_settings_section(
 		'ayudawp_euw_annex_b_section',
 		__( 'Model withdrawal form', 'eu-withdrawal-compliance' ),
@@ -911,6 +929,17 @@ function ayudawp_euw_sanitize_yes_no( $value ) {
 }
 
 /**
+ * Sanitize the checkout consent location.
+ *
+ * @param mixed $value Submitted value.
+ * @return string 'order_notes' or, in any other case, 'button'.
+ */
+function ayudawp_euw_sanitize_consent_location( $value ) {
+
+	return 'order_notes' === $value ? 'order_notes' : 'button';
+}
+
+/**
  * Settings whose field is only printed while WooCommerce is active.
  *
  * Their field callbacks print a note and return when WooCommerce is missing, so
@@ -933,6 +962,7 @@ function ayudawp_euw_woocommerce_only_settings() {
 		'ayudawp_euw_consent_b_enabled',
 		'ayudawp_euw_consent_b_required',
 		'ayudawp_euw_consent_b_text',
+		'ayudawp_euw_consent_location',
 		'ayudawp_euw_excluded_notice_enabled',
 		'ayudawp_euw_excluded_notice_title_art16m_digital',
 		'ayudawp_euw_excluded_notice_body_art16m_digital',
@@ -1191,7 +1221,7 @@ function ayudawp_euw_field_email_callback() {
 		esc_attr( $value )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Recommended.</strong> Address that receives a notification each time a customer submits a withdrawal request. Separate several addresses with commas to notify more than one recipient. Defaults to the site admin email if left empty.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Address that receives a notification each time a customer submits a withdrawal request. Separate several addresses with commas to notify more than one recipient. Defaults to the site admin email if left empty.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -1230,7 +1260,7 @@ function ayudawp_euw_field_page_callback() {
 		)
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Mandatory.</strong> Page where the withdrawal form is published. Make sure it includes the <code>[ayudawp_withdrawal_form]</code> shortcode. The plugin creates one automatically on activation.', 'eu-withdrawal-compliance' ), array( 'strong' => array(), 'code' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Mandatory.</strong> Page where the withdrawal form is published. Make sure it includes the <code>[ayudawp_withdrawal_form]</code> shortcode. The plugin creates one automatically on activation.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array(), 'code' => array() ) ) . '</p>';
 
 	$problem   = ayudawp_euw_get_page_problem( $selected );
 	$untouched = ayudawp_euw_page_is_untouched_template( $selected );
@@ -1420,7 +1450,7 @@ add_action( 'admin_notices', 'ayudawp_euw_render_unpublished_page_notice' );
 function ayudawp_euw_field_account_status_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there is no customer account where the status could be shown. Customers still receive the acknowledgement of receipt and every status change by email.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there is no customer account where the status could be shown. Customers still receive the acknowledgement of receipt and every status change by email.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -1434,7 +1464,7 @@ function ayudawp_euw_field_account_status_callback() {
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Recommended.</strong> Lists the customer\'s own requests, with their status and the note you write when resolving them, at the top of the "Right of withdrawal" tab, and replaces the withdrawal button of an order that already has a request with its current status. Unticked, a submitted request only leaves a trace in the emails the customer receives.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Lists the customer\'s own requests, with their status and the note you write when resolving them, at the top of the "Right of withdrawal" tab, and replaces the withdrawal button of an order that already has a request with its current status. Unticked, a submitted request only leaves a trace in the emails the customer receives.', 'eu-withdrawal-compliance' ) ),
 			array( 'strong' => array() )
 		);
 		?>
@@ -1504,7 +1534,7 @@ function ayudawp_euw_sanitize_allowed_statuses( $value ) {
 function ayudawp_euw_field_allowed_statuses_callback() {
 
 	if ( ! function_exists( 'wc_get_order_statuses' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no order statuses to choose from.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no order statuses to choose from.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -1528,7 +1558,7 @@ function ayudawp_euw_field_allowed_statuses_callback() {
 
 	echo '</fieldset>';
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Recommended.</strong> Defaults to Processing and Completed. Plugins that register additional statuses (e.g. shipping plugins) appear here automatically.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Defaults to Processing and Completed. Plugins that register additional statuses (e.g. shipping plugins) appear here automatically.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 
 	// A sentence of its own, so the one above keeps its translations.
 	echo '<p class="description">' . esc_html__( 'These statuses decide every place the withdrawal is offered: the button in My Account, the form, and the notice in the WooCommerce email sent when an order reaches On hold, Processing, Completed or Refunded.', 'eu-withdrawal-compliance' ) . '</p>';
@@ -1540,7 +1570,7 @@ function ayudawp_euw_field_allowed_statuses_callback() {
 function ayudawp_euw_field_exclusions_in_orders_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no orders this option could apply to.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no orders this option could apply to.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -1555,7 +1585,7 @@ function ayudawp_euw_field_exclusions_in_orders_callback() {
 		<p class="description">
 			<?php
 			echo wp_kses(
-				__( '<strong>Recommended.</strong> An order that only holds products excluded from the right of withdrawal shows neither the withdrawal button nor the notice in its emails, and an order that mixes both names the excluded ones in that notice. The withdrawal form keeps accepting a request for any order and flags it for your review. Untick it if you grant the withdrawal on excluded products too.', 'eu-withdrawal-compliance' ),
+				ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> An order that only holds products excluded from the right of withdrawal shows neither the withdrawal button nor the notice in its emails, and an order that mixes both names the excluded ones in that notice. The withdrawal form keeps accepting a request for any order and flags it for your review. Untick it if you grant the withdrawal on excluded products too.', 'eu-withdrawal-compliance' ) ),
 				array( 'strong' => array() )
 			);
 			?>
@@ -1570,7 +1600,7 @@ function ayudawp_euw_field_exclusions_in_orders_callback() {
 function ayudawp_euw_field_accept_unmatched_callback() {
 
 	if ( ! function_exists( 'wc_get_order' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active. Without an order database to check against, every request is registered as-is, so this option does not apply.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active. Without an order database to check against, every request is registered as-is, so this option does not apply.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -1585,7 +1615,7 @@ function ayudawp_euw_field_accept_unmatched_callback() {
 		<p class="description">
 			<?php
 			echo wp_kses(
-				__( '<strong>Optional, off by default.</strong> By default a request is rejected upfront when the order number and email do not match a WooCommerce order. With this option enabled it is registered anyway, marked as <em>Unverified</em> in the log and highlighted in the notification email, and you verify it manually against your records before deciding. Useful when customers mistype the reference, or when some sales happen outside WooCommerce. Unverified requests are never linked to an order (no order note, no status or deadline checks) and the acknowledgement of receipt is still sent to the address submitted.', 'eu-withdrawal-compliance' ),
+				ayudawp_euw_without_badge( __( '<strong>Optional, off by default.</strong> By default a request is rejected upfront when the order number and email do not match a WooCommerce order. With this option enabled it is registered anyway, marked as <em>Unverified</em> in the log and highlighted in the notification email, and you verify it manually against your records before deciding. Useful when customers mistype the reference, or when some sales happen outside WooCommerce. Unverified requests are never linked to an order (no order note, no status or deadline checks) and the acknowledgement of receipt is still sent to the address submitted.', 'eu-withdrawal-compliance' ) ),
 				array(
 					'strong' => array(),
 					'em'     => array(),
@@ -1656,7 +1686,7 @@ function ayudawp_euw_field_deadline_basis_callback() {
 	}
 	echo '</select>';
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Recommended.</strong> Pick the date used to compute the advisory deadline flag shown to the admin. If you choose Completion date but the order is not yet completed, the plugin falls back to the order date.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Pick the date used to compute the advisory deadline flag shown to the admin. If you choose Completion date but the order is not yet completed, the plugin falls back to the order date.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -1672,7 +1702,7 @@ function ayudawp_euw_field_grace_days_callback() {
 		esc_html__( 'days', 'eu-withdrawal-compliance' )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Extra days added on top of the 14-day minimum when computing the advisory deadline flag. Useful when you offer a longer return window than required.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Extra days added on top of the 14-day minimum when computing the advisory deadline flag. Useful when you offer a longer return window than required.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -1698,7 +1728,7 @@ function ayudawp_euw_field_deadline_mode_callback() {
 	}
 	echo '</select>';
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Recommended: Advisory.</strong> Because for goods the legal 14-day period runs from delivery, which the shop cannot detect automatically, strict mode can turn away consumers still within their real window. Use it only when your catalogue and process make the order or completion date a reliable proxy.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Recommended: Advisory.</strong> Because for goods the legal 14-day period runs from delivery, which the shop cannot detect automatically, strict mode can turn away consumers still within their real window. Use it only when your catalogue and process make the order or completion date a reliable proxy.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -1729,7 +1759,7 @@ function ayudawp_euw_exclusions_section_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no product categories or products to configure yet.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no product categories or products to configure yet.', 'eu-withdrawal-compliance' ) . '</p>';
 
 		return;
 	}
@@ -1764,7 +1794,7 @@ function ayudawp_euw_consent_section_callback() {
 
 	if ( class_exists( 'WooCommerce' ) && ayudawp_euw_checkout_uses_block() ) {
 
-		echo '<p><strong>' . esc_html__( 'Heads up:', 'eu-withdrawal-compliance' ) . '</strong> ';
+		echo '<p class="ayudawp-euw-status"><strong>' . esc_html__( 'Heads up:', 'eu-withdrawal-compliance' ) . '</strong> ';
 		echo esc_html__( 'your checkout page uses the WooCommerce Checkout block. The consents are injected only into the classic shortcode checkout, so replace the Checkout block with the [woocommerce_checkout] shortcode to use them. Block-based checkout support is planned for a future release.', 'eu-withdrawal-compliance' );
 		echo '</p>';
 	}
@@ -1864,7 +1894,7 @@ function ayudawp_euw_count_status_usage( $status ) {
 function ayudawp_euw_field_consent_a_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so checkout consents cannot be injected.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so checkout consents cannot be injected.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -1882,7 +1912,7 @@ function ayudawp_euw_field_consent_a_callback() {
 		<p class="description">
 			<?php
 			echo wp_kses(
-				__( '<strong>Mandatory if you sell digital content.</strong> Required for online courses, downloads, software, eBooks and paid memberships when you want to rely on the Article 16(m) exception of Directive 2011/83/EU (Art. 103.m TRLGDCU in Spain). Without this checkbox accepted and recorded, the consumer keeps the 14-day withdrawal right even after accessing the content. Otherwise <strong>Optional</strong>. When in doubt, consult a lawyer.', 'eu-withdrawal-compliance' ),
+				ayudawp_euw_without_badge( __( '<strong>Mandatory if you sell digital content.</strong> Required for online courses, downloads, software, eBooks and paid memberships when you want to rely on the Article 16(m) exception of Directive 2011/83/EU (Art. 103.m TRLGDCU in Spain). Without this checkbox accepted and recorded, the consumer keeps the 14-day withdrawal right even after accessing the content. Otherwise <strong>Optional</strong>. When in doubt, consult a lawyer.', 'eu-withdrawal-compliance' ) ),
 				array( 'strong' => array() )
 			);
 			?>
@@ -1910,7 +1940,7 @@ function ayudawp_euw_field_consent_a_callback() {
 				</p>
 			</div>
 		<?php elseif ( 'yes' === $enabled && ! $usage['products'] && ! $usage['categories'] ) : ?>
-			<p class="description">
+			<p class="description ayudawp-euw-status">
 				<?php esc_html_e( 'No product or category is set to “Digital content (Art. 16(m))” yet, so this checkbox does not show at checkout.', 'eu-withdrawal-compliance' ); ?>
 			</p>
 		<?php endif; ?>
@@ -1924,7 +1954,7 @@ function ayudawp_euw_field_consent_a_callback() {
 function ayudawp_euw_field_consent_b_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so checkout consents cannot be injected.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so checkout consents cannot be injected.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -1942,7 +1972,7 @@ function ayudawp_euw_field_consent_b_callback() {
 		<p class="description">
 			<?php
 			echo wp_kses(
-				__( '<strong>Optional.</strong> Useful for ongoing services (maintenance plans, consultancy, SaaS, subscriptions). Backed by Article 14(4)(a) of Directive 2011/83/EU (Art. 108.3 TRLGDCU in Spain). With this checkbox accepted and recorded, you may charge a pro-rated amount for the work done if the customer withdraws within the 14-day window. Without it, an early withdrawal forces a full refund regardless of the work already delivered.', 'eu-withdrawal-compliance' ),
+				ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Useful for ongoing services (maintenance plans, consultancy, SaaS, subscriptions). Backed by Article 14(4)(a) of Directive 2011/83/EU (Art. 108.3 TRLGDCU in Spain). With this checkbox accepted and recorded, you may charge a pro-rated amount for the work done if the customer withdraws within the 14-day window. Without it, an early withdrawal forces a full refund regardless of the work already delivered.', 'eu-withdrawal-compliance' ) ),
 				array( 'strong' => array() )
 			);
 			?>
@@ -1958,12 +1988,13 @@ function ayudawp_euw_field_consent_b_callback() {
 			<label>
 				<input type="checkbox" name="ayudawp_euw_consent_b_required" value="yes" <?php checked( 'yes', get_option( 'ayudawp_euw_consent_b_required', 'no' ) ); ?>>
 				<strong><?php esc_html_e( 'Require it to place the order', 'eu-withdrawal-compliance' ); ?></strong>
+				<?php ayudawp_euw_print_badge( 'optional' ); ?>
 			</label>
 		</p>
 		<p class="description">
 			<?php
 			echo wp_kses(
-				__( '<strong>Optional.</strong> Off by default, because asking for the service to start early is the customer\'s choice. Tick it only if your service always starts inside the 14-day window (live sessions, bookings, anything delivered on a date the customer picks), so that placing the order without that request would not make sense. With it on, the checkbox becomes mandatory like the digital content one and the order cannot be placed without it.', 'eu-withdrawal-compliance' ),
+				ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Off by default, because asking for the service to start early is the customer\'s choice. Tick it only if your service always starts inside the 14-day window (live sessions, bookings, anything delivered on a date the customer picks), so that placing the order without that request would not make sense. With it on, the checkbox becomes mandatory like the digital content one and the order cannot be placed without it.', 'eu-withdrawal-compliance' ) ),
 				array( 'strong' => array() )
 			);
 			?>
@@ -1984,9 +2015,61 @@ function ayudawp_euw_field_consent_b_callback() {
 				</p>
 			</div>
 		<?php elseif ( 'yes' === $enabled && ! $usage['products'] && ! $usage['categories'] ) : ?>
-			<p class="description">
+			<p class="description ayudawp-euw-status">
 				<?php esc_html_e( 'No product or category is set to “Service started early (Art. 14(4)(a))” yet, so this checkbox does not show at checkout.', 'eu-withdrawal-compliance' ); ?>
 			</p>
+		<?php endif; ?>
+	</fieldset>
+	<?php
+}
+
+/**
+ * Checkout consent location field callback.
+ */
+function ayudawp_euw_field_consent_location_callback() {
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so checkout consents cannot be injected.', 'eu-withdrawal-compliance' ) . '</p>';
+		return;
+	}
+
+	$location = function_exists( 'ayudawp_euw_consent_location' ) ? ayudawp_euw_consent_location() : 'button';
+
+	?>
+	<fieldset>
+		<legend class="screen-reader-text"><?php esc_html_e( 'Checkbox location', 'eu-withdrawal-compliance' ); ?></legend>
+		<label>
+			<input type="radio" name="ayudawp_euw_consent_location" value="button" <?php checked( 'button', $location ); ?>>
+			<?php esc_html_e( 'Next to the “Place order” button', 'eu-withdrawal-compliance' ); ?>
+			<?php ayudawp_euw_print_badge( 'recommended' ); ?>
+		</label>
+		<p class="description">
+			<?php
+			echo wp_kses(
+				__( 'Above the button, with the terms and conditions, where the customer decides to buy. Works with any checkout layout, including page builders that split the checkout into separate modules, such as Divi.', 'eu-withdrawal-compliance' ),
+				array( 'strong' => array() )
+			);
+			?>
+		</p>
+		<label>
+			<input type="radio" name="ayudawp_euw_consent_location" value="order_notes" <?php checked( 'order_notes', $location ); ?>>
+			<?php esc_html_e( 'Below the order notes', 'eu-withdrawal-compliance' ); ?>
+		</label>
+		<p class="description">
+			<?php esc_html_e( 'In the customer details column. Page builders that split the checkout into separate modules can hide this spot, and then the digital content checkbox cannot be ticked and those orders cannot be placed.', 'eu-withdrawal-compliance' ); ?>
+		</p>
+		<?php if ( has_filter( 'ayudawp_euw_consent_hook' ) ) : ?>
+			<div class="notice notice-info inline">
+				<p>
+					<?php
+					printf(
+						/* translators: %s: filter name. */
+						esc_html__( 'Code on this site uses the %s filter, which decides where the checkboxes go over this setting.', 'eu-withdrawal-compliance' ),
+						'<code>ayudawp_euw_consent_hook</code>'
+					);
+					?>
+				</p>
+			</div>
 		<?php endif; ?>
 	</fieldset>
 	<?php
@@ -2015,7 +2098,7 @@ function ayudawp_euw_field_annex_b_enabled_callback() {
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Recommended.</strong> Providing the model withdrawal form is a pre-contractual information obligation under Art. 6(1)(h) of Directive 2011/83/EU. The model is generated from the shop name, address and notification email so it works out of the box.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Providing the model withdrawal form is a pre-contractual information obligation under Art. 6(1)(h) of Directive 2011/83/EU. The model is generated from the shop name, address and notification email so it works out of the box.', 'eu-withdrawal-compliance' ) ),
 			array( 'strong' => array() )
 		);
 		?>
@@ -2043,9 +2126,9 @@ function ayudawp_euw_field_trader_address_callback() {
 	);
 
 	if ( class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . wp_kses( __( '<strong>Recommended.</strong> Postal address the consumer sends the withdrawal to, shown in the Annex I.B model form. Leave empty to use your WooCommerce store address, or fill it in to override it (for example, a dedicated returns address).', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+		echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Postal address the consumer sends the withdrawal to, shown in the Annex I.B model form. Leave empty to use your WooCommerce store address, or fill it in to override it (for example, a dedicated returns address).', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 	} else {
-		echo '<p class="description">' . wp_kses( __( '<strong>Required for the model form.</strong> Postal address the consumer sends the withdrawal to. Annex I.B of Directive 2011/83/EU requires the trader’s full address. Without WooCommerce there is no store address to fall back on, so enter it here or the form will show a placeholder instead.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+		echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Required for the model form.</strong> Postal address the consumer sends the withdrawal to. Annex I.B of Directive 2011/83/EU requires the trader’s full address. Without WooCommerce there is no store address to fall back on, so enter it here or the form will show a placeholder instead.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 	}
 }
 
@@ -2062,7 +2145,7 @@ function ayudawp_euw_field_trader_phone_callback() {
 		esc_attr__( '+34 600 123 456', 'eu-withdrawal-compliance' )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Annex I.B includes a phone line in the trader address block — leave empty if you only want email contact.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Annex I.B includes a phone line in the trader address block — leave empty if you only want email contact.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -2083,7 +2166,7 @@ function ayudawp_euw_field_trader_email_callback() {
 		esc_attr( $value )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Contact email shown to customers in the Annex I.B model form and after they send a request. Leave empty to use the first notification address above, falling back to the site admin email.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Contact email shown to customers in the Annex I.B model form and after they send a request. Leave empty to use the first notification address above, falling back to the site admin email.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 
 	if ( '' !== trim( $value ) ) {
 		return;
@@ -2118,6 +2201,17 @@ function ayudawp_euw_field_trader_email_callback() {
 function ayudawp_euw_excluded_notice_section_callback() {
 
 	echo '<p>' . esc_html__( 'Surface a visible warning on the public product page whenever the product is flagged as excluded from the right of withdrawal (directly or by category inheritance). Reinforces informed consent and reduces post-purchase complaints, but is not legally required as such — it complements the Article 16 exclusions you already manage above.', 'eu-withdrawal-compliance' ) . '</p>';
+
+	// The note on the three editors below, said once here instead of under each.
+	if ( class_exists( 'WooCommerce' ) ) {
+		echo '<p>' . wp_kses(
+			ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Leave a field empty to use the bundled text shown in it, which follows the language of each visitor; your own text is shown exactly as written, in every language. The body supports basic HTML (links, strong, em) and the <code>{withdrawal_page_link}</code> placeholder, which expands to a link to the configured withdrawal page.', 'eu-withdrawal-compliance' ) ),
+			array(
+				'strong' => array(),
+				'code'   => array(),
+			)
+		) . '</p>';
+	}
 }
 
 /**
@@ -2126,7 +2220,7 @@ function ayudawp_euw_excluded_notice_section_callback() {
 function ayudawp_euw_field_excluded_notice_enabled_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no product pages where the notice could be rendered.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no product pages where the notice could be rendered.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -2140,7 +2234,7 @@ function ayudawp_euw_field_excluded_notice_enabled_callback() {
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Recommended.</strong> Renders between price and add-to-cart button on the single product page when the product is marked as excluded. Reinforces informed consent before the purchase.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Renders between price and add-to-cart button on the single product page when the product is marked as excluded. Reinforces informed consent before the purchase.', 'eu-withdrawal-compliance' ) ),
 			array( 'strong' => array() )
 		);
 		?>
@@ -2161,7 +2255,7 @@ function ayudawp_euw_field_excluded_notice_enabled_callback() {
 function ayudawp_euw_render_excluded_notice_status_editor( $status ) {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no product pages where the notice could be rendered.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no product pages where the notice could be rendered.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -2187,17 +2281,6 @@ function ayudawp_euw_render_excluded_notice_status_editor( $status ) {
 		<label for="<?php echo esc_attr( $body_option ); ?>"><strong><?php esc_html_e( 'Body', 'eu-withdrawal-compliance' ); ?></strong></label>
 		<br>
 		<textarea name="<?php echo esc_attr( $body_option ); ?>" id="<?php echo esc_attr( $body_option ); ?>" rows="3" class="large-text" placeholder="<?php echo esc_attr( $body_default ); ?>"><?php echo esc_textarea( $body ); ?></textarea>
-	</p>
-	<p class="description">
-		<?php
-		echo wp_kses(
-			__( '<strong>Optional.</strong> Leave a field empty to use the bundled text shown in it, which follows the language of each visitor; your own text is shown exactly as written, in every language. The body supports basic HTML (links, strong, em) and the <code>{withdrawal_page_link}</code> placeholder, which expands to a link to the configured withdrawal page.', 'eu-withdrawal-compliance' ),
-			array(
-				'strong' => array(),
-				'code'   => array(),
-			)
-		);
-		?>
 	</p>
 	<?php
 }
@@ -2435,7 +2518,7 @@ function ayudawp_euw_guarantee_section_callback() {
 	) . '</p>';
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . wp_kses(
+		echo '<p class="description ayudawp-euw-status">' . wp_kses(
 			__( 'WooCommerce is not active, so there is no checkout or order email to add the notice to. You can still publish it on a page with the <code>[ayudawp_guarantee_notice]</code> shortcode.', 'eu-withdrawal-compliance' ),
 			array( 'code' => array() )
 		) . '</p>';
@@ -2444,7 +2527,7 @@ function ayudawp_euw_guarantee_section_callback() {
 
 		// The module only shows the notice next to goods, so a shop of courses or
 		// downloads that switches it on sees nothing change and takes it for broken.
-		echo '<p class="description">' . esc_html__( 'Your catalogue has no physical products at the moment. The notice only applies to goods, so nothing is shown for now, even with the module switched on, and it will appear by itself once you publish one.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'Your catalogue has no physical products at the moment. The notice only applies to goods, so nothing is shown for now, even with the module switched on, and it will appear by itself once you publish one.', 'eu-withdrawal-compliance' ) . '</p>';
 	}
 }
 
@@ -2463,7 +2546,7 @@ function ayudawp_euw_field_guarantee_enabled_callback() {
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Mandatory if you sell goods to consumers in the EU.</strong> Switches on the whole module: the notice above the place-order button, the notice in the customer order emails, the <code>[ayudawp_guarantee_notice]</code> and <code>[ayudawp_guarantee_link]</code> shortcodes and the record on the order. Each of those has its own setting below.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Mandatory if you sell goods to consumers in the EU.</strong> Switches on the whole module: the notice above the place-order button, the notice in the customer order emails, the <code>[ayudawp_guarantee_notice]</code> and <code>[ayudawp_guarantee_link]</code> shortcodes and the record on the order. Each of those has its own setting below.', 'eu-withdrawal-compliance' ) ),
 			array(
 				'strong' => array(),
 				'code'   => array(),
@@ -2502,7 +2585,7 @@ function ayudawp_euw_field_guarantee_display_callback() {
 	echo '</select>';
 
 	echo '<p class="description">' . wp_kses(
-		__( '<strong>Recommended: the whole notice.</strong> The Commission guidelines accept showing it behind a first click, but the regulation only describes that nested format for the GARAN label, not for the notice, and the reading is contested. Use one of the collapsed modes when your checkout column is narrow: in Storefront the order review is about 279px wide, where a full-width notice is rendered too small to read, which is a compliance problem of its own. The popover opens it at a readable size on any layout.', 'eu-withdrawal-compliance' ),
+		ayudawp_euw_without_badge( __( '<strong>Recommended: the whole notice.</strong> The Commission guidelines accept showing it behind a first click, but the regulation only describes that nested format for the GARAN label, not for the notice, and the reading is contested. Use one of the collapsed modes when your checkout column is narrow: in Storefront the order review is about 279px wide, where a full-width notice is rendered too small to read, which is a compliance problem of its own. The popover opens it at a readable size on any layout.', 'eu-withdrawal-compliance' ) ),
 		array( 'strong' => array() )
 	) . '</p>';
 }
@@ -2539,7 +2622,7 @@ function ayudawp_euw_field_guarantee_page_callback() {
 	);
 
 	echo '<p class="description">' . wp_kses(
-		__( '<strong>Optional.</strong> Page where you publish the notice in full, with the <code>[ayudawp_guarantee_notice]</code> shortcode. Once it is selected, <code>[ayudawp_guarantee_link]</code> links to it from your footer, the same way the withdrawal link does. Leave it unselected if you do not want a separate page.', 'eu-withdrawal-compliance' ),
+		ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Page where you publish the notice in full, with the <code>[ayudawp_guarantee_notice]</code> shortcode. Once it is selected, <code>[ayudawp_guarantee_link]</code> links to it from your footer, the same way the withdrawal link does. Leave it unselected if you do not want a separate page.', 'eu-withdrawal-compliance' ) ),
 		array(
 			'strong' => array(),
 			'code'   => array(),
@@ -2555,7 +2638,7 @@ function ayudawp_euw_field_guarantee_emails_callback() {
 	$emails = ayudawp_euw_guarantee_customer_emails();
 
 	if ( empty( $emails ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no order emails to add the notice to.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no order emails to add the notice to.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -2576,7 +2659,7 @@ function ayudawp_euw_field_guarantee_emails_callback() {
 	echo '</fieldset>';
 
 	echo '<p class="description">' . wp_kses(
-		__( '<strong>Recommended.</strong> The Commission guidelines ask for the notice in the order confirmation as well as on the site. Defaults to the on-hold and processing emails. Only customer emails are listed: the notice never goes to the shop.', 'eu-withdrawal-compliance' ),
+		ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> The Commission guidelines ask for the notice in the order confirmation as well as on the site. Defaults to the on-hold and processing emails. Only customer emails are listed: the notice never goes to the shop.', 'eu-withdrawal-compliance' ) ),
 		array( 'strong' => array() )
 	) . '</p>';
 
@@ -2585,12 +2668,13 @@ function ayudawp_euw_field_guarantee_emails_callback() {
 		<label>
 			<input type="checkbox" name="ayudawp_euw_guarantee_pdf_attach" value="yes" <?php checked( 'yes', get_option( 'ayudawp_euw_guarantee_pdf_attach', 'yes' ) ); ?>>
 			<strong><?php esc_html_e( 'Attach the official PDF to those emails', 'eu-withdrawal-compliance' ); ?></strong>
+			<?php ayudawp_euw_print_badge( 'recommended' ); ?>
 		</label>
 	</p>
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Recommended.</strong> Many mail clients block remote images by default, and then the notice in the email body is an empty frame. The attached PDF is the copy that always arrives, and it is the official file in the customer language, around 100 KB.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Many mail clients block remote images by default, and then the notice in the email body is an empty frame. The attached PDF is the copy that always arrives, and it is the official file in the customer language, around 100 KB.', 'eu-withdrawal-compliance' ) ),
 			array( 'strong' => array() )
 		);
 		?>
@@ -2625,7 +2709,7 @@ function ayudawp_euw_field_guarantee_es_note_callback() {
 	echo '</select>';
 
 	echo '<p class="description">' . wp_kses(
-		__( '<strong>Recommended: automatic.</strong> The notice says "minimum two years" because that is the EU floor, and it cannot be edited. In Spain the legal guarantee on new goods is three years from delivery (Art. 120.1 TRLGDCU), so a short line is printed next to the notice, never inside it. Second-hand goods may carry a shorter period, never under a year, which the notice already explains.', 'eu-withdrawal-compliance' ),
+		ayudawp_euw_without_badge( __( '<strong>Recommended: automatic.</strong> The notice says "minimum two years" because that is the EU floor, and it cannot be edited. In Spain the legal guarantee on new goods is three years from delivery (Art. 120.1 TRLGDCU), so a short line is printed next to the notice, never inside it. Second-hand goods may carry a shorter period, never under a year, which the notice already explains.', 'eu-withdrawal-compliance' ) ),
 		array( 'strong' => array() )
 	) . '</p>';
 
@@ -2633,14 +2717,14 @@ function ayudawp_euw_field_guarantee_es_note_callback() {
 
 	?>
 	<p>
-		<label for="ayudawp_euw_guarantee_terms_anchor"><strong><?php esc_html_e( 'Anchor of the guarantee section in your terms', 'eu-withdrawal-compliance' ); ?></strong></label>
+		<label for="ayudawp_euw_guarantee_terms_anchor"><strong><?php esc_html_e( 'Anchor of the guarantee section in your terms', 'eu-withdrawal-compliance' ); ?></strong> <?php ayudawp_euw_print_badge( 'optional' ); ?></label>
 		<br>
 		<input type="text" name="ayudawp_euw_guarantee_terms_anchor" id="ayudawp_euw_guarantee_terms_anchor" value="<?php echo esc_attr( $anchor ); ?>" class="regular-text" placeholder="legal-guarantee">
 	</p>
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Optional.</strong> The note links to your terms and conditions page. Write here the <code>id</code> of the heading that covers the legal guarantee there, without the <code>#</code>, and the link lands on that section instead of the top of the page.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Optional.</strong> The note links to your terms and conditions page. Write here the <code>id</code> of the heading that covers the legal guarantee there, without the <code>#</code>, and the link lands on that section instead of the top of the page.', 'eu-withdrawal-compliance' ) ),
 			array(
 				'strong' => array(),
 				'code'   => array(),
@@ -2657,7 +2741,7 @@ function ayudawp_euw_field_guarantee_es_note_callback() {
 function ayudawp_euw_field_guarantee_order_note_callback() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
-		echo '<p class="description">' . esc_html__( 'WooCommerce is not active, so there are no orders to record the notice on.', 'eu-withdrawal-compliance' ) . '</p>';
+		echo '<p class="description ayudawp-euw-status">' . esc_html__( 'WooCommerce is not active, so there are no orders to record the notice on.', 'eu-withdrawal-compliance' ) . '</p>';
 		return;
 	}
 
@@ -2669,7 +2753,7 @@ function ayudawp_euw_field_guarantee_order_note_callback() {
 	<p class="description">
 		<?php
 		echo wp_kses(
-			__( '<strong>Recommended.</strong> Records the language and the display mode of the notice each buyer was shown, which is what lets you answer a consumer-protection inspection about an order placed months ago. One note per order, private, never shown to the customer.', 'eu-withdrawal-compliance' ),
+			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Records the language and the display mode of the notice each buyer was shown, which is what lets you answer a consumer-protection inspection about an order placed months ago. One note per order, private, never shown to the customer.', 'eu-withdrawal-compliance' ) ),
 			array( 'strong' => array() )
 		);
 		?>
@@ -2759,6 +2843,9 @@ function ayudawp_euw_field_guarantee_custom_files_callback() {
 function ayudawp_euw_emails_section_callback() {
 
 	echo '<p>' . esc_html__( 'Customise who the plugin emails come from and the wording of the status-change messages your customers receive. Leave a field empty to keep the current default.', 'eu-withdrawal-compliance' ) . '</p>';
+
+	// The note on the three status-email editors below, said once here.
+	echo '<p>' . esc_html__( 'Leave it empty to use the bundled text shown in the field, which follows the language of the shop. The order number and a sober sign-off are always appended automatically, as is any per-request comment you add when changing the status.', 'eu-withdrawal-compliance' ) . '</p>';
 }
 
 /**
@@ -2774,7 +2861,7 @@ function ayudawp_euw_field_from_name_callback() {
 		esc_attr( ayudawp_euw_get_site_name() )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Sender name for the plugin’s emails (acknowledgement, admin notification, status updates). Leave empty to use the site default.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Sender name for the plugin’s emails (acknowledgement, admin notification, status updates). Leave empty to use the site default.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -2789,7 +2876,7 @@ function ayudawp_euw_field_from_email_callback() {
 		esc_attr( $value )
 	);
 
-	echo '<p class="description">' . wp_kses( __( '<strong>Optional.</strong> Sender address for the plugin’s emails. Using an address on your own domain improves deliverability. Leave empty to use the WordPress default. Applies only to this plugin’s emails.', 'eu-withdrawal-compliance' ), array( 'strong' => array() ) ) . '</p>';
+	echo '<p class="description">' . wp_kses( ayudawp_euw_without_badge( __( '<strong>Optional.</strong> Sender address for the plugin’s emails. Using an address on your own domain improves deliverability. Leave empty to use the WordPress default. Applies only to this plugin’s emails.', 'eu-withdrawal-compliance' ) ), array( 'strong' => array() ) ) . '</p>';
 }
 
 /**
@@ -2819,8 +2906,6 @@ function ayudawp_euw_render_status_email_body_editor( $status ) {
 		esc_textarea( $text ),
 		esc_attr( $defaults[ $status ] )
 	);
-
-	echo '<p class="description">' . esc_html__( 'Leave it empty to use the bundled text shown in the field, which follows the language of the shop. The order number and a sober sign-off are always appended automatically, as is any per-request comment you add when changing the status.', 'eu-withdrawal-compliance' ) . '</p>';
 }
 
 /**
@@ -2921,7 +3006,7 @@ function ayudawp_euw_field_consumer_check_callback() {
 		<p class="description">
 			<?php
 			echo wp_kses(
-				__( '<strong>Optional, off by default.</strong> The EU right of withdrawal protects consumers (natural persons acting outside their trade or profession), not B2B buyers. When enabled, the form shows a required checkbox where the customer declares they bought as a consumer. This is a good-faith self-declaration, not a legal guarantee — review B2B cases manually.', 'eu-withdrawal-compliance' ),
+				ayudawp_euw_without_badge( __( '<strong>Optional, off by default.</strong> The EU right of withdrawal protects consumers (natural persons acting outside their trade or profession), not B2B buyers. When enabled, the form shows a required checkbox where the customer declares they bought as a consumer. This is a good-faith self-declaration, not a legal guarantee — review B2B cases manually.', 'eu-withdrawal-compliance' ) ),
 				array( 'strong' => array() )
 			);
 			?>
@@ -3070,6 +3155,474 @@ function ayudawp_euw_render_legal_disclaimer() {
 }
 
 /**
+ * Strip the leading <strong>Recommended.</strong> style label from a description.
+ *
+ * The strings stay exactly as they were, so their translations keep working,
+ * and the label they used to open with is now the badge printed beside the
+ * field title. A string that is only the label is returned untouched.
+ *
+ * @param string $text Translated description, possibly opening with <strong>…</strong>.
+ * @return string
+ */
+function ayudawp_euw_without_badge( $text ) {
+
+	$stripped = preg_replace( '#^\s*<strong>[^<]*</strong>\s*#u', '', (string) $text, 1 );
+
+	if ( ! is_string( $stripped ) || '' === trim( $stripped ) ) {
+		return (string) $text;
+	}
+
+	return $stripped;
+}
+
+/**
+ * Print a Recommended, Optional or Required badge.
+ *
+ * @param string $type  One of 'recommended', 'optional' or 'required'. Anything else prints nothing.
+ * @param string $label Text of the badge. Empty for the default of the type.
+ */
+function ayudawp_euw_print_badge( $type, $label = '' ) {
+
+	$labels = array(
+		'recommended' => __( 'Recommended', 'eu-withdrawal-compliance' ),
+		'optional'    => __( 'Optional', 'eu-withdrawal-compliance' ),
+		'required'    => __( 'Required', 'eu-withdrawal-compliance' ),
+	);
+
+	if ( ! isset( $labels[ $type ] ) ) {
+		return;
+	}
+
+	if ( '' === (string) $label ) {
+		$label = $labels[ $type ];
+	}
+
+	echo '<span class="ayudawp-euw-badge ayudawp-euw-badge--' . esc_attr( $type ) . '">' . esc_html( $label ) . '</span>';
+}
+
+/**
+ * Badge of a settings field, by the ID it was registered with.
+ *
+ * @param string $field_id ID given to add_settings_field().
+ * @return array{0: string, 1: string}|null Type and label ('' for the default label), or null for no badge.
+ */
+function ayudawp_euw_settings_field_badge( $field_id ) {
+
+	$badges = array(
+		'ayudawp_euw_notify_email'                  => array( 'recommended', '' ),
+		'ayudawp_euw_page_id'                       => array( 'required', '' ),
+		'ayudawp_euw_account_status_enabled'        => array( 'recommended', '' ),
+		'ayudawp_euw_allowed_statuses'              => array( 'recommended', '' ),
+		'ayudawp_euw_exclusions_in_orders'          => array( 'recommended', '' ),
+		'ayudawp_euw_accept_unmatched'              => array( 'optional', '' ),
+		'ayudawp_euw_deadline_basis'                => array( 'recommended', '' ),
+		'ayudawp_euw_grace_days'                    => array( 'optional', '' ),
+		'ayudawp_euw_deadline_mode'                 => array( 'recommended', __( 'Recommended: advisory', 'eu-withdrawal-compliance' ) ),
+		'ayudawp_euw_consent_a_enabled'             => array( 'required', __( 'Required if you sell digital content', 'eu-withdrawal-compliance' ) ),
+		'ayudawp_euw_consent_b_enabled'             => array( 'optional', '' ),
+		'ayudawp_euw_annex_b_enabled'               => array( 'recommended', '' ),
+		'ayudawp_euw_trader_email'                  => array( 'optional', '' ),
+		'ayudawp_euw_excluded_notice_enabled'       => array( 'recommended', '' ),
+		'ayudawp_euw_excluded_notice_digital'       => array( 'optional', '' ),
+		'ayudawp_euw_excluded_notice_accommodation' => array( 'optional', '' ),
+		'ayudawp_euw_excluded_notice_other'         => array( 'optional', '' ),
+		'ayudawp_euw_guarantee_enabled'             => array( 'required', __( 'Required if you sell goods in the EU', 'eu-withdrawal-compliance' ) ),
+		'ayudawp_euw_guarantee_display'             => array( 'recommended', __( 'Recommended: whole notice', 'eu-withdrawal-compliance' ) ),
+		'ayudawp_euw_guarantee_page_id'             => array( 'optional', '' ),
+		'ayudawp_euw_guarantee_email_ids'           => array( 'recommended', '' ),
+		'ayudawp_euw_guarantee_es_note'             => array( 'recommended', __( 'Recommended: automatic', 'eu-withdrawal-compliance' ) ),
+		'ayudawp_euw_guarantee_order_note'          => array( 'recommended', '' ),
+		'ayudawp_euw_from_name'                     => array( 'optional', '' ),
+		'ayudawp_euw_from_email'                    => array( 'optional', '' ),
+		'ayudawp_euw_consumer_check_enabled'        => array( 'optional', '' ),
+	);
+
+	// Same condition as the field callback: without WooCommerce there is no store
+	// address to fall back on, so the address stops being a recommendation.
+	if ( 'ayudawp_euw_trader_address' === $field_id ) {
+
+		return class_exists( 'WooCommerce' )
+			? array( 'recommended', '' )
+			: array( 'required', __( 'Required for the model form', 'eu-withdrawal-compliance' ) );
+	}
+
+	return isset( $badges[ $field_id ] ) ? $badges[ $field_id ] : null;
+}
+
+/**
+ * Tabs of the settings page and the registered sections each one holds.
+ *
+ * @return array<string, array{label: string, sections: string[]}>
+ */
+function ayudawp_euw_settings_tabs() {
+
+	return array(
+		'general'    => array(
+			'label'    => __( 'General', 'eu-withdrawal-compliance' ),
+			'sections' => array( 'ayudawp_euw_main_section', 'ayudawp_euw_permissions_section' ),
+		),
+		'form'       => array(
+			'label'    => __( 'Form and emails', 'eu-withdrawal-compliance' ),
+			'sections' => array( 'ayudawp_euw_form_section', 'ayudawp_euw_annex_b_section', 'ayudawp_euw_emails_section' ),
+		),
+		'orders'     => array(
+			'label'    => __( 'Orders and deadline', 'eu-withdrawal-compliance' ),
+			'sections' => array( 'ayudawp_euw_eligibility_section', 'ayudawp_euw_deadline_section' ),
+		),
+		'exceptions' => array(
+			'label'    => __( 'Exceptions (Art. 16)', 'eu-withdrawal-compliance' ),
+			'sections' => array( 'ayudawp_euw_consent_section', 'ayudawp_euw_excluded_notice_section' ),
+		),
+		'guarantee'  => array(
+			'label'    => __( 'Legal guarantee', 'eu-withdrawal-compliance' ),
+			'sections' => array( 'ayudawp_euw_guarantee_section' ),
+		),
+		'help'       => array(
+			'label'    => __( 'Help', 'eu-withdrawal-compliance' ),
+			'sections' => array( 'ayudawp_euw_exclusions_section', 'ayudawp_euw_link_visibility_section' ),
+		),
+	);
+}
+
+/**
+ * Print one setting field: its title, its badge and what its callback prints.
+ *
+ * @param array $field Field as stored by add_settings_field() (id, title, callback, args).
+ */
+function ayudawp_euw_render_settings_field( $field ) {
+
+	$id   = isset( $field['id'] ) ? (string) $field['id'] : '';
+	$wide = ayudawp_euw_settings_field_is_wide( $id );
+
+	echo '<div class="ayudawp-euw-field' . ( $wide ? ' ayudawp-euw-field--wide' : '' ) . '" id="' . esc_attr( 'ayudawp-euw-field-' . $id ) . '">';
+	echo '<div class="ayudawp-euw-field__head">';
+	echo '<h3 class="ayudawp-euw-field__title">' . esc_html( isset( $field['title'] ) ? (string) $field['title'] : '' ) . '</h3>';
+
+	$badge = ayudawp_euw_settings_field_badge( $id );
+
+	if ( null !== $badge ) {
+		ayudawp_euw_print_badge( $badge[0], $badge[1] );
+	}
+
+	echo '</div>';
+
+	if ( isset( $field['callback'] ) && is_callable( $field['callback'] ) ) {
+		call_user_func( $field['callback'], isset( $field['args'] ) ? $field['args'] : array() );
+	}
+
+	echo '</div>';
+}
+
+/**
+ * Print one section of the settings page as a card.
+ *
+ * Mirrors do_settings_sections() (title, section callback, then the fields), so
+ * whatever a section callback prints keeps working.
+ *
+ * @param string $page    Settings page slug.
+ * @param array  $section Section as stored by add_settings_section() (id, title, callback).
+ * @param bool   $wide    Whether the card spans both columns.
+ */
+function ayudawp_euw_render_settings_card( $page, $section, $wide ) {
+
+	global $wp_settings_fields;
+
+	$id = isset( $section['id'] ) ? (string) $section['id'] : '';
+
+	echo '<section class="ayudawp-euw-card' . ( $wide ? ' ayudawp-euw-card--wide' : '' ) . '" id="' . esc_attr( $id ) . '">';
+
+	if ( ! empty( $section['title'] ) ) {
+		echo '<h2>' . esc_html( $section['title'] ) . '</h2>';
+	}
+
+	if ( ! empty( $section['callback'] ) ) {
+		call_user_func( $section['callback'], $section );
+	}
+
+	if ( ! empty( $wp_settings_fields[ $page ][ $id ] ) ) {
+
+		$columns = ayudawp_euw_settings_card_columns( $id );
+
+		if ( null !== $columns ) {
+			ayudawp_euw_render_split_fields( (array) $wp_settings_fields[ $page ][ $id ], $columns );
+		} else {
+
+			echo '<div class="ayudawp-euw-fields">';
+
+			foreach ( (array) $wp_settings_fields[ $page ][ $id ] as $field ) {
+				ayudawp_euw_render_settings_field( $field );
+			}
+
+			echo '</div>';
+		}
+	}
+
+	echo '</section>';
+}
+
+/**
+ * Whether a field spans the whole width of its card.
+ *
+ * @param string $field_id ID given to add_settings_field().
+ * @return bool
+ */
+function ayudawp_euw_settings_field_is_wide( $field_id ) {
+
+	return 'ayudawp_euw_guarantee_custom_files' === $field_id;
+}
+
+/**
+ * Fields of a wide card laid out in two independent columns, by field ID.
+ *
+ * A grid lines its rows up across both columns, so one tall field (the list of
+ * emails that carry the guarantee notice) stretched its row and left a hole in
+ * the other column. Each column stacks its own fields instead, grouped by what
+ * they decide: on the left how the notice shows on the site, on the right what
+ * goes into the emails and the order.
+ *
+ * @param string $section_id ID given to add_settings_section().
+ * @return array{0: string[], 1: string[]}|null Field IDs of the left and the right column, or null for the plain layout.
+ */
+function ayudawp_euw_settings_card_columns( $section_id ) {
+
+	$columns = array(
+		'ayudawp_euw_guarantee_section' => array(
+			array(
+				'ayudawp_euw_guarantee_enabled',
+				'ayudawp_euw_guarantee_display',
+				'ayudawp_euw_guarantee_page_id',
+				'ayudawp_euw_guarantee_es_note',
+				'ayudawp_euw_guarantee_fallback_lang',
+			),
+			array(
+				'ayudawp_euw_guarantee_email_ids',
+				'ayudawp_euw_guarantee_order_note',
+			),
+		),
+	);
+
+	return isset( $columns[ $section_id ] ) ? $columns[ $section_id ] : null;
+}
+
+/**
+ * Print the fields of a card in two independent columns, and the wide ones below.
+ *
+ * Each column keeps the order given in ayudawp_euw_settings_card_columns(). A
+ * field in neither column and not wide goes at the end of the left one, so a
+ * field registered later never disappears from the page.
+ *
+ * @param array $fields  Fields of the section, as stored by add_settings_field().
+ * @param array $columns Field IDs of the left and the right column.
+ */
+function ayudawp_euw_render_split_fields( $fields, $columns ) {
+
+	$by_id = array();
+
+	foreach ( $fields as $field ) {
+		$by_id[ isset( $field['id'] ) ? (string) $field['id'] : '' ] = $field;
+	}
+
+	$left  = array();
+	$right = array();
+	$wide  = array();
+
+	foreach ( array( 0, 1 ) as $side ) {
+		foreach ( (array) $columns[ $side ] as $field_id ) {
+			if ( isset( $by_id[ $field_id ] ) ) {
+				if ( 0 === $side ) {
+					$left[] = $by_id[ $field_id ];
+				} else {
+					$right[] = $by_id[ $field_id ];
+				}
+				unset( $by_id[ $field_id ] );
+			}
+		}
+	}
+
+	foreach ( $by_id as $field_id => $field ) {
+		if ( ayudawp_euw_settings_field_is_wide( (string) $field_id ) ) {
+			$wide[] = $field;
+		} else {
+			$left[] = $field;
+		}
+	}
+
+	echo '<div class="ayudawp-euw-split">';
+
+	foreach ( array( $left, $right ) as $column ) {
+
+		echo '<div class="ayudawp-euw-split__col">';
+
+		foreach ( $column as $field ) {
+			ayudawp_euw_render_settings_field( $field );
+		}
+
+		echo '</div>';
+	}
+
+	echo '</div>';
+
+	if ( $wide ) {
+
+		echo '<div class="ayudawp-euw-fields">';
+
+		foreach ( $wide as $field ) {
+			ayudawp_euw_render_settings_field( $field );
+		}
+
+		echo '</div>';
+	}
+}
+
+/**
+ * Print the two documentation blocks that used to sit under the form, as cards.
+ */
+function ayudawp_euw_render_help_cards() {
+
+	?>
+	<section class="ayudawp-euw-card">
+		<h2><?php esc_html_e( 'How to use this plugin', 'eu-withdrawal-compliance' ); ?></h2>
+
+		<p><?php esc_html_e( 'You can place the withdrawal form anywhere on your site using the following shortcode:', 'eu-withdrawal-compliance' ); ?></p>
+		<p><code>[ayudawp_withdrawal_form]</code></p>
+
+		<?php if ( function_exists( 'wc_get_account_endpoint_url' ) ) : ?>
+			<p>
+				<?php
+				$endpoint_url = wc_get_account_endpoint_url( 'withdrawal' );
+				printf(
+					/* translators: %s: WooCommerce My Account withdrawal endpoint URL. */
+					esc_html__( 'WooCommerce customers can also access the form from their account at: %s', 'eu-withdrawal-compliance' ),
+					'<a href="' . esc_url( $endpoint_url ) . '" target="_blank" rel="noopener"><code>' . esc_html( $endpoint_url ) . '</code></a>'
+				);
+				?>
+			</p>
+		<?php endif; ?>
+
+		<p>
+			<?php
+			esc_html_e(
+				'For maximum visibility, link the withdrawal page from your footer next to your privacy policy and terms of service. Customers must be able to find it within a couple of clicks from any page on the site.',
+				'eu-withdrawal-compliance'
+			);
+			?>
+		</p>
+	</section>
+
+	<section class="ayudawp-euw-card">
+		<h2><?php esc_html_e( 'About the EU withdrawal function', 'eu-withdrawal-compliance' ); ?></h2>
+		<p>
+			<?php
+			echo wp_kses(
+				__( 'This plugin implements the digital withdrawal function required by <a href="https://eur-lex.europa.eu/eli/dir/2023/2673/oj" target="_blank" rel="noopener">EU Directive 2023/2673</a>, applicable to all EU online retailers from June 19, 2026.', 'eu-withdrawal-compliance' ),
+				array(
+					'a' => array(
+						'href'   => array(),
+						'target' => array(),
+						'rel'    => array(),
+					),
+				)
+			);
+			?>
+		</p>
+	</section>
+	<?php
+}
+
+/**
+ * Print the registered sections of a settings page as tabs of cards.
+ *
+ * Replaces do_settings_sections(): the sections and fields stay registered on
+ * the same page, only the layout changes. The tabs are plain links to their
+ * panels, so without JavaScript the page is one long list.
+ *
+ * @param string $page Settings page slug.
+ */
+function ayudawp_euw_render_settings_tabs( $page ) {
+
+	global $wp_settings_sections;
+
+	$registered = isset( $wp_settings_sections[ $page ] ) ? (array) $wp_settings_sections[ $page ] : array();
+	$tabs       = ayudawp_euw_settings_tabs();
+	$wide       = array( 'ayudawp_euw_emails_section', 'ayudawp_euw_guarantee_section' );
+
+	// A section registered by someone else (or added later and not mapped yet)
+	// goes at the end of the first tab, so a field never disappears from the page.
+	$mapped = array();
+
+	foreach ( $tabs as $tab ) {
+		$mapped = array_merge( $mapped, $tab['sections'] );
+	}
+
+	$orphans = array_diff( array_keys( $registered ), $mapped );
+
+	if ( $orphans ) {
+		reset( $tabs );
+		$first                       = key( $tabs );
+		$tabs[ $first ]['sections'] = array_merge( $tabs[ $first ]['sections'], array_values( $orphans ) );
+	}
+
+	// Tabs left without a registered section are dropped, except Help, which
+	// also carries the documentation cards.
+	foreach ( $tabs as $tab_id => $tab ) {
+
+		$tabs[ $tab_id ]['sections'] = array_values(
+			array_filter(
+				$tab['sections'],
+				static function ( $section_id ) use ( $registered ) {
+					return isset( $registered[ $section_id ] );
+				}
+			)
+		);
+
+		if ( empty( $tabs[ $tab_id ]['sections'] ) && 'help' !== $tab_id ) {
+			unset( $tabs[ $tab_id ] );
+		}
+	}
+
+	echo '<div class="ayudawp-euw-settings">';
+
+	echo '<nav class="nav-tab-wrapper ayudawp-euw-tabs" aria-label="' . esc_attr__( 'Settings sections', 'eu-withdrawal-compliance' ) . '">';
+
+	foreach ( $tabs as $tab_id => $tab ) {
+		printf(
+			'<a href="#%1$s" class="nav-tab" id="%1$s-label" data-ayudawp-euw-tab="%2$s">%3$s</a>',
+			esc_attr( 'ayudawp-euw-tab-' . $tab_id ),
+			esc_attr( $tab_id ),
+			esc_html( $tab['label'] )
+		);
+	}
+
+	echo '</nav>';
+
+	foreach ( $tabs as $tab_id => $tab ) {
+
+		$panel_id = 'ayudawp-euw-tab-' . $tab_id;
+
+		echo '<div class="ayudawp-euw-tabpanel" id="' . esc_attr( $panel_id ) . '" aria-labelledby="' . esc_attr( $panel_id . '-label' ) . '">';
+
+		if ( 'exceptions' === $tab_id ) {
+			echo '<p class="ayudawp-euw-tab-intro">' . esc_html__( 'Which products are excluded is set in the editor of each product or category.', 'eu-withdrawal-compliance' ) . ' <a href="#ayudawp-euw-tab-help">' . esc_html__( 'How it works', 'eu-withdrawal-compliance' ) . '</a></p>';
+		}
+
+		echo '<div class="ayudawp-euw-cards">';
+
+		foreach ( $tab['sections'] as $section_id ) {
+			ayudawp_euw_render_settings_card( $page, $registered[ $section_id ], in_array( $section_id, $wide, true ) );
+		}
+
+		if ( 'help' === $tab_id ) {
+			ayudawp_euw_render_help_cards();
+		}
+
+		echo '</div>';
+		echo '</div>';
+	}
+
+	echo '</div>';
+}
+
+/**
  * Render the settings page.
  */
 function ayudawp_euw_settings_page_html() {
@@ -3100,58 +3653,11 @@ function ayudawp_euw_settings_page_html() {
 		<form action="options.php" method="post">
 			<?php
 			settings_fields( 'ayudawp_euw_settings_group' );
-			do_settings_sections( 'ayudawp-euw-settings' );
+			ayudawp_euw_render_settings_tabs( 'ayudawp-euw-settings' );
 			ayudawp_euw_render_legal_disclaimer();
 			submit_button( __( 'Save changes', 'eu-withdrawal-compliance' ) );
 			?>
 		</form>
-
-		<hr>
-
-		<h2><?php esc_html_e( 'How to use this plugin', 'eu-withdrawal-compliance' ); ?></h2>
-
-		<p><?php esc_html_e( 'You can place the withdrawal form anywhere on your site using the following shortcode:', 'eu-withdrawal-compliance' ); ?></p>
-		<p><code>[ayudawp_withdrawal_form]</code></p>
-
-		<?php if ( function_exists( 'wc_get_account_endpoint_url' ) ) : ?>
-			<p>
-				<?php
-				$endpoint_url = wc_get_account_endpoint_url( 'withdrawal' );
-				printf(
-					/* translators: %s: WooCommerce My Account withdrawal endpoint URL. */
-					esc_html__( 'WooCommerce customers can also access the form from their account at: %s', 'eu-withdrawal-compliance' ),
-					'<a href="' . esc_url( $endpoint_url ) . '" target="_blank" rel="noopener"><code>' . esc_html( $endpoint_url ) . '</code></a>'
-				);
-				?>
-			</p>
-		<?php endif; ?>
-
-		<p>
-			<?php
-			esc_html_e(
-				'For maximum visibility, link the withdrawal page from your footer next to your privacy policy and terms of service. Customers must be able to find it within a couple of clicks from any page on the site.',
-				'eu-withdrawal-compliance'
-			);
-			?>
-		</p>
-
-		<hr>
-
-		<h2><?php esc_html_e( 'About the EU withdrawal function', 'eu-withdrawal-compliance' ); ?></h2>
-		<p>
-			<?php
-			echo wp_kses(
-				__( 'This plugin implements the digital withdrawal function required by <a href="https://eur-lex.europa.eu/eli/dir/2023/2673/oj" target="_blank" rel="noopener">EU Directive 2023/2673</a>, applicable to all EU online retailers from June 19, 2026.', 'eu-withdrawal-compliance' ),
-				array(
-					'a' => array(
-						'href'   => array(),
-						'target' => array(),
-						'rel'    => array(),
-					),
-				)
-			);
-			?>
-		</p>
 
 		<?php
 		// Promotional banner with rotating AyudaWP services.
