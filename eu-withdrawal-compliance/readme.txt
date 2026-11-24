@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.4.0
+Stable tag: 2.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -129,6 +129,16 @@ On phones the full notice is around 330px wide, so the image always links to the
 = The notice says two years and in Spain the legal guarantee is three. Isn't that wrong? =
 
 The notice says "minimum two years" because that is the EU floor, and it cannot be edited: the regulation requires it unaltered. Spain raised the legal guarantee on new goods to three years from delivery (Art. 120.1 TRLGDCU), so the plugin prints a short line **next to** the notice, never inside it, linking to your terms and conditions page and, if you write the `id` of its heading in the settings, to the exact section. Automatic when your WooCommerce base country is Spain, and forceable either way for shops selling into Spain from elsewhere. Second-hand goods can carry a shorter period, never under one year, and the official notice already says so.
+
+= The guarantee notice does not show at my checkout. What do I check? =
+
+* It goes above the Place order button of the checkout, not on the cart page.
+* It only shows when the cart holds at least one product that is not virtual.
+* Under **EU Compliance → Settings → Legal guarantee**, "How it shows at the checkout" must not be "Nothing at the checkout".
+* Checkout plugins that replace the WooCommerce checkout (CartFlows, FunnelKit, CheckoutWC and similar) may skip the place where it goes. You can put `[ayudawp_guarantee_notice]` in their layout instead, but then no order note is written.
+* If the shortcode shows as plain text, it sits in a Code block or a raw HTML element. Use a Shortcode or a Paragraph block.
+
+The private order note is only written when the notice was on screen, so an order with goods and no note points to a checkout that is not showing it.
 
 = Can I publish the notice on its own page, or link it from my footer? =
 
@@ -301,7 +311,9 @@ Member States can layer national requirements on top: the two-step confirmation 
 
 Partially. This plugin implements the right of withdrawal requirements of Directive 2011/83/EU on consumer rights, one of the directives amended by Directive (EU) 2019/2161 (the Omnibus Directive).
 
-It does not cover other Omnibus Directive obligations, such as displaying the lowest price of the last 30 days in price reductions or verifying customer reviews. Those requirements need their own dedicated solutions.
+It does not show the prior price of a price reduction (the lowest price of the 30 days before the sale) or verify customer reviews.
+
+For the prior price, use [Scheduled Sales, Discounts and Omnibus Price History for WooCommerce](https://wordpress.org/plugins/multiple-sale-prices-scheduler/), from the same author. It checks the prior price before each sale, shows it on your store and keeps the price history.
 
 == Screenshots ==
 
@@ -322,6 +334,16 @@ It does not cover other Omnibus Directive obligations, such as displaying the lo
 
 == Changelog ==
 
+= 2.4.1 =
+The guarantee order note is now written only when the checkout really showed the notice, and the notice and form shortcodes keep their styles in synced patterns, templates and page builders. The Legal guarantee tab also recommends Scheduled Sales for the Omnibus prior price.
+
+* Improved: The Legal guarantee tab of the settings recommends Scheduled Sales, Discounts and Omnibus Price History for WooCommerce, from the same author, for the EU Omnibus prior price of your sales: it checks the prior price before each sale, shows it on your store and keeps the price history. When it is already active, the tab shows one line with a link to its prior price settings instead. It only appears with WooCommerce active.
+* Improved: The FAQ about the Omnibus Directive recommends it for the prior price.
+* Improved: A new FAQ lists what to check when the guarantee notice does not show at your checkout.
+* Improved: Tested up to WooCommerce 11.3.
+* Fix: The private order note about the legal guarantee notice was written whenever your settings and the cart called for the notice, even on orders whose customer never saw it: with a theme, page builder or checkout plugin that skips the place where it goes, or with an express payment button on the product or cart page that never reaches the checkout. It is now written only when that customer's checkout actually showed the notice, with the language and display mode it showed, so an order with goods and no note points to a checkout that is not showing it.
+* Fix: The `[ayudawp_guarantee_notice]` and `[ayudawp_withdrawal_form]` shortcodes came out without their styles when placed in a synced pattern, a block theme template, a widget or a page builder layout. They now load their styles wherever they are printed.
+
 = 2.4.0 =
 The settings page is now organised in tabs. Also fixes the digital content consent hidden by page builders such as Divi, which blocked those orders: the checkout consents now sit next to the Place order button by default.
 
@@ -334,8 +356,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.4.0 =
-The settings page is now organised in tabs. Also fixes the digital content consent hidden by page builders such as Divi, which blocked those orders: the checkout consents now sit next to the Place order button by default.
+= 2.4.1 =
+The guarantee order note is now written only when the checkout really showed the notice, and the notice and form shortcodes keep their styles in synced patterns, templates and page builders. The Legal guarantee tab also recommends Scheduled Sales for the Omnibus prior price.
 
 == Support ==
 

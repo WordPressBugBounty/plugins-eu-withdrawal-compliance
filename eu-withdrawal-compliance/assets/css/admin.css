@@ -507,3 +507,36 @@ a.ayudawp-euw-status:hover {
 .ayudawp-euw-tab-intro {
 	margin: 16px 0 0;
 }
+
+/* Recommendation of a sibling plugin of the AyudaWP family, with the same look
+   VigIA gives its recommendation of Visibility: orange while the sibling is not
+   active, blue once it is. Only the left border is drawn: the other sides have
+   no style, so border-color only paints that one. */
+.ayudawp-euw-notice {
+	margin: 16px 0 0;
+	padding: 12px 15px;
+	border-left-width: 4px;
+	border-left-style: solid;
+}
+
+.ayudawp-euw-notice p {
+	margin: 0;
+}
+
+.ayudawp-euw-notice-promo {
+	background: #fff4e5;
+	border-color: #e8842c;
+}
+
+.ayudawp-euw-notice-promo p {
+	color: #ad5800;
+}
+
+.ayudawp-euw-notice-info {
+	background: #f0f6fc;
+	border-color: #72aee6;
+}
+
+.ayudawp-euw-notice-info p {
+	color: #1d4ed8;
+}

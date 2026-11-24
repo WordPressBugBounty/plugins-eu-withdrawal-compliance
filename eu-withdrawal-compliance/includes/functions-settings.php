@@ -2753,7 +2753,7 @@ function ayudawp_euw_field_guarantee_order_note_callback() {
 	<p class="description">
 		<?php
 		echo wp_kses(
-			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Records the language and the display mode of the notice each buyer was shown, which is what lets you answer a consumer-protection inspection about an order placed months ago. One note per order, private, never shown to the customer.', 'eu-withdrawal-compliance' ) ),
+			ayudawp_euw_without_badge( __( '<strong>Recommended.</strong> Records the language and the display mode of the notice each buyer was shown, which is what lets you answer a consumer-protection inspection about an order placed months ago. One note per order, private, never shown to the customer. It is written only when the checkout actually showed the notice to that buyer, so an order with goods and no note was placed without it on screen: check your theme, page builder, checkout plugin or any express payment button that skips the checkout.', 'eu-withdrawal-compliance' ) ),
 			array( 'strong' => array() )
 		);
 		?>
@@ -3122,6 +3122,91 @@ function ayudawp_euw_render_native_feature_notice() {
 				'<a href="' . esc_url( $features_url ) . '">' . esc_html__( 'WooCommerce > Settings > Advanced > Features', 'eu-withdrawal-compliance' ) . '</a>'
 			);
 			?>
+		</p>
+	</div>
+	<?php
+}
+
+/**
+ * Recommend Scheduled Sales, the sibling plugin that covers the EU price rules.
+ *
+ * Same pattern VigIA uses to recommend Visibility, so the AyudaWP family
+ * recommends its siblings in one way: an orange notice with a one-click
+ * install while the sibling is missing, and one blue line once it is active.
+ * Printed on the Legal guarantee tab, the other information duty of a shop
+ * that sells goods, and only with WooCommerce, which Scheduled Sales requires.
+ */
+function ayudawp_euw_render_scheduled_sales_notice() {
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		return;
+	}
+
+	$name = 'Scheduled Sales';
+
+	if ( defined( 'MSPS_VERSION' ) ) {
+		?>
+		<div class="ayudawp-euw-notice ayudawp-euw-notice-info">
+			<p>
+				<span class="dashicons dashicons-info-outline"></span>
+				<?php
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: Scheduled Sales plugin name, in bold. */
+						__( '%s is active and takes care of the Omnibus prior price of your sales, while this plugin handles withdrawals and the legal guarantee.', 'eu-withdrawal-compliance' ),
+						'<strong>' . esc_html( $name ) . '</strong>'
+					),
+					array( 'strong' => array() )
+				);
+
+				// Its settings screen asks for manage_woocommerce, this one for
+				// manage_options: a link the reader cannot open is not printed.
+				if ( current_user_can( 'manage_woocommerce' ) ) {
+					?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=multiple-sale-prices-scheduler&tab=settings' ) ); ?>">&rarr;&nbsp;<?php esc_html_e( 'Prior price settings', 'eu-withdrawal-compliance' ); ?></a>
+					<?php
+				}
+				?>
+			</p>
+		</div>
+		<?php
+		return;
+	}
+
+	// The install screen needs install_plugins, and on a network it only lives in
+	// the network admin: on a subsite it redirects to the plugin list and drops
+	// the plugin it was asked to show (wp-admin/plugin-install.php:22-25 in 7.1.5).
+	// Whoever cannot install plugins gets the plugin page on WordPress.org.
+	$can_install = current_user_can( 'install_plugins' );
+
+	if ( $can_install ) {
+		$path = 'plugin-install.php?tab=plugin-information&plugin=multiple-sale-prices-scheduler&TB_iframe=true&width=772&height=618';
+		$url  = is_multisite() ? network_admin_url( $path ) : admin_url( $path );
+	} else {
+		$url = 'https://wordpress.org/plugins/multiple-sale-prices-scheduler/';
+	}
+
+	/* translators: %s: Scheduled Sales plugin name. */
+	$label = sprintf( __( 'Get %s', 'eu-withdrawal-compliance' ), $name );
+	?>
+	<div class="ayudawp-euw-notice ayudawp-euw-notice-promo">
+		<p>
+			<span class="dashicons dashicons-tag"></span>
+			<?php
+			echo wp_kses(
+				sprintf(
+					/* translators: %s: Scheduled Sales plugin name, in bold. */
+					__( 'Let %s check the Omnibus prior price before each sale, show it on your store and keep the price history, while this plugin handles withdrawals and the legal guarantee: one family for the EU consumer rules of your shop.', 'eu-withdrawal-compliance' ),
+					'<strong>' . esc_html( $name ) . '</strong>'
+				),
+				array( 'strong' => array() )
+			);
+			?>
+			<?php if ( $can_install ) : ?>
+				<a href="<?php echo esc_url( $url ); ?>" class="thickbox">&rarr;&nbsp;<?php echo esc_html( $label ); ?></a>
+			<?php else : ?>
+				<a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener">&rarr;&nbsp;<?php echo esc_html( $label ); ?></a>
+			<?php endif; ?>
 		</p>
 	</div>
 	<?php
@@ -3603,6 +3688,10 @@ function ayudawp_euw_render_settings_tabs( $page ) {
 
 		if ( 'exceptions' === $tab_id ) {
 			echo '<p class="ayudawp-euw-tab-intro">' . esc_html__( 'Which products are excluded is set in the editor of each product or category.', 'eu-withdrawal-compliance' ) . ' <a href="#ayudawp-euw-tab-help">' . esc_html__( 'How it works', 'eu-withdrawal-compliance' ) . '</a></p>';
+		}
+
+		if ( 'guarantee' === $tab_id ) {
+			ayudawp_euw_render_scheduled_sales_notice();
 		}
 
 		echo '<div class="ayudawp-euw-cards">';

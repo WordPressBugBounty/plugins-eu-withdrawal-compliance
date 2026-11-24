@@ -719,7 +719,15 @@ function ayudawp_euw_guarantee_notice_shortcode( $atts ) {
 		return '';
 	}
 
-	return ayudawp_euw_guarantee_get_safe_html( (string) $atts['mode'] );
+	$html = ayudawp_euw_guarantee_get_safe_html( (string) $atts['mode'] );
+
+	// The wp_enqueue_scripts pass only sees the shortcode in post_content; this
+	// also styles it in synced patterns, templates, widgets and page builders.
+	if ( '' !== $html && function_exists( 'ayudawp_euw_enqueue_guarantee_styles' ) ) {
+		ayudawp_euw_enqueue_guarantee_styles();
+	}
+
+	return $html;
 }
 add_shortcode( 'ayudawp_guarantee_notice', 'ayudawp_euw_guarantee_notice_shortcode' );
 

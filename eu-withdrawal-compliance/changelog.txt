@@ -3,6 +3,14 @@ EU Withdrawal and Legal Guarantee Compliance — Full changelog
 For each release, see the entries below. The latest version is always at the top.
 The current release notes also live in readme.txt under "== Changelog ==".
 
+= 2.4.1 =
+* Improved: The Legal guarantee tab of the settings recommends Scheduled Sales, Discounts and Omnibus Price History for WooCommerce, from the same author, for the EU Omnibus prior price of your sales: it checks the prior price before each sale, shows it on your store and keeps the price history. When it is already active, the tab shows one line with a link to its prior price settings instead. It only appears with WooCommerce active.
+* Improved: The FAQ about the Omnibus Directive recommends it for the prior price.
+* Improved: A new FAQ lists what to check when the guarantee notice does not show at your checkout.
+* Improved: Tested up to WooCommerce 11.3.
+* Fix: The private order note about the legal guarantee notice was written whenever your settings and the cart called for the notice, even on orders whose customer never saw it: with a theme, page builder or checkout plugin that skips the place where it goes, or with an express payment button on the product or cart page that never reaches the checkout. It is now written only when that customer's checkout actually showed the notice, with the language and display mode it showed, so an order with goods and no note points to a checkout that is not showing it.
+* Fix: The `[ayudawp_guarantee_notice]` and `[ayudawp_withdrawal_form]` shortcodes came out without their styles when placed in a synced pattern, a block theme template, a widget or a page builder layout. They now load their styles wherever they are printed.
+
 = 2.4.0 =
 * New: You can choose where the checkout consent checkboxes go under **EU Compliance → Settings → Exceptions (Art. 16) → Checkbox location**: next to the Place order button, now the default, or below the order notes, where they were until now. Code that moves them with the `ayudawp_euw_consent_hook` filter still decides, and the setting says so when it finds that filter.
 * Improved: The settings page is organised in six tabs (General, Form and emails, Orders and deadline, Exceptions (Art. 16), Legal guarantee and Help), with the sections side by side on wide screens. Longer explanations fold under "More information", labels such as Recommended, Optional or Required show as tags next to each setting, and help that repeated itself in several fields shows once. All tabs are saved together, and saving brings you back to the tab you were on.

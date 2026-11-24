@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal and Legal Guarantee Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free EU consumer-rights toolkit: withdrawal function (Directive 2023/2673) and the harmonised legal guarantee notice (Directive 2024/825), checkout consents, Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration.
- * Version:           2.4.0
+ * Version:           2.4.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Fernando Tellado
@@ -12,7 +12,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       eu-withdrawal-compliance
  * WC requires at least: 7.0
- * WC tested up to:   11.2
+ * WC tested up to:   11.3
  *
  * @package AyudaWP_EU_Withdrawal
  */
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.4.0' );
+define( 'AYUDAWP_EUW_VERSION', '2.4.1' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );

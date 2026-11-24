@@ -55,6 +55,22 @@ function ayudawp_euw_is_form_visible() {
 }
 
 /**
+ * Enqueue the withdrawal form stylesheet.
+ *
+ * Shared by the page-level enqueue below and the `[ayudawp_withdrawal_form]`
+ * shortcode, so the form is styled wherever it ends up being printed.
+ */
+function ayudawp_euw_enqueue_form_styles() {
+
+	wp_enqueue_style(
+		'ayudawp-euw-frontend',
+		AYUDAWP_EUW_URL . 'assets/css/frontend.css',
+		array(),
+		AYUDAWP_EUW_VERSION
+	);
+}
+
+/**
  * Enqueue frontend CSS only on the form page.
  */
 function ayudawp_euw_enqueue_frontend() {
@@ -63,12 +79,7 @@ function ayudawp_euw_enqueue_frontend() {
 		return;
 	}
 
-	wp_enqueue_style(
-		'ayudawp-euw-frontend',
-		AYUDAWP_EUW_URL . 'assets/css/frontend.css',
-		array(),
-		AYUDAWP_EUW_VERSION
-	);
+	ayudawp_euw_enqueue_form_styles();
 }
 add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_frontend' );
 
@@ -183,6 +194,13 @@ function ayudawp_euw_enqueue_admin( $hook ) { // phpcs:ignore Generic.CodeAnalys
 
 		wp_enqueue_media();
 
+		// The Scheduled Sales recommendation opens its install screen in a modal
+		// (ayudawp_euw_render_scheduled_sales_notice()), which only links there
+		// when it is missing and the reader can install plugins.
+		if ( class_exists( 'WooCommerce' ) && ! defined( 'MSPS_VERSION' ) && current_user_can( 'install_plugins' ) ) {
+			add_thickbox();
+		}
+
 		wp_enqueue_script(
 			'ayudawp-euw-guarantee-admin',
 			AYUDAWP_EUW_URL . 'assets/js/guarantee-admin.js',
@@ -262,6 +280,21 @@ function ayudawp_euw_enqueue_guarantee_assets() {
 		return;
 	}
 
+	ayudawp_euw_enqueue_guarantee_styles();
+}
+add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_guarantee_assets' );
+
+/**
+ * Enqueue the guarantee-notice stylesheet.
+ *
+ * Shared by the enqueue above and the `[ayudawp_guarantee_notice]` shortcode.
+ * The check above only sees the shortcode in the post content, so a notice
+ * placed in a synced pattern, a block theme template, a widget or a page
+ * builder layout came out unstyled and full width: the shortcode enqueues it
+ * too when it prints, the same way the excluded-product notice does.
+ */
+function ayudawp_euw_enqueue_guarantee_styles() {
+
 	wp_enqueue_style(
 		'ayudawp-euw-guarantee',
 		AYUDAWP_EUW_URL . 'assets/css/guarantee.css',
@@ -269,7 +302,6 @@ function ayudawp_euw_enqueue_guarantee_assets() {
 		AYUDAWP_EUW_VERSION
 	);
 }
-add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_guarantee_assets' );
 
 /**
  * Enqueue the script that keeps the checkout consent checkboxes ticked.

@@ -37,10 +37,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The notice for this checkout request, or an empty string.
  *
- * Resolved once per request and reused by the two checkouts and by the order
- * note, which otherwise rebuilds the whole markup just to find out whether
- * anything was shown. The markup comes back unescaped and each of the two
- * callers below runs it through `wp_kses()` where it prints it, so the escaping
+ * Resolved once per request and reused by the two checkouts, which can print it
+ * more than once in the same request. The markup comes back unescaped and each
+ * of the two callers below runs it through `wp_kses()` where it prints it, so the escaping
  * is visible at the point of output instead of hidden behind a helper.
  *
  * @return string Raw HTML, to be escaped by the caller.
@@ -69,11 +68,70 @@ function ayudawp_euw_guarantee_checkout_html() {
 }
 
 /**
+ * Remember in the customer's WooCommerce session which notice the checkout printed.
+ *
+ * The order is created in a later request (`wc-ajax=checkout` or the Store
+ * API), which cannot see what the checkout page printed. Deciding there from
+ * the settings and the cart alone recorded the notice as shown on orders whose
+ * customer never saw it: a theme, page builder or checkout plugin that skips
+ * the hook or the actions block, or an express payment button on the product
+ * or cart page, which never reaches the checkout. So the two renders below
+ * leave a mark in the session as they print, with the language and the mode
+ * actually printed, and the order note is written only from that mark.
+ *
+ * A render that prints nothing clears the mark, so a classic checkout that is
+ * repainted after the goods leave the cart does not keep an old one.
+ *
+ * @param string $html The notice markup this render is about to print.
+ */
+function ayudawp_euw_guarantee_remember_shown( $html ) {
+
+	if ( ! function_exists( 'WC' ) || ! WC() || empty( WC()->session ) ) {
+		return;
+	}
+
+	if ( '' === $html ) {
+		WC()->session->__unset( 'ayudawp_euw_guarantee_shown' );
+		return;
+	}
+
+	WC()->session->set( 'ayudawp_euw_guarantee_shown', ayudawp_euw_guarantee_lang() . '|' . ayudawp_euw_guarantee_display_mode() );
+}
+
+/**
+ * The notice this customer's checkout printed, read from the session mark.
+ *
+ * @return array{0: string, 1: string}|null Language code and display mode, or null when there is no valid mark.
+ */
+function ayudawp_euw_guarantee_shown_at_checkout() {
+
+	if ( ! function_exists( 'WC' ) || ! WC() || empty( WC()->session ) ) {
+		return null;
+	}
+
+	$mark  = (string) WC()->session->get( 'ayudawp_euw_guarantee_shown', '' );
+	$parts = explode( '|', $mark );
+
+	if ( 2 !== count( $parts )
+		|| ! in_array( $parts[0], ayudawp_euw_guarantee_languages(), true )
+		|| ! in_array( $parts[1], array( 'full', 'details', 'popover' ), true )
+	) {
+		return null;
+	}
+
+	return $parts;
+}
+
+/**
  * Print the notice above the "Place order" button of the classic checkout.
  */
 function ayudawp_euw_guarantee_render_classic_checkout() {
 
-	echo wp_kses( ayudawp_euw_guarantee_checkout_html(), ayudawp_euw_guarantee_allowed_html() );
+	$html = ayudawp_euw_guarantee_checkout_html();
+
+	ayudawp_euw_guarantee_remember_shown( $html );
+
+	echo wp_kses( $html, ayudawp_euw_guarantee_allowed_html() );
 }
 add_action( 'woocommerce_review_order_before_submit', 'ayudawp_euw_guarantee_render_classic_checkout' );
 
@@ -85,7 +143,11 @@ add_action( 'woocommerce_review_order_before_submit', 'ayudawp_euw_guarantee_ren
  */
 function ayudawp_euw_guarantee_render_block_checkout( $block_content ) {
 
-	return wp_kses( ayudawp_euw_guarantee_checkout_html(), ayudawp_euw_guarantee_allowed_html() ) . $block_content;
+	$html = ayudawp_euw_guarantee_checkout_html();
+
+	ayudawp_euw_guarantee_remember_shown( $html );
+
+	return wp_kses( $html, ayudawp_euw_guarantee_allowed_html() ) . $block_content;
 }
 add_filter( 'render_block_woocommerce/checkout-actions-block', 'ayudawp_euw_guarantee_render_block_checkout' );
 
@@ -96,6 +158,13 @@ add_filter( 'render_block_woocommerce/checkout-actions-block', 'ayudawp_euw_guar
  * classic one and `woocommerce_store_api_checkout_order_processed` for the
  * block one. A meta flag guards the note, because a store can reach the Store
  * API from a classic page and fire both in the same request.
+ *
+ * Only written when this customer's checkout printed the notice, from the mark
+ * left by ayudawp_euw_guarantee_remember_shown(), and with the language and
+ * mode it printed. Without the mark there is no note: an order with goods and
+ * no note is the sign that the checkout is not showing the notice. The mark is
+ * cleared once read, so it belongs to one checkout and not to every later order
+ * of the same session.
  *
  * @param WC_Order $order Order being created.
  */
@@ -109,16 +178,19 @@ function ayudawp_euw_guarantee_record_on_order( $order ) {
 		return;
 	}
 
-	if ( '' === ayudawp_euw_guarantee_checkout_html() ) {
-		return;
-	}
-
 	if ( $order->get_meta( '_ayudawp_euw_guarantee_shown' ) ) {
 		return;
 	}
 
-	$lang = ayudawp_euw_guarantee_lang();
-	$mode = ayudawp_euw_guarantee_display_mode();
+	$shown = ayudawp_euw_guarantee_shown_at_checkout();
+
+	ayudawp_euw_guarantee_remember_shown( '' );
+
+	if ( null === $shown || ! ayudawp_euw_guarantee_is_enabled() || ! ayudawp_euw_guarantee_order_has_goods( $order ) ) {
+		return;
+	}
+
+	list( $lang, $mode ) = $shown;
 
 	$order->update_meta_data( '_ayudawp_euw_guarantee_shown', $lang . '|' . $mode );
 
