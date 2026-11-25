@@ -91,6 +91,12 @@ add_action( 'wp_enqueue_scripts', 'ayudawp_euw_enqueue_frontend' );
  * wherever it ends up being printed. Dashicons is enqueued alongside because
  * the front-end does not load it by default and the notice uses a dashicon
  * glyph.
+ *
+ * Alongside, not as a dependency. Optimisation plugins that strip Dashicons
+ * for logged-out visitors (DietPress, Perfmatters and others) deregister the
+ * handle, and WordPress does not print a stylesheet whose dependency is
+ * missing: the notice lost all its styles, not just the icon. Now only the
+ * icon goes, and its <span> is empty and aria-hidden.
  */
 function ayudawp_euw_enqueue_excluded_notice_styles() {
 
@@ -99,7 +105,7 @@ function ayudawp_euw_enqueue_excluded_notice_styles() {
 	wp_enqueue_style(
 		'ayudawp-euw-excluded-notice',
 		AYUDAWP_EUW_URL . 'assets/css/excluded-notice.css',
-		array( 'dashicons' ),
+		array(),
 		AYUDAWP_EUW_VERSION
 	);
 }

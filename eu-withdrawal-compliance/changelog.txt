@@ -3,6 +3,14 @@ EU Withdrawal and Legal Guarantee Compliance — Full changelog
 For each release, see the entries below. The latest version is always at the top.
 The current release notes also live in readme.txt under "== Changelog ==".
 
+= 2.4.2 =
+* Improved: Developers can change the address of the "Right of withdrawal" page in My Account with the new `ayudawp_euw_account_endpoint` filter, for example to `/mon-compte/retractation/`. Save Settings > Permalinks once afterwards. The `withdrawal` address keeps working.
+* Improved: Tested up to WordPress 7.2.
+* Fix: With themes that ship a CSS reset, such as WoodMart and Divi, the collapsed legal guarantee notice showed as a line of bold text without its arrow, so it did not look like something to click, and the popover opened stuck to the top left corner instead of in the middle of the screen. Both now look the same with any theme.
+* Fix: On products laid out with Divi 5, the excluded-product notice did not appear. It now shows between the price and the add-to-cart button. If your layout already prints it with the `[ayudawp_withdrawal_excluded_notice]` shortcode, nothing changes, and if you added a snippet to your child theme to move it next to the price, you can remove it.
+* Fix: When an optimisation plugin removes Dashicons for visitors, as DietPress or Perfmatters can, the excluded-product notice lost all its styles. Now it only loses its icon.
+* Fix: A filter on `ayudawp_euw_legal_conditions_text` that returned something other than text printed "Array" or stopped the page with an error. The note now stays as it was.
+
 = 2.4.1 =
 * Improved: The Legal guarantee tab of the settings recommends Scheduled Sales, Discounts and Omnibus Price History for WooCommerce, from the same author, for the EU Omnibus prior price of your sales: it checks the prior price before each sale, shows it on your store and keeps the price history. When it is already active, the tab shows one line with a link to its prior price settings instead. It only appears with WooCommerce active.
 * Improved: The FAQ about the Omnibus Directive recommends it for the prior price.

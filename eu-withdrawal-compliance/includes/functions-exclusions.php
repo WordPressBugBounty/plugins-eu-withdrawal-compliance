@@ -955,6 +955,77 @@ function ayudawp_euw_render_product_excluded_notice() {
 add_action( 'woocommerce_single_product_summary', 'ayudawp_euw_render_product_excluded_notice', 25 );
 
 /**
+ * Put the automatic notice in Divi 5's Price module.
+ *
+ * Divi moves every callback of `woocommerce_single_product_summary` into one of
+ * its WooCommerce modules by priority, and ours (25) lands in Description. Divi
+ * 4 prints the moved callbacks from every module, but Divi 5 only from Price
+ * (`includes/builder-5/server/Packages/WooCommerce/WooCommerceUtils.php:1361`
+ * and `:1367` in Divi 5.11.1), so on a product laid out with Divi 5 the notice
+ * never printed. Price also puts it where it belongs, between the price and the
+ * add-to-cart button. The filter only exists in Divi 5, so Divi 4 and Extra are
+ * left as they were.
+ *
+ * A layout that already carries the `[ayudawp_withdrawal_excluded_notice]`
+ * shortcode, which is how shops got the notice back until now, keeps Divi's own
+ * placement, so the notice is not printed twice.
+ *
+ * @param string $module_slug   Divi module the callback is moved to.
+ * @param string $callback_name Name of the callback being moved.
+ * @return string
+ */
+function ayudawp_euw_divi5_excluded_notice_module( $module_slug, $callback_name ) {
+
+	if ( 'ayudawp_euw_render_product_excluded_notice' !== $callback_name ) {
+		return $module_slug;
+	}
+
+	if ( ayudawp_euw_divi_layout_has_excluded_shortcode() ) {
+		return $module_slug;
+	}
+
+	return 'divi/woocommerce-product-price';
+}
+add_filter( 'divi_woocommerce_relocate_single_product_summary_module_slug', 'ayudawp_euw_divi5_excluded_notice_module', 10, 2 );
+
+/**
+ * Whether the Divi layout of the current product already prints the notice by shortcode.
+ *
+ * Looks at the two places a Divi layout lives: the product's own content and the
+ * body template the Theme Builder assigns to this request. The shortcode name is
+ * searched as plain text because Divi 5 keeps a Text module's content inside the
+ * block's JSON attributes, where has_shortcode() does not look.
+ *
+ * @return bool
+ */
+function ayudawp_euw_divi_layout_has_excluded_shortcode() {
+
+	$post_ids = array();
+
+	if ( function_exists( 'is_product' ) && is_product() ) {
+		$post_ids[] = (int) get_queried_object_id();
+	}
+
+	if ( function_exists( 'et_theme_builder_get_template_layouts' ) && defined( 'ET_THEME_BUILDER_BODY_LAYOUT_POST_TYPE' ) ) {
+
+		$layouts = et_theme_builder_get_template_layouts();
+
+		if ( is_array( $layouts ) && ! empty( $layouts[ ET_THEME_BUILDER_BODY_LAYOUT_POST_TYPE ]['id'] ) ) {
+			$post_ids[] = (int) $layouts[ ET_THEME_BUILDER_BODY_LAYOUT_POST_TYPE ]['id'];
+		}
+	}
+
+	foreach ( array_filter( $post_ids ) as $post_id ) {
+
+		if ( false !== strpos( (string) get_post_field( 'post_content', $post_id ), 'ayudawp_withdrawal_excluded_notice' ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Shortcode that prints the excluded-product notice outside the standard
  * WooCommerce single-product hook.
  *

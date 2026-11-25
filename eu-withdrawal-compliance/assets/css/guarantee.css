@@ -32,12 +32,23 @@
 	margin: 0.5em 0 0;
 }
 
-.ayudawp-euw-guarantee__disclosure summary {
+/* Disclosure mode.
+ *
+ * The display and list style are what the browser gives a <summary> by
+ * default, written out because themes that ship an old HTML5 reset set
+ * `details, summary { display: block }` (WoodMart's base.css does), which
+ * takes the disclosure triangle away and leaves a line of bold text that does
+ * not look like something to click. Two classes deep, so it wins over a reset
+ * written against bare element names. */
+.ayudawp-euw-guarantee .ayudawp-euw-guarantee__disclosure > summary {
+	display: list-item;
+	list-style: disclosure-closed inside;
 	cursor: pointer;
 	font-weight: 600;
 }
 
-.ayudawp-euw-guarantee__disclosure[open] summary {
+.ayudawp-euw-guarantee .ayudawp-euw-guarantee__disclosure[open] > summary {
+	list-style-type: disclosure-open;
 	margin-bottom: 0.75em;
 }
 
@@ -66,7 +77,15 @@
 		cursor: pointer;
 	}
 
-	.ayudawp-euw-guarantee__popover {
+	/* The browser centres an open popover with `position: fixed`, `inset: 0`
+	 * and `margin: auto`. The Eric Meyer reset that WoodMart and Divi ship
+	 * (`html, body, div, … { margin: 0 }`) overrides that margin, and the
+	 * notice opens stuck to the top left corner instead, so the three are
+	 * written out here. */
+	.ayudawp-euw-guarantee .ayudawp-euw-guarantee__popover {
+		position: fixed;
+		inset: 0;
+		margin: auto;
 		width: min(92vw, 820px);
 		max-height: 92vh;
 		overflow: auto;

@@ -2,9 +2,9 @@
 Contributors: fernandot, ayudawp
 Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
-Tested up to: 7.1
+Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 2.4.1
+Stable tag: 2.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,7 +62,7 @@ Compliance cannot depend on the language the customer was browsing in, so both a
 
 * CSS only loads where it is needed: the withdrawal page, the checkout, product pages that actually show a notice, and the plugin's own admin screens.
 * Delivered as language packs from [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/eu-withdrawal-compliance/). Follows the WordPress Coding Standards, with escaped output, sanitized input, capability checks and nonces.
-* **19 documented filters and 4 actions**, so agencies can extend it without forking.
+* **23 documented filters and 4 actions**, so agencies can extend it without forking.
 * PHP 7.4+, WordPress 6.0+, WooCommerce 7.0+ (optional).
 
 == Why this plugin? ==
@@ -199,6 +199,8 @@ A request on an order containing excluded items is flagged for you, never auto-r
 
 Page builders such as Divi, Elementor, Bricks or ShopLentor render their own single-product template and skip the standard WooCommerce hook (`woocommerce_single_product_summary`) where the plugin injects the excluded-product notice, so it does not appear automatically. Drop the `[ayudawp_withdrawal_excluded_notice]` shortcode into your product layout (most builders have a "Shortcode" element) and the notice will print for the current product whenever that product is flagged as excluded. With no attributes it resolves the product being viewed; pass `id="123"` to target a specific product.
 
+With Divi 5 product layouts you do not need it: the notice goes next to the price on its own. A layout that already has the shortcode is left as it is.
+
 = How do the checkout consent checkboxes work (Art. 16(m) and Art. 14(4)(a))? =
 
 The plugin injects them when the cart holds products flagged for them:
@@ -295,7 +297,7 @@ Yes. From **EU Compliance → Settings → Form and emails** you can set the sen
 
 = Which hooks does the plugin expose for developers? =
 
-22 filters and 4 actions. The withdrawal side: `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_show_withdrawal` (hide both for specific orders, or bring them back on an order that only holds excluded products), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha), `ayudawp_euw_form_via_admin_post` (send the form through admin-post.php again), `ayudawp_euw_show_consumer_check` and `ayudawp_euw_legal_conditions_text` (the conditions note on the form, the confirmation screen and the acknowledgement email; an empty string hides it). The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
+23 filters and 4 actions. The withdrawal side: `ayudawp_euw_account_endpoint` (the address of the page in My Account, such as `retractation`; save Settings > Permalinks once), `ayudawp_euw_grace_days` (extra days on the deadline), `ayudawp_euw_allowed_statuses` (order statuses that get the button and the notice), `ayudawp_euw_show_withdrawal` (hide both for specific orders, or bring them back on an order that only holds excluded products), `ayudawp_euw_email_ids` (emails carrying the withdrawal notice), `ayudawp_euw_allow_unverified_order`, `ayudawp_euw_pre_resolve_wc_order` and `ayudawp_euw_resolve_wc_order` (short-circuit or audit the order resolver), `ayudawp_euw_order_number_meta_keys` (meta keys checked when matching a typed order number), `ayudawp_euw_admin_email_lines`, `ayudawp_euw_validation_result` (reject a submission, for a captcha), `ayudawp_euw_form_via_admin_post` (send the form through admin-post.php again), `ayudawp_euw_show_consumer_check` and `ayudawp_euw_legal_conditions_text` (the conditions note on the form, the confirmation screen and the acknowledgement email; an empty string hides it). The checkout consents: `ayudawp_euw_consent_hook`, `ayudawp_euw_consent_hook_priority`, `ayudawp_euw_consent_applies` and `ayudawp_euw_consent_is_required`. The guarantee notice: `ayudawp_euw_guarantee_email_ids`, `ayudawp_euw_guarantee_notice_html`, `ayudawp_euw_guarantee_image_id`, `ayudawp_euw_guarantee_fallback_lang` and `ayudawp_euw_guarantee_language_aliases`.
 
 Actions: `ayudawp_euw_after_submission` (CPT ID, submission data), `ayudawp_euw_after_status_change` (CPT ID, new status, comment), `ayudawp_euw_after_form` (inside the form wrapper, after `</form>`) and `ayudawp_euw_form_before_submit` (before the submit button, for a captcha or an extra field).
 
@@ -329,10 +331,18 @@ For the prior price, use [Scheduled Sales, Discounts and Omnibus Price History f
 10. Mandatory digital-content consent (Art. 16(m)) shown at the WooCommerce checkout.
 11. Optional service-start consent (Art. 14(4)(a)) shown at the WooCommerce checkout.
 12. Annex I.B model withdrawal form rendered as a collapsible block below the public withdrawal form, with a printable view link.
-13. Two-step confirmation screen (Article 11a(3)): read-only summary of the declaration with the dedicated "Confirm withdrawal" button, shown before the request is registered.
-14. Export withdrawals page: filtered CSV export of the request log by status and date range for accounting and consumer-protection audits.
 
 == Changelog ==
+
+= 2.4.2 =
+Fixes the collapsed and popover legal guarantee notice with themes such as WoodMart and Divi, the excluded-product notice on Divi 5 product layouts and its styles with optimisation plugins. Adds a filter to rename the withdrawal page in My Account. Tested up to WordPress 7.2.
+
+* Improved: Developers can change the address of the "Right of withdrawal" page in My Account with the new `ayudawp_euw_account_endpoint` filter, for example to `/mon-compte/retractation/`. Save Settings > Permalinks once afterwards. The `withdrawal` address keeps working.
+* Improved: Tested up to WordPress 7.2.
+* Fix: With themes that ship a CSS reset, such as WoodMart and Divi, the collapsed legal guarantee notice showed as a line of bold text without its arrow, so it did not look like something to click, and the popover opened stuck to the top left corner instead of in the middle of the screen. Both now look the same with any theme.
+* Fix: On products laid out with Divi 5, the excluded-product notice did not appear. It now shows between the price and the add-to-cart button. If your layout already prints it with the `[ayudawp_withdrawal_excluded_notice]` shortcode, nothing changes, and if you added a snippet to your child theme to move it next to the price, you can remove it.
+* Fix: When an optimisation plugin removes Dashicons for visitors, as DietPress or Perfmatters can, the excluded-product notice lost all its styles. Now it only loses its icon.
+* Fix: A filter on `ayudawp_euw_legal_conditions_text` that returned something other than text printed "Array" or stopped the page with an error. The note now stays as it was.
 
 = 2.4.1 =
 The guarantee order note is now written only when the checkout really showed the notice, and the notice and form shortcodes keep their styles in synced patterns, templates and page builders. The Legal guarantee tab also recommends Scheduled Sales for the Omnibus prior price.
@@ -356,8 +366,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.4.1 =
-The guarantee order note is now written only when the checkout really showed the notice, and the notice and form shortcodes keep their styles in synced patterns, templates and page builders. The Legal guarantee tab also recommends Scheduled Sales for the Omnibus prior price.
+= 2.4.2 =
+Fixes the collapsed and popover legal guarantee notice with themes such as WoodMart and Divi, the excluded-product notice on Divi 5 product layouts and its styles with optimisation plugins. Adds a filter to rename the withdrawal page in My Account. Tested up to WordPress 7.2.
 
 == Support ==
 

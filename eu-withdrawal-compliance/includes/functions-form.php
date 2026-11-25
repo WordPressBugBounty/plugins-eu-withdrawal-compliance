@@ -37,9 +37,9 @@ function ayudawp_euw_legal_conditions_default() {
  */
 function ayudawp_euw_legal_conditions_text() {
 
-	$text = (string) get_option( 'ayudawp_euw_legal_note_text', '' );
+	$text = get_option( 'ayudawp_euw_legal_note_text', '' );
 
-	if ( '' === trim( $text ) ) {
+	if ( ! is_string( $text ) || '' === trim( $text ) ) {
 		$text = ayudawp_euw_legal_conditions_default();
 	}
 
@@ -48,11 +48,16 @@ function ayudawp_euw_legal_conditions_text() {
 	 * acknowledgement email.
 	 *
 	 * Plain text: it is escaped on the page and the email is sent as plain text.
-	 * Return an empty string to leave the note out in all three places.
+	 * Return an empty string to leave the note out in all three places. Anything
+	 * that is not a string is ignored and the note stays as it was: casting it
+	 * printed «Array» for an array and stopped the page with a fatal error for
+	 * an object without __toString().
 	 *
 	 * @param string $text Legal note: the trader's text from Settings, or the bundled one.
 	 */
-	return trim( (string) apply_filters( 'ayudawp_euw_legal_conditions_text', $text ) );
+	$filtered = apply_filters( 'ayudawp_euw_legal_conditions_text', $text );
+
+	return trim( is_string( $filtered ) ? $filtered : $text );
 }
 
 /**

@@ -780,6 +780,57 @@ function ayudawp_euw_register_wc_endpoint() {
 add_action( 'init', 'ayudawp_euw_register_wc_endpoint' );
 
 /**
+ * Slug of the My Account endpoint: `withdrawal` unless a developer changes it.
+ *
+ * Only the slug in the address changes. The key stays `withdrawal` in the code
+ * (the menu item, the `woocommerce_account_withdrawal_endpoint` action and
+ * every URL built with wc_get_account_endpoint_url( 'withdrawal' )), and
+ * WooCommerce maps the new slug to that key through its own query vars, so the
+ * links follow it without being touched.
+ *
+ * @return string
+ */
+function ayudawp_euw_account_endpoint_slug() {
+
+	/**
+	 * Filters the slug of the "Right of withdrawal" endpoint in My Account.
+	 *
+	 * For a shop that wants it in its own language, such as
+	 * `/mon-compte/retractation/`. Save Settings > Permalinks once after
+	 * changing it. The `withdrawal` address keeps working as an alias.
+	 *
+	 * @param string $slug Endpoint slug. Default 'withdrawal'.
+	 */
+	$slug = apply_filters( 'ayudawp_euw_account_endpoint', 'withdrawal' );
+	$slug = is_string( $slug ) ? sanitize_title( $slug ) : '';
+
+	return '' !== $slug ? $slug : 'withdrawal';
+}
+
+/**
+ * Hand a custom endpoint slug to WooCommerce's My Account query vars.
+ *
+ * WooCommerce reads this filter each time it needs the query vars, so a
+ * `ayudawp_euw_account_endpoint` callback added by a theme arrives in time. A
+ * site that does not use that filter is left exactly as it was: the endpoint
+ * stays registered by ayudawp_euw_register_wc_endpoint() alone.
+ *
+ * @param array $vars WooCommerce query vars, key => slug.
+ * @return array
+ */
+function ayudawp_euw_account_endpoint_query_var( $vars ) {
+
+	$slug = ayudawp_euw_account_endpoint_slug();
+
+	if ( 'withdrawal' !== $slug && is_array( $vars ) ) {
+		$vars['withdrawal'] = $slug;
+	}
+
+	return $vars;
+}
+add_filter( 'woocommerce_get_query_vars', 'ayudawp_euw_account_endpoint_query_var' );
+
+/**
  * Add the endpoint to WooCommerce's My Account query vars.
  *
  * @param array $vars Query vars.
