@@ -710,11 +710,14 @@ function ayudawp_euw_add_wc_order_note( $wc_order_id, $cpt_id, $scope, $details 
 		? __( 'partial', 'eu-withdrawal-compliance' )
 		: __( 'full', 'eu-withdrawal-compliance' );
 
+	// WooCommerce prints order notes through wp_kses_post(), which turns a
+	// "< div ...>" left by sanitize_textarea_field() into a real element on the
+	// order screen. The customer's text goes in escaped, so it reads as typed.
 	$note = sprintf(
 		/* translators: 1: scope label, 2: details, 3: log ID. */
 		__( 'EU withdrawal request received (%1$s). Details: %2$s. Log ID: #%3$d', 'eu-withdrawal-compliance' ),
 		$scope_label,
-		( ! empty( $details ) ? $details : '—' ),
+		( ! empty( $details ) ? esc_html( $details ) : '—' ),
 		$cpt_id
 	);
 
@@ -759,15 +762,86 @@ function ayudawp_euw_add_status_order_note( $wc_order_id, $cpt_id, $status, $com
 		$cpt_id
 	);
 
+	// Escaped for the same reason as the details in ayudawp_euw_add_wc_order_note():
+	// the comment is plain text, and whoever holds the request capabilities may
+	// not be allowed to post HTML.
 	if ( '' !== $comment ) {
 		$note .= "\n" . sprintf(
 			/* translators: %s: admin comment. */
 			__( 'Comment: %s', 'eu-withdrawal-compliance' ),
-			$comment
+			esc_html( $comment )
 		);
 	}
 
 	$order->add_order_note( $note, 0, false );
+}
+
+/**
+ * Neutralise the "< tag" sequences that order notes written up to 2.4.2 kept.
+ *
+ * Up to 2.4.2 the "request received" note carried the customer's details raw,
+ * and the status note the admin comment, both from sanitize_textarea_field().
+ * That sanitiser leaves exactly one shape that kses turns into a tag: a "<"
+ * followed by whitespace, which strip_tags() reads as text and wp_kses_split2()
+ * accepts as the start of an element (wp-includes/kses.php:1469 in 7.1.5).
+ * WooCommerce prints notes through wp_kses_post(), so on a shop that received
+ * such a request, "< div ...>" became a real element on the order screen.
+ *
+ * Every order note is scanned, not only those of a request that still exists:
+ * deleting the request, by hand or through the personal data eraser, removes
+ * the link but leaves the note on the order. Only that "<" is encoded, so the
+ * note reads the same, any real HTML in it is left alone, and running this
+ * again changes nothing. Runs from the upgrade routine.
+ *
+ * @return int Number of notes rewritten.
+ */
+function ayudawp_euw_escape_stored_order_notes() {
+
+	global $wpdb;
+
+	$rewritten = 0;
+	$last_id   = 0;
+	$batch     = 500;
+
+	do {
+		// One-off upgrade scan over core tables, in batches by ID; no API lists notes across orders.
+		$notes = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off upgrade scan; caches are cleared per note below.
+			$wpdb->prepare(
+				"SELECT comment_ID, comment_content FROM {$wpdb->comments} WHERE comment_ID > %d AND comment_type = %s AND comment_content LIKE %s ORDER BY comment_ID ASC LIMIT %d",
+				$last_id,
+				'order_note',
+				'%' . $wpdb->esc_like( '<' ) . '%',
+				$batch
+			)
+		);
+
+		$notes = (array) $notes;
+
+		foreach ( $notes as $note ) {
+
+			$last_id = (int) $note->comment_ID;
+			$escaped = preg_replace( '/<(?=\s)/', '&lt;', (string) $note->comment_content );
+
+			if ( null === $escaped || $escaped === $note->comment_content ) {
+				continue;
+			}
+
+			$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- direct write so no comment filter re-parses the note; cache cleared right after.
+				$wpdb->comments,
+				array( 'comment_content' => $escaped ),
+				array( 'comment_ID' => $last_id ),
+				array( '%s' ),
+				array( '%d' )
+			);
+
+			if ( $updated ) {
+				clean_comment_cache( $last_id );
+				++$rewritten;
+			}
+		}
+	} while ( count( $notes ) === $batch );
+
+	return $rewritten;
 }
 
 /**

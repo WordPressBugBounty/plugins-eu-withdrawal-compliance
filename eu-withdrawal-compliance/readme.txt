@@ -4,7 +4,7 @@ Tags: woocommerce, withdrawal, consumer-rights, legal-guarantee, garan
 Requires at least: 6.0
 Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 2.4.2
+Stable tag: 2.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -334,6 +334,14 @@ For the prior price, use [Scheduled Sales, Discounts and Omnibus Price History f
 
 == Changelog ==
 
+= 2.4.3 =
+Security release: fixes a stored XSS through the details field of the public withdrawal form, which reached the request record and its order note. Update as soon as possible. Order notes saved by earlier versions with such code are cleaned on update.
+
+* Fix: Security. The "Affected products / additional information" field of the public withdrawal form could carry HTML that ran in the browser of whoever opened that withdrawal request, or its WooCommerce order, in the admin (stored cross-site scripting). The field is now stored and shown as plain text, both in the request and in the order note. Reported through Wordfence.
+* Fix: Security. The same applied to the comment written when changing the status of a request, which also goes into an order note, for anyone allowed to manage requests but not to publish HTML.
+* Fix: When you update, every order note that still holds that kind of code is rewritten so the code shows as text, also when its withdrawal request was deleted. The rest of each note, and any HTML your other plugins put in notes, is left as it was; a "<" followed by a space in any order note is now stored as its HTML entity, which shows the same. Requests already stored with such code show it as text.
+* Fix: Text with a "<" and a ">" in that field, such as "size < 40 and > 38", lost everything between both signs when saved. It is now kept as typed.
+
 = 2.4.2 =
 Fixes the collapsed and popover legal guarantee notice with themes such as WoodMart and Divi, the excluded-product notice on Divi 5 product layouts and its styles with optimisation plugins. Adds a filter to rename the withdrawal page in My Account. Tested up to WordPress 7.2.
 
@@ -366,8 +374,8 @@ For older changelog entries, please check the [changelog.txt](https://plugins.sv
 
 == Upgrade Notice ==
 
-= 2.4.2 =
-Fixes the collapsed and popover legal guarantee notice with themes such as WoodMart and Divi, the excluded-product notice on Divi 5 product layouts and its styles with optimisation plugins. Adds a filter to rename the withdrawal page in My Account. Tested up to WordPress 7.2.
+= 2.4.3 =
+Security release: fixes a stored XSS through the details field of the public withdrawal form, which reached the request record and its order note. Update as soon as possible. Order notes saved by earlier versions with such code are cleaned on update.
 
 == Support ==
 

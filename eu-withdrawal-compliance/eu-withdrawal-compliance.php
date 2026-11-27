@@ -3,7 +3,7 @@
  * Plugin Name:       EU Withdrawal and Legal Guarantee Compliance
  * Plugin URI:        https://servicios.ayudawp.com
  * Description:       Free EU consumer-rights toolkit: withdrawal function (Directive 2023/2673) and the harmonised legal guarantee notice (Directive 2024/825), checkout consents, Annex I.B model form, Article 16 exclusions, SHA-256 proof, native GDPR integration.
- * Version:           2.4.2
+ * Version:           2.4.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Fernando Tellado
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants.
-define( 'AYUDAWP_EUW_VERSION', '2.4.2' );
+define( 'AYUDAWP_EUW_VERSION', '2.4.3' );
 define( 'AYUDAWP_EUW_FILE', __FILE__ );
 define( 'AYUDAWP_EUW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'AYUDAWP_EUW_URL', plugin_dir_url( __FILE__ ) );
@@ -218,6 +218,10 @@ function ayudawp_euw_maybe_flush_rewrite_rules() {
 	// updating from 2.1.1 or earlier stored them the first time the settings
 	// page was saved, because the editors used to pre-fill each field.
 	ayudawp_euw_clear_stored_default_texts();
+
+	// Neutralise the "< tag" sequences that order notes written up to 2.4.2 kept
+	// and WooCommerce printed as markup on the order screen. Idempotent.
+	ayudawp_euw_escape_stored_order_notes();
 
 	// The guarantee notice module arrives switched off on an existing shop, and
 	// announces itself in the dashboard: it prints an official full-page notice

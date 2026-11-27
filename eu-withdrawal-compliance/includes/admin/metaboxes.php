@@ -130,7 +130,10 @@ function ayudawp_euw_metabox_content( $post ) {
 
 	echo '<h4>' . esc_html__( 'Additional information', 'eu-withdrawal-compliance' ) . '</h4>';
 	echo '<div class="ayudawp-euw-details">';
-	echo wp_kses_post( wpautop( $post->post_content ) );
+	// Plain text typed by the customer. Requests stored up to 2.4.2 can hold real
+	// tags (kses turned "< div" into "<div>" on save), so the content is always
+	// escaped here and only the paragraphs and line breaks are added back.
+	echo wp_kses( wpautop( esc_html( $post->post_content ) ), array( 'p' => array(), 'br' => array() ) );
 	echo '</div>';
 
 	ayudawp_euw_render_metabox_checkout_consents( (int) $post->ID );

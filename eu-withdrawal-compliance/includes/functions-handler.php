@@ -39,6 +39,23 @@ function ayudawp_euw_collect_form_data() {
 }
 
 /**
+ * Turn the customer's free-text details into the content stored on the request.
+ *
+ * The details are plain text. sanitize_textarea_field() keeps a "<" followed by
+ * a space, and wp_insert_post() runs the content through kses for a visitor,
+ * which turns "< div ...>" into a real <div> (wp_kses_split2() accepts spaces
+ * after the "<"). Escaping first leaves kses no tag to rebuild, so the stored
+ * content is the text the customer typed, as text. Every place that prints it
+ * escapes it again, which does not double-encode.
+ *
+ * @param string $details Details as returned by ayudawp_euw_collect_form_data().
+ * @return string Details with the HTML special characters encoded.
+ */
+function ayudawp_euw_details_for_storage( $details ) {
+	return esc_html( (string) $details );
+}
+
+/**
  * Validate a collected submission.
  *
  * On failure it redirects back with an error code and exits. On success it
@@ -278,7 +295,7 @@ function ayudawp_euw_handle_confirm() {
 			'post_type'    => 'ayudawp_withdrawal',
 			'post_status'  => 'publish',
 			'post_title'   => $post_title,
-			'post_content' => $data['details'],
+			'post_content' => ayudawp_euw_details_for_storage( $data['details'] ),
 		),
 		true
 	);
